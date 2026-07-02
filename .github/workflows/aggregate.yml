@@ -1,6 +1,9 @@
 name: Agregar noticias (RSS -> cola de revisión)
 
 on:
+  push:
+    branches: [claude/hoolsbrand-blog-aggregator-tlykwh]
+    paths: [.github/workflows/aggregate.yml]
   schedule:
     # Cada 3 horas. Ajusta la cadencia según cuánto contenido publiquen tus fuentes.
     - cron: "0 */3 * * *"
