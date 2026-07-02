@@ -31,13 +31,42 @@ function getEnv(name: string): string {
   return value;
 }
 
+// Las apps del Dev Dashboard de Shopify (desde 2026) ya no exponen un token
+// fijo: hay que canjear el Client ID + Client Secret por un access token de
+// corta duracion (~24h) en cada uso, via el grant "client_credentials".
+// https://shopify.dev/docs/apps/build/authentication-authorization/access-tokens/client-credentials-grant
+async function getAccessToken(domain: string): Promise<string> {
+  const clientId = getEnv("SHOPIFY_CLIENT_ID");
+  const clientSecret = getEnv("SHOPIFY_CLIENT_SECRET");
+
+  const res = await fetch(`https://${domain}/admin/oauth/access_token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "client_credentials",
+      client_id: clientId,
+      client_secret: clientSecret,
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Shopify OAuth token respondio ${res.status}: ${await res.text()}`);
+  }
+
+  const json = (await res.json()) as { access_token?: string };
+  if (!json.access_token) {
+    throw new Error("Shopify OAuth token: respuesta sin access_token");
+  }
+  return json.access_token;
+}
+
 async function shopifyAdminRequest<T>(
   query: string,
   variables: Record<string, unknown>
 ): Promise<T> {
   const domain = getEnv("SHOPIFY_STORE_DOMAIN");
-  const token = getEnv("SHOPIFY_ADMIN_ACCESS_TOKEN");
-  const apiVersion = process.env.SHOPIFY_API_VERSION || "2025-01";
+  const token = await getAccessToken(domain);
+  const apiVersion = process.env.SHOPIFY_API_VERSION || "2026-04";
 
   const res = await fetch(
     `https://${domain}/admin/api/${apiVersion}/graphql.json`,

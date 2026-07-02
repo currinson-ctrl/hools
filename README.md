@@ -65,15 +65,25 @@ La tienda `hoolsbrand.com` ya tiene un blog listo para esto: **"The Away
 End"** (handle `the-away-end`, id `gid://shopify/Blog/127456543059`) — ya
 está puesto por defecto en `.env.example`.
 
-Para conseguir el token de acceso:
+Desde 2026 Shopify mueve la creación de apps personalizadas al **Dev
+Dashboard** y ya no expone un token fijo desde la interfaz — la app se
+canjea Client ID + Client Secret por un access token de ~24h en cada
+llamada (lo hace `src/lib/shopify.ts` automáticamente, no hay que tocar nada
+en producción salvo tener las credenciales puestas).
 
-1. Shopify Admin → **Configuración → Apps y canales de venta → Desarrollar apps**.
-2. Crea una app (ej. "Blog Aggregator").
-3. En "Configuración de API Admin", concede estos scopes:
-   `read_content`, `write_content`, `read_online_store_pages`, `write_online_store_pages`.
-4. Instala la app y copia el **Admin API access token** → `SHOPIFY_ADMIN_ACCESS_TOKEN`.
-5. `SHOPIFY_STORE_DOMAIN` es el dominio `.myshopify.com` de la tienda:
+1. Shopify Admin → **Configuración → Apps y canales de venta → Desarrollar apps → Desarrollar apps en Dev Dashboard**.
+2. Crea una app (ej. "Blog Aggregator"), opción **"Empezar desde Dev Dashboard"**.
+3. En **"Alcances"** (Access → Scopes) añade: `read_content,write_content,read_online_store_pages,write_online_store_pages`.
+4. Marca **"Usar flujo de instalación heredado"** y publica la versión.
+5. Instala la app en la tienda Hools (botón "Instalar app" en la vista general).
+6. Ve a la pestaña **"Configuración"** de la app → **"Credenciales"** y copia
+   **"ID de cliente"** → `SHOPIFY_CLIENT_ID` y **"Secreto"** → `SHOPIFY_CLIENT_SECRET`.
+7. `SHOPIFY_STORE_DOMAIN` es el dominio `.myshopify.com` de la tienda:
    `s001ux-0y.myshopify.com` (ya puesto por defecto).
+
+(La sección "Token de automatización de la app" que también aparece en esa
+pantalla es para otro caso de uso — CI/CD del propio Shopify CLI — y **no**
+sirve como credencial de la Admin API; no la uses aquí.)
 
 ### 2. X (Twitter) API v2
 
