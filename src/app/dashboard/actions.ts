@@ -8,7 +8,8 @@ import { isTwitterConfigured, postTweet } from "@/lib/twitter";
 import { Category } from "@prisma/client";
 
 function withError(basePath: string, message: string): never {
-  redirect(`${basePath}?error=${encodeURIComponent(message)}`);
+  const separator = basePath.includes("?") ? "&" : "?";
+  redirect(`${basePath}${separator}error=${encodeURIComponent(message)}`);
 }
 
 export async function updateArticleAction(formData: FormData) {

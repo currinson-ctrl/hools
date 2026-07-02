@@ -17,7 +17,9 @@ export default async function DashboardPage({
   searchParams: Promise<{ status?: string; error?: string }>;
 }) {
   const params = await searchParams;
-  const status = (params.status as ArticleStatus) || "PENDING";
+  const requested = params.status as ArticleStatus | undefined;
+  const status: ArticleStatus =
+    requested && requested in STATUS_LABEL ? requested : "PENDING";
   const returnTo = `/dashboard?status=${status}`;
 
   const articles = await prisma.article.findMany({
