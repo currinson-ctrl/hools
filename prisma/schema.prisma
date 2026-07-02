@@ -1,10 +1,9 @@
-// Local dev defaults to SQLite so `npm run db:migrate` works with zero setup.
-// For production (Vercel/serverless) switch provider to "postgresql" and point
-// DATABASE_URL at a hosted Postgres (Neon/Vercel Postgres both have free tiers) —
-// SQLite's file lives on ephemeral disk on most serverless hosts and will not persist.
-// See README.md "Base de datos" section.
+// Postgres, porque el destino es Vercel (serverless): el disco no es
+// persistente ahi, asi que SQLite no vale para produccion. Usa la misma
+// base (ej. Neon, capa gratuita) tanto en local como en produccion para
+// no complicar la configuracion. Ver README.md "Base de datos".
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

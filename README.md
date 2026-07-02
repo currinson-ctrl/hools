@@ -33,10 +33,14 @@ dashboard antes de aprobar si hace falta.
 
 ## Puesta en marcha local
 
+Necesitas una base Postgres incluso en local (ver "Base de datos" abajo) —
+la más simple es crear una gratis en [Neon](https://neon.tech) y usar la
+misma cadena de conexión aquí y en producción.
+
 ```bash
 npm install
-cp .env.example .env   # rellena las variables (ver abajo)
-npm run db:migrate     # crea la base SQLite local
+cp .env.example .env   # rellena DATABASE_URL y el resto de variables (ver abajo)
+npm run db:deploy      # aplica las migraciones a esa base Postgres
 npm run db:seed        # carga el catálogo inicial de fuentes RSS
 npm run dev
 ```
@@ -93,22 +97,30 @@ administrando, no hay multiusuario.
 
 ## Base de datos
 
-Por defecto usa SQLite (`DATABASE_URL="file:./dev.db"`), perfecto para
-desarrollo local. **En producción sobre Vercel u otro hosting serverless, el
-disco no es persistente** — cambia `provider = "sqlite"` a
-`provider = "postgresql"` en `prisma/schema.prisma` y usa una base Postgres
-gestionada (p.ej. [Neon](https://neon.tech) o Vercel Postgres, ambos con capa
-gratuita). Después: `npm run db:deploy` para aplicar las migraciones.
+El esquema usa Postgres (`prisma/schema.prisma`), porque en Vercel (y en
+cualquier hosting serverless) el disco no es persistente y SQLite perdería
+los datos en cada despliegue. Usa una base gestionada gratuita, p.ej.
+[Neon](https://neon.tech).
 
-## Despliegue recomendado
+El propio `npm run build` ejecuta `prisma migrate deploy` (crea/actualiza las
+tablas) y siembra el catálogo de fuentes (`prisma/seed.ts`, idempotente) antes
+de compilar — así que en Vercel no hace falta ejecutar nada a mano: basta con
+tener `DATABASE_URL` configurada como variable de entorno antes del primer
+despliegue.
 
-1. **Vercel** para la app Next.js (build automático, `npm run build`).
-2. Configura ahí todas las variables de `.env.example` como variables de entorno.
-3. En el repositorio de GitHub, añade estos **secrets** (Settings → Secrets and
+## Despliegue recomendado (Vercel)
+
+1. Crea una base en [Neon](https://neon.tech) y copia su cadena de conexión → `DATABASE_URL`.
+2. En [vercel.com](https://vercel.com), importa este repositorio de GitHub.
+3. Antes de desplegar, añade en "Environment Variables" todas las de
+   `.env.example` (como mínimo `DATABASE_URL`, `DASHBOARD_PASSWORD`,
+   `SESSION_SECRET`, `CRON_SECRET`; Shopify/X se pueden añadir después).
+4. Despliega. La URL pública que te da Vercel (ej. `https://hools-blog.vercel.app`) es tu `APP_URL`.
+5. En el repositorio de GitHub, añade estos **secrets** (Settings → Secrets and
    variables → Actions) para que el cron de agregación funcione:
-   - `APP_URL`: URL pública desplegada (ej. `https://blog-hools.vercel.app`)
+   - `APP_URL`: la URL del paso anterior
    - `CRON_SECRET`: el mismo valor que pusiste en Vercel
-4. El workflow `.github/workflows/aggregate.yml` llama a
+6. El workflow `.github/workflows/aggregate.yml` llama a
    `/api/cron/fetch` cada 3 horas (ajustable) para rellenar la cola de
    revisión. También se puede lanzar a mano desde la pestaña "Actions" del repo.
 
