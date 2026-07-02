@@ -1,0 +1,68 @@
+// Local dev defaults to SQLite so `npm run db:migrate` works with zero setup.
+// For production (Vercel/serverless) switch provider to "postgresql" and point
+// DATABASE_URL at a hosted Postgres (Neon/Vercel Postgres both have free tiers) —
+// SQLite's file lives on ephemeral disk on most serverless hosts and will not persist.
+// See README.md "Base de datos" section.
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Category {
+  AFICION // noticias/movimiento de aficion y ultras
+  VIAJES // desplazamientos, viajes de hinchas, groundhopping
+  MODA // moda casual / terrace fashion
+}
+
+enum ArticleStatus {
+  PENDING // recien agregado, esperando revision humana
+  APPROVED // aprobado, publicacion en curso
+  REJECTED // descartado en la revision
+  PUBLISHED // ya publicado en el blog de Shopify (y opcionalmente en X)
+}
+
+model Source {
+  id        String    @id @default(cuid())
+  name      String
+  feedUrl   String    @unique
+  category  Category
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  articles  Article[]
+}
+
+model Article {
+  id        String   @id @default(cuid())
+  sourceId  String
+  source    Source   @relation(fields: [sourceId], references: [id])
+  category  Category
+
+  // datos originales del feed, para trazabilidad y evitar duplicados
+  guid          String @unique
+  originalUrl   String
+  originalTitle String
+
+  // contenido editable en la cola de revision antes de publicar
+  title     String
+  excerpt   String // HTML corto: resumen propio + cita breve + enlace "leer mas en <fuente>"
+  tweetText String
+  imageUrl  String?
+  tags      String // comma-separated
+
+  status ArticleStatus @default(PENDING)
+
+  shopifyArticleId String? // gid://shopify/Article/...
+  shopifyHandle    String?
+  tweetId          String?
+
+  reviewedAt  DateTime?
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([status])
+}

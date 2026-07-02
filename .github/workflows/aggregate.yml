@@ -1,0 +1,23 @@
+name: Agregar noticias (RSS -> cola de revisión)
+
+on:
+  schedule:
+    # Cada 3 horas. Ajusta la cadencia según cuánto contenido publiquen tus fuentes.
+    - cron: "0 */3 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Llamar al endpoint de agregación
+        run: |
+          status=$(curl -s -o /tmp/response.json -w "%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.APP_URL }}/api/cron/fetch")
+          echo "HTTP status: $status"
+          cat /tmp/response.json
+          if [ "$status" -ge 300 ]; then
+            echo "El endpoint de agregación devolvió un error"
+            exit 1
+          fi
