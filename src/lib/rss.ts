@@ -1,7 +1,8 @@
 import Parser from "rss-parser";
 import type { Category, Source } from "@prisma/client";
-import { CATEGORY_HASHTAGS } from "./sources";
+import { CATEGORY_HASHTAGS, CATEGORY_IMAGE_HINT } from "./sources";
 import { translateToSpanish } from "./translate";
+import { searchRelatedImage } from "./image-search";
 
 // Cuantas traducciones lanzar en paralelo por fuente. Vercel (plan Hobby)
 // corta la funcion a los 60s, asi que preferimos varias llamadas a la vez
@@ -115,6 +116,14 @@ async function buildDraft(
     MAX_TWEET_CHARS - 24 // deja hueco para el enlace que se añade al publicar
   );
 
+  let imageUrl = extractImage(item);
+  if (!imageUrl) {
+    const hint = CATEGORY_IMAGE_HINT[source.category];
+    imageUrl =
+      (await searchRelatedImage(`${originalTitle} ${hint}`)) ??
+      (await searchRelatedImage(hint));
+  }
+
   return {
     guid,
     originalUrl,
@@ -122,7 +131,7 @@ async function buildDraft(
     title: esTitle,
     excerpt,
     tweetText,
-    imageUrl: extractImage(item),
+    imageUrl,
     tags: [source.category, source.name].join(","),
     category: source.category,
   };

@@ -66,3 +66,12 @@ export const CATEGORY_HASHTAGS: Record<Category, string[]> = {
   VIAJES: ["#Desplazamientos", "#AwayDays", "#Futbol"],
   MODA: ["#Casual", "#TerraceFashion", "#Hools"],
 };
+
+// Consulta de respaldo para buscar una foto de stock cuando la fuente RSS
+// no trae ninguna imagen. En ingles porque el banco de imagenes (Openverse)
+// tiene mejor cobertura/etiquetado en ingles.
+export const CATEGORY_IMAGE_HINT: Record<Category, string> = {
+  AFICION: "football fans stadium crowd",
+  VIAJES: "football fans travel stadium",
+  MODA: "streetwear casual fashion",
+};
