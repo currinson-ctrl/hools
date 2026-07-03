@@ -59,6 +59,26 @@ function isHttpUrl(value: string): boolean {
   }
 }
 
+// Hosts que sirven iconos/avatares genericos en vez de fotos reales del
+// contenido (ej. el icono generico que Reddit incrusta en el HTML de los
+// posts de solo texto). Si la imagen extraida viene de aqui, se trata como
+// si no hubiera imagen para que entre en juego la busqueda de respaldo.
+const NON_CONTENT_IMAGE_HOSTS = [
+  "redditstatic.com",
+  "styles.redditmedia.com",
+  "emoji.redditmedia.com",
+];
+
+function isRealContentImage(url: string): boolean {
+  if (!isHttpUrl(url)) return false;
+  try {
+    const host = new URL(url).hostname;
+    return !NON_CONTENT_IMAGE_HOSTS.some((blocked) => host.endsWith(blocked));
+  } catch {
+    return false;
+  }
+}
+
 type FeedItem = Parser.Item & {
   id?: string;
   "content:encoded"?: string;
@@ -67,17 +87,17 @@ type FeedItem = Parser.Item & {
 
 function extractImage(item: FeedItem): string | null {
   const enclosure = item.enclosure as { url?: string } | undefined;
-  if (enclosure?.url && isHttpUrl(enclosure.url)) return enclosure.url;
+  if (enclosure?.url && isRealContentImage(enclosure.url)) return enclosure.url;
 
   const mediaContent = item["media:content"];
   const mediaUrl = Array.isArray(mediaContent)
     ? mediaContent[0]?.$?.url
     : mediaContent?.$?.url;
-  if (mediaUrl && isHttpUrl(mediaUrl)) return mediaUrl;
+  if (mediaUrl && isRealContentImage(mediaUrl)) return mediaUrl;
 
   const html = item["content:encoded"] || item.content || "";
   const match = /<img[^>]+src=["']([^"']+)["']/i.exec(html);
-  if (match && isHttpUrl(match[1])) return match[1];
+  if (match && isRealContentImage(match[1])) return match[1];
 
   return null;
 }
@@ -124,9 +144,15 @@ async function buildDraft(
   let imageUrl = extractImage(item);
   if (!imageUrl) {
     const hint = CATEGORY_IMAGE_HINT[source.category];
+    console.log(`Sin imagen propia para "${originalTitle}", buscando en Openverse...`);
     imageUrl =
       (await searchRelatedImage(`${originalTitle} ${hint}`)) ??
       (await searchRelatedImage(hint));
+    console.log(
+      imageUrl
+        ? `Imagen de respaldo encontrada para "${originalTitle}": ${imageUrl}`
+        : `Openverse no devolvio ninguna imagen para "${originalTitle}"`
+    );
   }
 
   return {
