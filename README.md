@@ -26,10 +26,14 @@ Dashboard privado /dashboard  →  tú revisas, editas título/resumen/tuit,
 Publica en Shopify (blog "The Away End") + publica tuit en X
 ```
 
-Cada noticia agregada NO copia el artículo original completo: genera un
-resumen corto + una cita breve + un enlace "Fuente: ..." al medio original.
-Esto es intencional por derechos de autor — revisa y ajusta el texto en el
-dashboard antes de aprobar si hace falta.
+Cada noticia agregada NO copia el artículo original completo: durante el
+rastreo, Claude (Anthropic) reescribe el titular y el resumen en español de
+España (no es una traducción literal, adapta el estilo) + una cita breve +
+un enlace "Fuente: ..." al medio original. Esto es intencional por derechos
+de autor — revisa y ajusta el texto en el dashboard antes de aprobar si hace
+falta. Si `ANTHROPIC_API_KEY` no está configurada o falla la llamada, esa
+noticia en concreto se queda en su idioma original en vez de bloquear el
+resto del rastreo.
 
 ## Puesta en marcha local
 
@@ -85,7 +89,14 @@ en producción salvo tener las credenciales puestas).
 pantalla es para otro caso de uso — CI/CD del propio Shopify CLI — y **no**
 sirve como credencial de la Admin API; no la uses aquí.)
 
-### 2. X (Twitter) API v2
+### 2. Traducción/reescritura en español (Claude)
+
+1. Crea una cuenta en https://console.anthropic.com si no tienes una.
+2. Genera una clave de API → `ANTHROPIC_API_KEY`.
+3. Coste: para este volumen de noticias (decenas al día) es del orden de
+   céntimos al mes con el modelo usado (Claude Haiku).
+
+### 3. X (Twitter) API v2
 
 1. Cuenta de desarrollador en https://developer.x.com (nota: publicar por API
    requiere un plan de pago de la API de X, incluso en el nivel más básico).
@@ -99,7 +110,7 @@ sirve como credencial de la Admin API; no la uses aquí.)
 Si estas variables no están configuradas, el sistema sigue publicando en el
 blog de Shopify con normalidad y simplemente omite el tuit (no falla).
 
-### 3. Acceso al dashboard
+### 4. Acceso al dashboard
 
 `DASHBOARD_PASSWORD` (contraseña única de acceso) y `SESSION_SECRET` (cadena
 aleatoria larga, ej. `openssl rand -hex 32`) — es una única persona/cuenta
@@ -152,7 +163,6 @@ la automatización del rastreo (lo tedioso) sin ceder el control editorial.
 
 ## Próximos pasos posibles (no implementados)
 
-- Generación de resúmenes con un LLM en vez de recorte simple del snippet RSS.
 - Instagram/Facebook (requieren cuenta Business + app en Meta for Developers;
   no incluido en este MVP, se pidió arrancar solo con X).
 - Aviso por email/Slack cuando hay nuevos pendientes en la cola.

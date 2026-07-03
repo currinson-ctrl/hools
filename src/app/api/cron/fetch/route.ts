@@ -19,6 +19,16 @@ export async function GET(request: Request) {
 
   const sources = await prisma.source.findMany({ where: { active: true } });
 
+  // Se rastrean todas las fuentes a la vez (cada una ya traduce sus propias
+  // noticias con cierto paralelismo interno) para no acercarnos al limite
+  // de 60s de las funciones serverless de Vercel (plan Hobby).
+  const perSource = await Promise.all(
+    sources.map(async (source) => ({
+      source,
+      ...(await fetchDraftsForSource(source)),
+    }))
+  );
+
   const results: Array<{
     source: string;
     fetched: number;
@@ -26,8 +36,7 @@ export async function GET(request: Request) {
     error: string | null;
   }> = [];
 
-  for (const source of sources) {
-    const { drafts, error } = await fetchDraftsForSource(source);
+  for (const { source, drafts, error } of perSource) {
     let created = 0;
 
     for (const draft of drafts) {

@@ -1,6 +1,12 @@
 import Parser from "rss-parser";
 import type { Category, Source } from "@prisma/client";
 import { CATEGORY_HASHTAGS } from "./sources";
+import { translateToSpanish } from "./translate";
+
+// Cuantas traducciones lanzar en paralelo por fuente. Vercel (plan Hobby)
+// corta la funcion a los 60s, asi que preferimos varias llamadas a la vez
+// en vez de una por una.
+const TRANSLATE_CONCURRENCY = 4;
 
 const parser = new Parser({
   timeout: 15_000,
@@ -75,10 +81,10 @@ function extractImage(item: FeedItem): string | null {
   return null;
 }
 
-function buildDraft(
+async function buildDraft(
   item: FeedItem,
   source: Pick<Source, "name" | "category">
-): DraftArticle | null {
+): Promise<DraftArticle | null> {
   const originalUrl = item.link;
   if (!originalUrl || !isHttpUrl(originalUrl)) return null;
 
@@ -89,7 +95,12 @@ function buildDraft(
     item.contentSnippet || stripHtml(item.content || item.summary || "");
   const snippet = truncate(stripHtml(rawSnippet), MAX_EXCERPT_CHARS);
 
-  const safeSnippet = escapeHtml(snippet);
+  const { title: esTitle, summary: esSummary } = await translateToSpanish({
+    originalTitle,
+    snippet,
+  });
+
+  const safeSnippet = escapeHtml(esSummary);
   const safeSourceName = escapeHtml(source.name);
   const safeUrl = escapeHtml(originalUrl);
 
@@ -100,7 +111,7 @@ function buildDraft(
 
   const hashtags = CATEGORY_HASHTAGS[source.category].join(" ");
   const tweetText = truncate(
-    `${originalTitle}\n\n${hashtags}`,
+    `${esTitle}\n\n${hashtags}`,
     MAX_TWEET_CHARS - 24 // deja hueco para el enlace que se añade al publicar
   );
 
@@ -108,7 +119,7 @@ function buildDraft(
     guid,
     originalUrl,
     originalTitle,
-    title: originalTitle,
+    title: esTitle,
     excerpt,
     tweetText,
     imageUrl: extractImage(item),
@@ -117,15 +128,40 @@ function buildDraft(
   };
 }
 
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < items.length) {
+      const current = nextIndex++;
+      results[current] = await fn(items[current]);
+    }
+  }
+
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, () => worker())
+  );
+  return results;
+}
+
 export async function fetchDraftsForSource(
   source: Pick<Source, "name" | "category" | "feedUrl">
 ): Promise<{ drafts: DraftArticle[]; error: string | null }> {
   try {
     const feed = await parser.parseURL(source.feedUrl);
-    const drafts = (feed.items || [])
-      .map((item) => buildDraft(item as FeedItem, source))
-      .filter((d): d is DraftArticle => d !== null);
-    return { drafts, error: null };
+    const items = (feed.items || []) as FeedItem[];
+    const drafts = await mapWithConcurrency(items, TRANSLATE_CONCURRENCY, (item) =>
+      buildDraft(item, source)
+    );
+    return {
+      drafts: drafts.filter((d): d is DraftArticle => d !== null),
+      error: null,
+    };
   } catch (err) {
     return {
       drafts: [],
