@@ -1,6 +1,5 @@
 import Parser from "rss-parser";
 import type { Category, Source } from "@prisma/client";
-import { prisma } from "./db";
 import { CATEGORY_HASHTAGS, CATEGORY_IMAGE_HINT } from "./sources";
 import { translateToSpanish } from "./translate";
 import { searchRelatedImage } from "./image-search";
@@ -15,7 +14,7 @@ const TRANSLATE_CONCURRENCY = 6;
 // que acotar el peor caso para no superar el limite de 60s de Vercel; si
 // una fuente acumula mas noticias nuevas que esto, el resto se recogen en
 // la siguiente pasada del cron (no se pierden, solo se retrasan).
-const MAX_ITEMS_PER_SOURCE = 8;
+const MAX_ITEMS_PER_SOURCE = 4;
 
 const parser = new Parser({
   timeout: 15_000,
@@ -197,18 +196,24 @@ async function mapWithConcurrency<T, R>(
   return results;
 }
 
-export async function fetchDraftsForSource(
-  source: Pick<Source, "name" | "category" | "feedUrl">
-): Promise<{ drafts: DraftArticle[]; error: string | null }> {
+export interface FeedCandidate {
+  item: FeedItem;
+  guid: string;
+}
+
+/**
+ * Solo descarga y parsea el feed (rapido, sin tocar la base ni llamar a
+ * Claude/Openverse). Se separa de la generacion de borradores para poder
+ * hacer UNA sola consulta de deduplicacion para todas las fuentes a la vez
+ * en vez de una por fuente (con varias fuentes en paralelo, cada consulta
+ * suya a Postgres se suma y puede acercar la funcion al limite de tiempo).
+ */
+export async function parseFeedCandidates(
+  source: Pick<Source, "feedUrl">
+): Promise<{ candidates: FeedCandidate[]; error: string | null }> {
   try {
     const feed = await parser.parseURL(source.feedUrl);
     const items = (feed.items || []) as FeedItem[];
-
-    // Descarta primero (barato, sin llamar a Claude/Openverse) los items que
-    // ya existen en la base, y acota el resto al tope por pasada: los
-    // articulos son mas caros de generar ahora (mas largos), asi que hay
-    // que limitar el peor caso para no superar el limite de 60s de Vercel.
-    // Lo que sobre se recoge en la siguiente pasada del cron.
     const candidates = items
       .map((item) => {
         const originalUrl = item.link;
@@ -216,35 +221,33 @@ export async function fetchDraftsForSource(
         const guid = item.guid || item.id || originalUrl;
         return { item, guid };
       })
-      .filter((c): c is { item: FeedItem; guid: string } => c !== null);
-
-    const guids = candidates.map((c) => c.guid);
-    const existing = guids.length
-      ? await prisma.article.findMany({
-          where: { guid: { in: guids } },
-          select: { guid: true },
-        })
-      : [];
-    const existingGuids = new Set(existing.map((e) => e.guid));
-
-    const newCandidates = candidates
-      .filter((c) => !existingGuids.has(c.guid))
-      .slice(0, MAX_ITEMS_PER_SOURCE);
-
-    const drafts = await mapWithConcurrency(
-      newCandidates,
-      TRANSLATE_CONCURRENCY,
-      (c) => buildDraft(c.item, source)
-    );
-
-    return {
-      drafts: drafts.filter((d): d is DraftArticle => d !== null),
-      error: null,
-    };
+      .filter((c): c is FeedCandidate => c !== null);
+    return { candidates, error: null };
   } catch (err) {
     return {
-      drafts: [],
+      candidates: [],
       error: err instanceof Error ? err.message : "Error desconocido al leer el feed",
     };
   }
+}
+
+/**
+ * A partir de los candidatos ya parseados, descarta los que ya existen
+ * (segun el set de guids conocidos, calculado una sola vez para todas las
+ * fuentes) y traduce/genera como maximo MAX_ITEMS_PER_SOURCE de los nuevos.
+ */
+export async function buildDraftsFromCandidates(
+  candidates: FeedCandidate[],
+  source: Pick<Source, "name" | "category">,
+  existingGuids: Set<string>
+): Promise<DraftArticle[]> {
+  const newCandidates = candidates
+    .filter((c) => !existingGuids.has(c.guid))
+    .slice(0, MAX_ITEMS_PER_SOURCE);
+
+  const drafts = await mapWithConcurrency(newCandidates, TRANSLATE_CONCURRENCY, (c) =>
+    buildDraft(c.item, source)
+  );
+
+  return drafts.filter((d): d is DraftArticle => d !== null);
 }

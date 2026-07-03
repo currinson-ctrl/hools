@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { fetchDraftsForSource } from "@/lib/rss";
+import { buildDraftsFromCandidates, parseFeedCandidates } from "@/lib/rss";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+// El plan Hobby normalmente limita a 60s, pero con Fluid Compute algunos
+// proyectos permiten mas: se pide 280s (por debajo del limite duro de 300s
+// de Pro) y si Vercel lo recorta a 60 no pasa nada, el codigo ya esta
+// pensado para funcionar tambien dentro de ese margen mas estricto.
+export const maxDuration = 280;
 
 function isAuthorized(request: Request): boolean {
   const secret = process.env.CRON_SECRET;
@@ -19,13 +23,33 @@ export async function GET(request: Request) {
 
   const sources = await prisma.source.findMany({ where: { active: true } });
 
-  // Se rastrean todas las fuentes a la vez (cada una ya traduce sus propias
-  // noticias con cierto paralelismo interno) para no acercarnos al limite
-  // de 60s de las funciones serverless de Vercel (plan Hobby).
-  const perSource = await Promise.all(
+  // 1. Descargar y parsear todos los feeds a la vez (rapido, sin tocar la
+  // base ni llamar a Claude/Openverse todavia).
+  const parsed = await Promise.all(
     sources.map(async (source) => ({
       source,
-      ...(await fetchDraftsForSource(source)),
+      ...(await parseFeedCandidates(source)),
+    }))
+  );
+
+  // 2. Una unica consulta a la base para saber que guids ya existen, en vez
+  // de una consulta por fuente (menos ida y vuelta a Postgres).
+  const allGuids = parsed.flatMap((p) => p.candidates.map((c) => c.guid));
+  const existingRows = (allGuids.length
+    ? await prisma.article.findMany({
+        where: { guid: { in: allGuids } },
+        select: { guid: true },
+      })
+    : []) as { guid: string }[];
+  const existingGuids = new Set(existingRows.map((r) => r.guid));
+
+  // 3. Generar (traducir) solo los items nuevos, acotados por fuente, todas
+  // las fuentes en paralelo.
+  const perSource = await Promise.all(
+    parsed.map(async ({ source, candidates, error }) => ({
+      source,
+      error,
+      drafts: error ? [] : await buildDraftsFromCandidates(candidates, source, existingGuids),
     }))
   );
 
