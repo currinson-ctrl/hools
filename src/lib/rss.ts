@@ -26,7 +26,7 @@ export interface DraftArticle {
   category: Category;
 }
 
-const MAX_EXCERPT_CHARS = 480;
+const MAX_SOURCE_CHARS = 2000; // texto original que se le pasa a Claude como punto de partida
 const MAX_TWEET_CHARS = 280;
 
 function stripHtml(input: string): string {
@@ -94,19 +94,24 @@ async function buildDraft(
 
   const rawSnippet =
     item.contentSnippet || stripHtml(item.content || item.summary || "");
-  const snippet = truncate(stripHtml(rawSnippet), MAX_EXCERPT_CHARS);
+  const snippet = truncate(stripHtml(rawSnippet), MAX_SOURCE_CHARS);
 
-  const { title: esTitle, summary: esSummary } = await translateToSpanish({
+  const { title: esTitle, body: esBody } = await translateToSpanish({
     originalTitle,
     snippet,
   });
 
-  const safeSnippet = escapeHtml(esSummary);
   const safeSourceName = escapeHtml(source.name);
   const safeUrl = escapeHtml(originalUrl);
 
+  const bodyParagraphs = esBody
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .map((p) => `<p>${escapeHtml(p)}</p>`);
+
   const excerpt = [
-    `<p>${safeSnippet}</p>`,
+    ...bodyParagraphs,
     `<p><em>Fuente: <a href="${safeUrl}" target="_blank" rel="noopener noreferrer nofollow">${safeSourceName}</a></em></p>`,
   ].join("\n");
 
