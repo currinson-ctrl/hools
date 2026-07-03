@@ -123,10 +123,16 @@ async function buildDraft(
     item.contentSnippet || stripHtml(item.content || item.summary || "");
   const snippet = truncate(stripHtml(rawSnippet), MAX_SOURCE_CHARS);
 
-  const { title: esTitle, body: esBody } = await translateToSpanish({
+  const translated = await translateToSpanish({
     originalTitle,
     snippet,
+    category: source.category,
   });
+  if (!translated) {
+    console.log(`Descartada por no encajar en el tema: "${originalTitle}"`);
+    return null;
+  }
+  const { title: esTitle, body: esBody } = translated;
 
   const safeSourceName = escapeHtml(source.name);
   const safeUrl = escapeHtml(originalUrl);
