@@ -1,5 +1,6 @@
 import Parser from "rss-parser";
 import type { Category, Source } from "@prisma/client";
+import { prisma } from "./db";
 import { CATEGORY_HASHTAGS, CATEGORY_IMAGE_HINT } from "./sources";
 import { translateToSpanish } from "./translate";
 import { searchRelatedImage } from "./image-search";
@@ -7,7 +8,14 @@ import { searchRelatedImage } from "./image-search";
 // Cuantas traducciones lanzar en paralelo por fuente. Vercel (plan Hobby)
 // corta la funcion a los 60s, asi que preferimos varias llamadas a la vez
 // en vez de una por una.
-const TRANSLATE_CONCURRENCY = 4;
+const TRANSLATE_CONCURRENCY = 6;
+
+// Tope de items nuevos a procesar por fuente en cada pasada. Los articulos
+// ahora son mas largos (mas tokens = mas tiempo de generacion), asi que hay
+// que acotar el peor caso para no superar el limite de 60s de Vercel; si
+// una fuente acumula mas noticias nuevas que esto, el resto se recogen en
+// la siguiente pasada del cron (no se pierden, solo se retrasan).
+const MAX_ITEMS_PER_SOURCE = 8;
 
 const parser = new Parser({
   timeout: 15_000,
@@ -195,9 +203,40 @@ export async function fetchDraftsForSource(
   try {
     const feed = await parser.parseURL(source.feedUrl);
     const items = (feed.items || []) as FeedItem[];
-    const drafts = await mapWithConcurrency(items, TRANSLATE_CONCURRENCY, (item) =>
-      buildDraft(item, source)
+
+    // Descarta primero (barato, sin llamar a Claude/Openverse) los items que
+    // ya existen en la base, y acota el resto al tope por pasada: los
+    // articulos son mas caros de generar ahora (mas largos), asi que hay
+    // que limitar el peor caso para no superar el limite de 60s de Vercel.
+    // Lo que sobre se recoge en la siguiente pasada del cron.
+    const candidates = items
+      .map((item) => {
+        const originalUrl = item.link;
+        if (!originalUrl || !isHttpUrl(originalUrl)) return null;
+        const guid = item.guid || item.id || originalUrl;
+        return { item, guid };
+      })
+      .filter((c): c is { item: FeedItem; guid: string } => c !== null);
+
+    const guids = candidates.map((c) => c.guid);
+    const existing = guids.length
+      ? await prisma.article.findMany({
+          where: { guid: { in: guids } },
+          select: { guid: true },
+        })
+      : [];
+    const existingGuids = new Set(existing.map((e) => e.guid));
+
+    const newCandidates = candidates
+      .filter((c) => !existingGuids.has(c.guid))
+      .slice(0, MAX_ITEMS_PER_SOURCE);
+
+    const drafts = await mapWithConcurrency(
+      newCandidates,
+      TRANSLATE_CONCURRENCY,
+      (c) => buildDraft(c.item, source)
     );
+
     return {
       drafts: drafts.filter((d): d is DraftArticle => d !== null),
       error: null,

@@ -43,7 +43,7 @@ export async function translateToSpanish(input: {
   try {
     const message = await getClient().messages.create({
       model: MODEL,
-      max_tokens: 1200,
+      max_tokens: 900,
       messages: [
         {
           role: "user",
