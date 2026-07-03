@@ -39,9 +39,14 @@ async function getAccessToken(domain: string): Promise<string> {
   const clientId = getEnv("SHOPIFY_CLIENT_ID");
   const clientSecret = getEnv("SHOPIFY_CLIENT_SECRET");
 
+  const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
+
   const res = await fetch(`https://${domain}/admin/oauth/access_token`, {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Authorization: `Basic ${basicAuth}`,
+    },
     body: new URLSearchParams({
       grant_type: "client_credentials",
       client_id: clientId,
