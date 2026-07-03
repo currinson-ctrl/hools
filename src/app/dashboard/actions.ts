@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { publishArticleToShopify } from "@/lib/shopify";
+import { deleteArticleFromShopify, publishArticleToShopify } from "@/lib/shopify";
 import { isTwitterConfigured, postTweet } from "@/lib/twitter";
 import { Category } from "@prisma/client";
 
@@ -77,6 +77,37 @@ export async function approveArticleAction(formData: FormData) {
     const message = err instanceof Error ? err.message : "Error al publicar";
     withError(returnTo, message);
   }
+
+  revalidatePath("/dashboard");
+  redirect(returnTo);
+}
+
+export async function unpublishArticleAction(formData: FormData) {
+  const id = String(formData.get("id"));
+  const returnTo = String(formData.get("returnTo") || "/dashboard");
+
+  const article = await prisma.article.findUnique({ where: { id } });
+  if (!article) withError(returnTo, "Artículo no encontrado");
+
+  try {
+    if (article!.shopifyArticleId) {
+      await deleteArticleFromShopify(article!.shopifyArticleId);
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Error al eliminar de Shopify";
+    withError(returnTo, message);
+  }
+
+  await prisma.article.update({
+    where: { id },
+    data: {
+      status: "REJECTED",
+      shopifyArticleId: null,
+      shopifyHandle: null,
+      tweetId: null,
+      publishedAt: null,
+    },
+  });
 
   revalidatePath("/dashboard");
   redirect(returnTo);

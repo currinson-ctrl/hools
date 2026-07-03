@@ -10,6 +10,13 @@ interface ArticleCreateResponse {
   };
 }
 
+interface ArticleDeleteResponse {
+  articleDelete: {
+    deletedArticleId: string | null;
+    userErrors: Array<{ field: string[] | null; message: string }>;
+  };
+}
+
 const ARTICLE_CREATE_MUTATION = /* GraphQL */ `
   mutation CreateArticle($article: ArticleCreateInput!) {
     articleCreate(article: $article) {
@@ -17,6 +24,18 @@ const ARTICLE_CREATE_MUTATION = /* GraphQL */ `
         id
         handle
       }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
+const ARTICLE_DELETE_MUTATION = /* GraphQL */ `
+  mutation DeleteArticle($id: ID!) {
+    articleDelete(id: $id) {
+      deletedArticleId
       userErrors {
         field
         message
@@ -142,4 +161,20 @@ export async function publishArticleToShopify(
   }
 
   return { shopifyArticleId: article.id, handle: article.handle };
+}
+
+export async function deleteArticleFromShopify(shopifyArticleId: string): Promise<void> {
+  const data = await shopifyAdminRequest<ArticleDeleteResponse>(ARTICLE_DELETE_MUTATION, {
+    id: shopifyArticleId,
+  });
+
+  const { userErrors } = data.articleDelete;
+  const alreadyGone = userErrors.some((e) =>
+    /not found|does not exist|no existe/i.test(e.message)
+  );
+  if (userErrors.length && !alreadyGone) {
+    throw new Error(
+      `Shopify articleDelete userErrors: ${userErrors.map((e) => e.message).join("; ")}`
+    );
+  }
 }

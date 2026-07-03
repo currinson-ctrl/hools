@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { ArticleStatus } from "@prisma/client";
 import { CATEGORY_LABEL } from "@/lib/sources";
-import { approveArticleAction, rejectArticleAction } from "./actions";
+import { approveArticleAction, rejectArticleAction, unpublishArticleAction } from "./actions";
 
 const STATUS_LABEL: Record<ArticleStatus, string> = {
   PENDING: "Pendientes",
@@ -93,6 +93,15 @@ export default async function DashboardPage({
                   </button>
                 </form>
               </>
+            )}
+            {status === "PUBLISHED" && (
+              <form action={unpublishArticleAction}>
+                <input type="hidden" name="id" value={article.id} />
+                <input type="hidden" name="returnTo" value={returnTo} />
+                <button className="danger" type="submit">
+                  Eliminar de Shopify
+                </button>
+              </form>
             )}
           </div>
         </div>

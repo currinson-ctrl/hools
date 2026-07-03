@@ -1,7 +1,12 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { CATEGORY_LABEL } from "@/lib/sources";
-import { approveArticleAction, rejectArticleAction, updateArticleAction } from "../../actions";
+import {
+  approveArticleAction,
+  rejectArticleAction,
+  unpublishArticleAction,
+  updateArticleAction,
+} from "../../actions";
 
 export default async function ArticleReviewPage({
   params,
@@ -76,9 +81,18 @@ export default async function ArticleReviewPage({
       )}
 
       {article.status === "PUBLISHED" && (
-        <div className="banner ok" style={{ marginTop: 20 }}>
-          Publicado. Handle de Shopify: {article.shopifyHandle}
-          {article.tweetId && <> · Tuit: {article.tweetId}</>}
+        <div style={{ marginTop: 20 }}>
+          <div className="banner ok">
+            Publicado. Handle de Shopify: {article.shopifyHandle}
+            {article.tweetId && <> · Tuit: {article.tweetId}</>}
+          </div>
+          <form action={unpublishArticleAction} style={{ marginTop: 12 }}>
+            <input type="hidden" name="id" value={article.id} />
+            <input type="hidden" name="returnTo" value={returnTo} />
+            <button className="danger" type="submit">
+              Eliminar de Shopify
+            </button>
+          </form>
         </div>
       )}
     </div>
