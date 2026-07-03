@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { deleteArticleFromShopify, publishArticleToShopify } from "@/lib/shopify";
 import { isTwitterConfigured, postTweet } from "@/lib/twitter";
+import { translateToSpanish } from "@/lib/translate";
 import { Category } from "@prisma/client";
 
 function withError(basePath: string, message: string): never {
@@ -124,6 +125,71 @@ export async function rejectArticleAction(formData: FormData) {
 
   revalidatePath("/dashboard");
   redirect(returnTo);
+}
+
+const CLEANUP_BATCH_SIZE = 30;
+const CLEANUP_CONCURRENCY = 6;
+
+/**
+ * Re-aplica el filtro de relevancia (aficion/ultras, desplazamientos
+ * masivos, moda casual) a un lote de noticias PENDIENTES ya existentes de
+ * antes de que ese filtro existiera, y rechaza las que no encajen. Procesa
+ * como maximo CLEANUP_BATCH_SIZE por click para no acercarse al limite de
+ * tiempo de la funcion; si quedan mas, se puede pulsar otra vez.
+ */
+export async function cleanupOffTopicAction(formData: FormData) {
+  const returnTo = String(formData.get("returnTo") || "/dashboard?status=PENDING");
+
+  const pending = await prisma.article.findMany({
+    where: { status: "PENDING" },
+    orderBy: { createdAt: "asc" },
+    take: CLEANUP_BATCH_SIZE,
+  });
+
+  let rejected = 0;
+  let kept = 0;
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < pending.length) {
+      const article = pending[nextIndex++];
+      const snippet = article.excerpt
+        .replace(/<[^>]+>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+      const translated = await translateToSpanish({
+        originalTitle: article.originalTitle,
+        snippet,
+        category: article.category,
+      });
+
+      if (!translated) {
+        await prisma.article.update({
+          where: { id: article.id },
+          data: { status: "REJECTED", reviewedAt: new Date() },
+        });
+        rejected += 1;
+      } else {
+        kept += 1;
+      }
+    }
+  }
+
+  await Promise.all(
+    Array.from({ length: Math.min(CLEANUP_CONCURRENCY, pending.length) }, () => worker())
+  );
+
+  const remaining = await prisma.article.count({ where: { status: "PENDING" } });
+  const notice =
+    pending.length === 0
+      ? "No había pendientes que revisar."
+      : `Limpieza: ${rejected} rechazadas por no encajar, ${kept} mantenidas. Quedan ${remaining} pendientes` +
+        (remaining > 0 ? " (pulsa otra vez para seguir limpiando)." : ".");
+
+  revalidatePath("/dashboard");
+  const separator = returnTo.includes("?") ? "&" : "?";
+  redirect(`${returnTo}${separator}notice=${encodeURIComponent(notice)}`);
 }
 
 export async function addSourceAction(formData: FormData) {

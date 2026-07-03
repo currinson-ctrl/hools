@@ -2,7 +2,16 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { ArticleStatus } from "@prisma/client";
 import { CATEGORY_LABEL } from "@/lib/sources";
-import { approveArticleAction, rejectArticleAction, unpublishArticleAction } from "./actions";
+import {
+  approveArticleAction,
+  cleanupOffTopicAction,
+  rejectArticleAction,
+  unpublishArticleAction,
+} from "./actions";
+
+// Igual que /api/cron/fetch: si Fluid Compute lo permite, mejor tener
+// margen (la limpieza puede llamar a Claude varias veces).
+export const maxDuration = 280;
 
 const STATUS_LABEL: Record<ArticleStatus, string> = {
   PENDING: "Pendientes",
@@ -14,7 +23,7 @@ const STATUS_LABEL: Record<ArticleStatus, string> = {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; error?: string }>;
+  searchParams: Promise<{ status?: string; error?: string; notice?: string }>;
 }) {
   const params = await searchParams;
   const requested = params.status as ArticleStatus | undefined;
@@ -32,8 +41,19 @@ export default async function DashboardPage({
   return (
     <div>
       {params.error && <div className="banner error">{params.error}</div>}
+      {params.notice && <div className="banner ok">{params.notice}</div>}
 
-      <h1 style={{ fontSize: 18, marginBottom: 16 }}>{STATUS_LABEL[status]}</h1>
+      <div className="row" style={{ justifyContent: "space-between", marginBottom: 16 }}>
+        <h1 style={{ fontSize: 18, margin: 0 }}>{STATUS_LABEL[status]}</h1>
+        {status === "PENDING" && (
+          <form action={cleanupOffTopicAction}>
+            <input type="hidden" name="returnTo" value={returnTo} />
+            <button type="submit" title="Rechaza las pendientes que no sean de aficion/ultras/desplazamientos/moda casual">
+              Limpiar fuera de tema
+            </button>
+          </form>
+        )}
+      </div>
 
       {articles.length === 0 && (
         <div className="empty">
