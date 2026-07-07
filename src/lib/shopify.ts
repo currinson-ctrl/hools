@@ -3,6 +3,18 @@ interface ShopifyGraphQLResponse<T> {
   errors?: Array<{ message: string }>;
 }
 
+// Cualquier fallo al procesar la imagen (descarga, timeout, formato invalido,
+// o demasiados megapixeles) no debe bloquear el articulo entero: se reintenta
+// sin imagen en vez de perder el texto por un problema ajeno a nosotros.
+function isImageFailure(msg: string): boolean {
+  return (
+    /image/i.test(msg) &&
+    /(failed to download|upload failed|timeout|could not|invalid|pixel limit|too large|exceeds)/i.test(
+      msg
+    )
+  );
+}
+
 interface ArticleCreateResponse {
   articleCreate: {
     article: { id: string; handle: string } | null;
@@ -181,15 +193,9 @@ export async function publishArticleToShopify(
 
   let { article, userErrors } = await createArticle(input, blogId, true);
 
-  // Si el unico problema es que Shopify no pudo descargar la imagen (host
-  // lento/caido, timeout), no debe bloquear todo el articulo: se reintenta
-  // sin imagen en vez de perder el texto por un fallo ajeno a nosotros.
-  const isImageFailure = (msg: string) =>
-    /image/i.test(msg) && /(failed to download|timeout|could not|invalid)/i.test(msg);
-
   if (userErrors.length && input.imageUrl && userErrors.every((e) => isImageFailure(e.message))) {
     console.error(
-      "La imagen no se pudo descargar en Shopify, publicando sin imagen:",
+      "La imagen no se pudo procesar en Shopify, publicando sin imagen:",
       userErrors.map((e) => e.message).join("; ")
     );
     ({ article, userErrors } = await createArticle(input, blogId, false));
@@ -235,14 +241,9 @@ export async function updateArticleOnShopify(
 ): Promise<void> {
   let { userErrors } = await updateArticle(shopifyArticleId, input, true);
 
-  // Mismo caso que en la creacion: si Shopify no pudo descargar la imagen
-  // nueva, no perdemos los demas cambios (titulo/texto) por eso.
-  const isImageFailure = (msg: string) =>
-    /image/i.test(msg) && /(failed to download|timeout|could not|invalid)/i.test(msg);
-
   if (userErrors.length && input.imageUrl && userErrors.every((e) => isImageFailure(e.message))) {
     console.error(
-      "La imagen no se pudo descargar en Shopify al actualizar, se guarda sin cambiar la imagen:",
+      "La imagen no se pudo procesar en Shopify al actualizar, se guarda sin cambiar la imagen:",
       userErrors.map((e) => e.message).join("; ")
     );
     ({ userErrors } = await updateArticle(shopifyArticleId, input, false));
