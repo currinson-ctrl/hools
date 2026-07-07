@@ -130,11 +130,11 @@ export interface PublishArticleResult {
   handle: string;
 }
 
-export async function publishArticleToShopify(
-  input: PublishArticleInput
-): Promise<PublishArticleResult> {
-  const blogId = getEnv("SHOPIFY_BLOG_ID");
-
+async function createArticle(
+  input: PublishArticleInput,
+  blogId: string,
+  includeImage: boolean
+): Promise<ArticleCreateResponse["articleCreate"]> {
   const data = await shopifyAdminRequest<ArticleCreateResponse>(
     ARTICLE_CREATE_MUTATION,
     {
@@ -145,12 +145,34 @@ export async function publishArticleToShopify(
         author: { name: "Hools" },
         tags: input.tags,
         isPublished: true,
-        ...(input.imageUrl ? { image: { url: input.imageUrl } } : {}),
+        ...(includeImage && input.imageUrl ? { image: { url: input.imageUrl } } : {}),
       },
     }
   );
+  return data.articleCreate;
+}
 
-  const { article, userErrors } = data.articleCreate;
+export async function publishArticleToShopify(
+  input: PublishArticleInput
+): Promise<PublishArticleResult> {
+  const blogId = getEnv("SHOPIFY_BLOG_ID");
+
+  let { article, userErrors } = await createArticle(input, blogId, true);
+
+  // Si el unico problema es que Shopify no pudo descargar la imagen (host
+  // lento/caido, timeout), no debe bloquear todo el articulo: se reintenta
+  // sin imagen en vez de perder el texto por un fallo ajeno a nosotros.
+  const isImageFailure = (msg: string) =>
+    /image/i.test(msg) && /(failed to download|timeout|could not|invalid)/i.test(msg);
+
+  if (userErrors.length && input.imageUrl && userErrors.every((e) => isImageFailure(e.message))) {
+    console.error(
+      "La imagen no se pudo descargar en Shopify, publicando sin imagen:",
+      userErrors.map((e) => e.message).join("; ")
+    );
+    ({ article, userErrors } = await createArticle(input, blogId, false));
+  }
+
   if (userErrors.length) {
     throw new Error(
       `Shopify articleCreate userErrors: ${userErrors.map((e) => e.message).join("; ")}`
