@@ -3,9 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { deleteArticleFromShopify, publishArticleToShopify } from "@/lib/shopify";
+import {
+  deleteArticleFromShopify,
+  publishArticleToShopify,
+  updateArticleOnShopify,
+} from "@/lib/shopify";
 import { isTwitterConfigured, postTweet } from "@/lib/twitter";
 import { translateToSpanish } from "@/lib/translate";
+import { searchRelatedImage } from "@/lib/image-search";
 import { Category } from "@prisma/client";
 
 function withError(basePath: string, message: string): never {
@@ -24,6 +29,22 @@ export async function updateArticleAction(formData: FormData) {
     withError(`/dashboard/articles/${id}`, "Título y contenido son obligatorios");
   }
 
+  const article = await prisma.article.findUnique({ where: { id } });
+  if (!article) withError(`/dashboard/articles/${id}`, "Artículo no encontrado");
+
+  if (article!.status === "PUBLISHED" && article!.shopifyArticleId) {
+    try {
+      await updateArticleOnShopify(article!.shopifyArticleId, {
+        title,
+        bodyHtml: excerpt,
+        imageUrl: imageUrl || null,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Error al actualizar en Shopify";
+      withError(`/dashboard/articles/${id}`, message);
+    }
+  }
+
   await prisma.article.update({
     where: { id },
     data: { title, excerpt, tweetText, imageUrl: imageUrl || null },
@@ -31,6 +52,43 @@ export async function updateArticleAction(formData: FormData) {
 
   revalidatePath(`/dashboard/articles/${id}`);
   redirect(`/dashboard/articles/${id}?saved=1`);
+}
+
+/**
+ * Repite la busqueda de imagen de respaldo en Openverse pero con terminos
+ * mas especificos (el titulo del articulo + un texto de contexto opcional
+ * que escriba el revisor, ej. "Hard Rock Stadium Miami England fans"), para
+ * los casos en los que la foto generica original no encaje con la noticia.
+ * Si el articulo ya esta PUBLICADO, sincroniza la nueva imagen con Shopify.
+ */
+export async function regenerateImageAction(formData: FormData) {
+  const id = String(formData.get("id"));
+  const hint = String(formData.get("imageHint") || "").trim();
+  const returnTo = `/dashboard/articles/${id}`;
+
+  const article = await prisma.article.findUnique({ where: { id } });
+  if (!article) withError(returnTo, "Artículo no encontrado");
+
+  const query = [article!.originalTitle, hint].filter(Boolean).join(" ");
+  const imageUrl = await searchRelatedImage(query, article!.imageUrl);
+
+  if (!imageUrl) {
+    withError(returnTo, "No se encontró ninguna imagen distinta para esa búsqueda");
+  }
+
+  if (article!.status === "PUBLISHED" && article!.shopifyArticleId) {
+    try {
+      await updateArticleOnShopify(article!.shopifyArticleId, { imageUrl });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Error al actualizar la imagen en Shopify";
+      withError(returnTo, message);
+    }
+  }
+
+  await prisma.article.update({ where: { id }, data: { imageUrl } });
+
+  revalidatePath(returnTo);
+  redirect(`${returnTo}?saved=1`);
 }
 
 export async function approveArticleAction(formData: FormData) {

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { CATEGORY_LABEL } from "@/lib/sources";
 import {
   approveArticleAction,
+  regenerateImageAction,
   rejectArticleAction,
   unpublishArticleAction,
   updateArticleAction,
@@ -47,6 +48,14 @@ export default async function ArticleReviewPage({
 
         <label htmlFor="imageUrl">Imagen (URL, opcional)</label>
         <input type="url" id="imageUrl" name="imageUrl" defaultValue={article.imageUrl || ""} />
+        {article.imageUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={article.imageUrl}
+            alt=""
+            style={{ maxWidth: 240, borderRadius: 8, marginTop: 8, display: "block" }}
+          />
+        )}
 
         <label htmlFor="tweetText">Texto del tuit</label>
         <textarea id="tweetText" name="tweetText" defaultValue={article.tweetText} />
@@ -59,6 +68,23 @@ export default async function ArticleReviewPage({
             Ver noticia original
           </a>
         </div>
+      </form>
+
+      <form
+        action={regenerateImageAction}
+        className="row"
+        style={{ marginTop: 12, alignItems: "center" }}
+      >
+        <input type="hidden" name="id" value={article.id} />
+        <input
+          type="text"
+          name="imageHint"
+          placeholder="Contexto extra para la búsqueda (ej. Hard Rock Stadium Miami England fans)"
+          style={{ flex: 1 }}
+        />
+        <button className="btn" type="submit">
+          Buscar otra foto
+        </button>
       </form>
 
       {article.status === "PENDING" && (

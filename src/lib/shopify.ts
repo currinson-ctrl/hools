@@ -17,6 +17,13 @@ interface ArticleDeleteResponse {
   };
 }
 
+interface ArticleUpdateResponse {
+  articleUpdate: {
+    article: { id: string; handle: string } | null;
+    userErrors: Array<{ field: string[] | null; message: string }>;
+  };
+}
+
 const ARTICLE_CREATE_MUTATION = /* GraphQL */ `
   mutation CreateArticle($article: ArticleCreateInput!) {
     articleCreate(article: $article) {
@@ -36,6 +43,21 @@ const ARTICLE_DELETE_MUTATION = /* GraphQL */ `
   mutation DeleteArticle($id: ID!) {
     articleDelete(id: $id) {
       deletedArticleId
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
+const ARTICLE_UPDATE_MUTATION = /* GraphQL */ `
+  mutation UpdateArticle($id: ID!, $article: ArticleUpdateInput!) {
+    articleUpdate(id: $id, article: $article) {
+      article {
+        id
+        handle
+      }
       userErrors {
         field
         message
@@ -183,6 +205,54 @@ export async function publishArticleToShopify(
   }
 
   return { shopifyArticleId: article.id, handle: article.handle };
+}
+
+export interface UpdateArticleInput {
+  title?: string;
+  bodyHtml?: string;
+  imageUrl?: string | null;
+}
+
+async function updateArticle(
+  shopifyArticleId: string,
+  input: UpdateArticleInput,
+  includeImage: boolean
+): Promise<ArticleUpdateResponse["articleUpdate"]> {
+  const data = await shopifyAdminRequest<ArticleUpdateResponse>(ARTICLE_UPDATE_MUTATION, {
+    id: shopifyArticleId,
+    article: {
+      ...(input.title !== undefined ? { title: input.title } : {}),
+      ...(input.bodyHtml !== undefined ? { body: input.bodyHtml } : {}),
+      ...(includeImage && input.imageUrl ? { image: { url: input.imageUrl } } : {}),
+    },
+  });
+  return data.articleUpdate;
+}
+
+export async function updateArticleOnShopify(
+  shopifyArticleId: string,
+  input: UpdateArticleInput
+): Promise<void> {
+  let { userErrors } = await updateArticle(shopifyArticleId, input, true);
+
+  // Mismo caso que en la creacion: si Shopify no pudo descargar la imagen
+  // nueva, no perdemos los demas cambios (titulo/texto) por eso.
+  const isImageFailure = (msg: string) =>
+    /image/i.test(msg) && /(failed to download|timeout|could not|invalid)/i.test(msg);
+
+  if (userErrors.length && input.imageUrl && userErrors.every((e) => isImageFailure(e.message))) {
+    console.error(
+      "La imagen no se pudo descargar en Shopify al actualizar, se guarda sin cambiar la imagen:",
+      userErrors.map((e) => e.message).join("; ")
+    );
+    ({ userErrors } = await updateArticle(shopifyArticleId, input, false));
+  }
+
+  if (userErrors.length) {
+    throw new Error(
+      `Shopify articleUpdate userErrors: ${userErrors.map((e) => e.message).join("; ")}`
+    );
+  }
 }
 
 export async function deleteArticleFromShopify(shopifyArticleId: string): Promise<void> {
