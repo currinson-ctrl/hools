@@ -117,7 +117,13 @@ export async function approveArticleAction(formData: FormData) {
         tweetId = await postTweet(article!.tweetText, publicUrl);
       } catch (tweetErr) {
         // La publicación en el blog ya tuvo éxito; no revertimos por un fallo en X.
-        console.error("Fallo al publicar en X:", tweetErr);
+        // Node trunca objetos anidados (ej. "data: [Object]") en los logs, asi
+        // que se vuelca el detalle real de la respuesta de X en texto plano.
+        const detail =
+          tweetErr && typeof tweetErr === "object" && "data" in tweetErr
+            ? JSON.stringify((tweetErr as { data?: unknown }).data)
+            : String(tweetErr);
+        console.error("Fallo al publicar en X:", detail);
       }
     }
 
