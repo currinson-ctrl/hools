@@ -24,9 +24,30 @@ export function isTwitterConfigured(): boolean {
   );
 }
 
-export async function postTweet(text: string, link: string): Promise<string> {
+export async function postTweet(
+  text: string,
+  link: string,
+  imageUrl?: string | null
+): Promise<string> {
   const client = getClient();
   const status = `${text}\n\n${link}`;
-  const { data } = await client.v2.tweet(status);
+
+  let mediaId: string | null = null;
+  if (imageUrl) {
+    try {
+      const response = await fetch(imageUrl);
+      if (response.ok) {
+        const mimeType = response.headers.get("content-type") || "image/jpeg";
+        const buffer = Buffer.from(await response.arrayBuffer());
+        mediaId = await client.v1.uploadMedia(buffer, { mimeType });
+      }
+    } catch (err) {
+      console.error("No se pudo adjuntar la imagen al tuit:", err);
+    }
+  }
+
+  const { data } = mediaId
+    ? await client.v2.tweet({ text: status, media: { media_ids: [mediaId] } })
+    : await client.v2.tweet(status);
   return data.id;
 }

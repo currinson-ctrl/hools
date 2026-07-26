@@ -114,7 +114,7 @@ export async function approveArticleAction(formData: FormData) {
     let tweetId: string | null = null;
     if (isTwitterConfigured()) {
       try {
-        tweetId = await postTweet(article!.tweetText, publicUrl);
+        tweetId = await postTweet(article!.tweetText, publicUrl, article!.imageUrl);
       } catch (tweetErr) {
         // La publicación en el blog ya tuvo éxito; no revertimos por un fallo en X.
         // Node trunca objetos anidados (ej. "data: [Object]") en los logs, asi
