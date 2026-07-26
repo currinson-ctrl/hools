@@ -110,6 +110,24 @@ sirve como credencial de la Admin API; no la uses aquí.)
 Si estas variables no están configuradas, el sistema sigue publicando en el
 blog de Shopify con normalidad y simplemente omite el tuit (no falla).
 
+#### Fuentes de tipo "Cuenta de X" (opcional)
+
+Además de fuentes RSS, en `/dashboard/sources` puedes añadir una fuente de
+tipo **"Cuenta de X"** indicando su `@handle` — el rastreo leerá sus tuits
+recientes (sin RTs ni respuestas) igual que un feed. Esto necesita una
+variable adicional:
+
+5. En la misma App de X (pestaña "Keys and tokens" → "Autenticación Solo de
+   Aplicación"), genera el **Bearer Token** → `TWITTER_BEARER_TOKEN`.
+
+Ten en cuenta que leer líneas temporales de otras cuentas es una llamada de
+pago adicional (aparte de la de publicar tuits) en el modelo de pago-por-uso
+de X — el código minimiza las llamadas cacheando en cada fuente el id de
+usuario resuelto y un cursor `since_id` para no releer tuits ya vistos, pero
+aun así conviene vigilar el saldo en `console.x.com` si añades varias cuentas.
+Si `TWITTER_BEARER_TOKEN` no está configurada, esas fuentes simplemente no
+producen noticias nuevas (no rompen el resto del rastreo).
+
 ### 4. Acceso al dashboard
 
 `DASHBOARD_PASSWORD` (contraseña única de acceso) y `SESSION_SECRET` (cadena
@@ -147,7 +165,8 @@ despliegue.
 
 ## Gestión de fuentes
 
-`/dashboard/sources` permite añadir/pausar fuentes RSS sin tocar código. El
+`/dashboard/sources` permite añadir/pausar fuentes (RSS o cuentas de X) sin
+tocar código. El
 catálogo inicial (`src/lib/sources.ts`, cargado por `npm run db:seed`) es un
 punto de partida orientativo — verifica que cada feed responde XML válido y
 que el contenido encaja con el tono de la marca antes de dejarlo en piloto

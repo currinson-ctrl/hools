@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { buildDraftsFromCandidates, parseFeedCandidates } from "@/lib/rss";
+import { buildDraftsFromAccountCandidates, parseAccountCandidates } from "@/lib/twitter-source";
 
 export const dynamic = "force-dynamic";
 // El plan Hobby normalmente limita a 60s, pero con Fluid Compute algunos
@@ -23,13 +24,19 @@ export async function GET(request: Request) {
 
   const sources = await prisma.source.findMany({ where: { active: true } });
 
-  // 1. Descargar y parsear todos los feeds a la vez (rapido, sin tocar la
-  // base ni llamar a Claude/Openverse todavia).
+  // 1. Descargar y parsear todas las fuentes a la vez (rapido, sin tocar la
+  // base ni llamar a Claude/Openverse todavia). Las fuentes RSS se parsean
+  // como feed; las cuentas de X se leen via su API (de pago, por eso
+  // cachean cursores en el propio Source, ver twitter-source.ts).
   const parsed = await Promise.all(
-    sources.map(async (source) => ({
-      source,
-      ...(await parseFeedCandidates(source)),
-    }))
+    sources.map(async (source) => {
+      if (source.type === "X_ACCOUNT") {
+        const { candidates, username, error } = await parseAccountCandidates(source);
+        return { source, candidates, username, error };
+      }
+      const { candidates, error } = await parseFeedCandidates(source);
+      return { source, candidates, username: null as string | null, error };
+    })
   );
 
   // 2. Una unica consulta a la base para saber que guids ya existen, en vez
@@ -46,10 +53,23 @@ export async function GET(request: Request) {
   // 3. Generar (traducir) solo los items nuevos, acotados por fuente, todas
   // las fuentes en paralelo.
   const perSource = await Promise.all(
-    parsed.map(async ({ source, candidates, error }) => ({
+    parsed.map(async ({ source, candidates, username, error }) => ({
       source,
       error,
-      drafts: error ? [] : await buildDraftsFromCandidates(candidates, source, existingGuids),
+      drafts: error
+        ? []
+        : source.type === "X_ACCOUNT"
+          ? await buildDraftsFromAccountCandidates(
+              candidates as Awaited<ReturnType<typeof parseAccountCandidates>>["candidates"],
+              username!,
+              source,
+              existingGuids
+            )
+          : await buildDraftsFromCandidates(
+              candidates as Awaited<ReturnType<typeof parseFeedCandidates>>["candidates"],
+              source,
+              existingGuids
+            ),
     }))
   );
 

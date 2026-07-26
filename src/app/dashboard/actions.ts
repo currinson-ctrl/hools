@@ -11,7 +11,7 @@ import {
 import { isTwitterConfigured, postTweet } from "@/lib/twitter";
 import { translateToSpanish } from "@/lib/translate";
 import { searchRelatedImage } from "@/lib/image-search";
-import { Category } from "@prisma/client";
+import { Category, SourceType } from "@prisma/client";
 
 function withError(basePath: string, message: string): never {
   const separator = basePath.includes("?") ? "&" : "?";
@@ -258,14 +258,25 @@ export async function cleanupOffTopicAction(formData: FormData) {
 
 export async function addSourceAction(formData: FormData) {
   const name = String(formData.get("name") || "").trim();
-  const feedUrl = String(formData.get("feedUrl") || "").trim();
+  const type = String(formData.get("type") || SourceType.RSS) as SourceType;
   const category = String(formData.get("category") || "") as Category;
+  let feedUrl = String(formData.get("feedUrl") || "").trim();
 
   if (!name || !feedUrl || !Object.values(Category).includes(category)) {
-    withError("/dashboard/sources", "Rellena nombre, URL del feed y categoría");
+    withError("/dashboard/sources", "Rellena nombre, URL/cuenta y categoría");
+  }
+  if (!Object.values(SourceType).includes(type)) {
+    withError("/dashboard/sources", "Tipo de fuente no válido");
   }
 
-  await prisma.source.create({ data: { name, feedUrl, category } });
+  if (type === SourceType.X_ACCOUNT) {
+    feedUrl = feedUrl.replace(/^@/, "").replace(/^https?:\/\/(x|twitter)\.com\//i, "").trim();
+    if (!/^\w{1,15}$/.test(feedUrl)) {
+      withError("/dashboard/sources", "El @handle de X no es válido (solo letras, números y _)");
+    }
+  }
+
+  await prisma.source.create({ data: { name, feedUrl, category, type } });
   revalidatePath("/dashboard/sources");
   redirect("/dashboard/sources");
 }

@@ -17,6 +17,11 @@ enum Category {
   MODA // moda casual / terrace fashion
 }
 
+enum SourceType {
+  RSS
+  X_ACCOUNT // cuenta de X/Twitter, se lee via API en vez de un feed
+}
+
 enum ArticleStatus {
   PENDING // recien agregado, esperando revision humana
   APPROVED // aprobado, publicacion en curso
@@ -25,11 +30,21 @@ enum ArticleStatus {
 }
 
 model Source {
-  id        String    @id @default(cuid())
-  name      String
-  feedUrl   String    @unique
-  category  Category
-  active    Boolean   @default(true)
+  id       String     @id @default(cuid())
+  name     String
+  type     SourceType @default(RSS)
+  // Para RSS: la URL del feed. Para X_ACCOUNT: el @handle de la cuenta (sin @).
+  feedUrl  String     @unique
+  category Category
+  active   Boolean    @default(true)
+
+  // Solo se usan cuando type = X_ACCOUNT, para minimizar llamadas de pago a
+  // la API de X: externalId cachea el id numerico de usuario (evita repetir
+  // la busqueda por username en cada pasada) y lastFetchedId es el cursor
+  // since_id para no releer tuits ya vistos.
+  externalId    String?
+  lastFetchedId String?
+
   createdAt DateTime  @default(now())
   articles  Article[]
 }

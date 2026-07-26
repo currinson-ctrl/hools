@@ -14,7 +14,7 @@ const TRANSLATE_CONCURRENCY = 6;
 // que acotar el peor caso para no superar el limite de 60s de Vercel; si
 // una fuente acumula mas noticias nuevas que esto, el resto se recogen en
 // la siguiente pasada del cron (no se pierden, solo se retrasan).
-const MAX_ITEMS_PER_SOURCE = 4;
+export const MAX_ITEMS_PER_SOURCE = 4;
 
 const parser = new Parser({
   timeout: 15_000,
@@ -86,7 +86,7 @@ function isRealContentImage(url: string): boolean {
   }
 }
 
-type FeedItem = Parser.Item & {
+export type FeedItem = Parser.Item & {
   id?: string;
   "content:encoded"?: string;
   "media:content"?: { $?: { url?: string } } | { $?: { url?: string } }[];
@@ -109,7 +109,7 @@ function extractImage(item: FeedItem): string | null {
   return null;
 }
 
-async function buildDraft(
+export async function buildDraft(
   item: FeedItem,
   source: Pick<Source, "name" | "category">
 ): Promise<DraftArticle | null> {
