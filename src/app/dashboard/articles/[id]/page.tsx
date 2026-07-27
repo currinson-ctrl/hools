@@ -57,6 +57,23 @@ export default async function ArticleReviewPage({
           />
         )}
 
+        {article.extraImageUrls && (
+          <>
+            <label>Fotos adicionales (se adjuntan también al tuit)</label>
+            <div className="row" style={{ flexWrap: "wrap" }}>
+              {article.extraImageUrls.split(",").map((url) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  key={url}
+                  src={url}
+                  alt=""
+                  style={{ maxWidth: 120, borderRadius: 8, display: "block" }}
+                />
+              ))}
+            </div>
+          </>
+        )}
+
         <label htmlFor="tweetText">Texto del tuit</label>
         <textarea id="tweetText" name="tweetText" defaultValue={article.tweetText} />
 

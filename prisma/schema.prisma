@@ -65,6 +65,10 @@ model Article {
   excerpt   String // HTML corto: resumen propio + cita breve + enlace "leer mas en <fuente>"
   tweetText String
   imageUrl  String?
+  // Fotos adicionales (aparte de imageUrl) cuando el tuit de origen trae mas
+  // de una, separadas por comas. Se adjuntan tambien al tuit publicado y se
+  // insertan en el cuerpo del articulo. Casi siempre vacio (RSS solo da una).
+  extraImageUrls String?
   tags      String // comma-separated
 
   status ArticleStatus @default(PENDING)

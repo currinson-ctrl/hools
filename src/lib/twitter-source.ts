@@ -1,7 +1,16 @@
 import { TwitterApi } from "twitter-api-v2";
 import type { Source } from "@prisma/client";
 import { prisma } from "./db";
-import { buildDraft, MAX_ITEMS_PER_SOURCE, type DraftArticle, type FeedItem } from "./rss";
+import {
+  buildDraft,
+  escapeHtml,
+  MAX_ITEMS_PER_SOURCE,
+  type DraftArticle,
+  type FeedItem,
+} from "./rss";
+
+// Maximo de fotos que admite un tuit en la API de X.
+const MAX_TWEET_IMAGES = 4;
 
 // Minimo permitido por la API de X para el timeline de un usuario (no se
 // puede pedir menos). Mantenerlo bajo ademas ayuda a no gastar de mas del
@@ -22,7 +31,8 @@ export interface AccountCandidate {
   guid: string;
   tweetId: string;
   text: string;
-  imageUrl: string | null;
+  // Todas las fotos adjuntas al tuit, en orden (puede estar vacio).
+  imageUrls: string[];
 }
 
 type SourceForAccount = Pick<Source, "id" | "feedUrl" | "externalId" | "lastFetchedId">;
@@ -64,13 +74,15 @@ export async function parseAccountCandidates(
 
     const candidates: AccountCandidate[] = timeline.tweets.map((tweet) => {
       const media = timeline.includes.medias(tweet);
-      const photo = media.find((m) => m.type === "photo" && m.url);
-      const thumbnail = media.find((m) => m.preview_image_url);
+      const photos = media
+        .filter((m) => m.type === "photo" && m.url)
+        .map((m) => m.url as string);
+      const thumbnail = media.find((m) => m.preview_image_url)?.preview_image_url;
       return {
         guid: `x:${tweet.id}`,
         tweetId: tweet.id,
         text: tweet.text,
-        imageUrl: photo?.url || thumbnail?.preview_image_url || null,
+        imageUrls: photos.length ? photos : thumbnail ? [thumbnail] : [],
       };
     });
 
@@ -105,16 +117,30 @@ export async function buildDraftsFromAccountCandidates(
     .slice(0, MAX_ITEMS_PER_SOURCE);
 
   const drafts = await Promise.all(
-    newCandidates.map((c) => {
+    newCandidates.map(async (c) => {
+      const [mainImage, ...extraImages] = c.imageUrls;
       const item: FeedItem = {
         link: `https://x.com/${username}/status/${c.tweetId}`,
         guid: c.guid,
         title: c.text,
         content: c.text,
         contentSnippet: c.text,
-        enclosure: c.imageUrl ? { url: c.imageUrl } : undefined,
+        enclosure: mainImage ? { url: mainImage } : undefined,
       };
-      return buildDraft(item, source);
+      const draft = await buildDraft(item, source);
+      if (!draft || !extraImages.length) return draft;
+
+      const extraImagesHtml = extraImages
+        .map((url) => `<p><img src="${escapeHtml(url)}" alt="" /></p>`)
+        .join("\n");
+      return {
+        ...draft,
+        excerpt: draft.excerpt.replace(
+          "<p><em>Fuente:",
+          `${extraImagesHtml}\n<p><em>Fuente:`
+        ),
+        extraImageUrls: extraImages,
+      };
     })
   );
 

@@ -24,30 +24,51 @@ export function isTwitterConfigured(): boolean {
   );
 }
 
+// Maximo de imagenes que admite un tuit en la API de X.
+const MAX_TWEET_IMAGES = 4;
+
+type MediaIds = [string] | [string, string] | [string, string, string] | [string, string, string, string];
+
+function toMediaIds(ids: string[]): MediaIds {
+  switch (ids.length) {
+    case 1:
+      return [ids[0]];
+    case 2:
+      return [ids[0], ids[1]];
+    case 3:
+      return [ids[0], ids[1], ids[2]];
+    default:
+      return [ids[0], ids[1], ids[2], ids[3]];
+  }
+}
+
 export async function postTweet(
   text: string,
   link: string,
-  imageUrl?: string | null
+  imageUrls?: (string | null | undefined)[] | null
 ): Promise<string> {
   const client = getClient();
   const status = `${text}\n\n${link}`;
 
-  let mediaId: string | null = null;
-  if (imageUrl) {
+  const urls = (imageUrls || [])
+    .filter((url): url is string => Boolean(url))
+    .slice(0, MAX_TWEET_IMAGES);
+
+  const mediaIds: string[] = [];
+  for (const url of urls) {
     try {
-      const response = await fetch(imageUrl);
-      if (response.ok) {
-        const mimeType = response.headers.get("content-type") || "image/jpeg";
-        const buffer = Buffer.from(await response.arrayBuffer());
-        mediaId = await client.v1.uploadMedia(buffer, { mimeType });
-      }
+      const response = await fetch(url);
+      if (!response.ok) continue;
+      const mimeType = response.headers.get("content-type") || "image/jpeg";
+      const buffer = Buffer.from(await response.arrayBuffer());
+      mediaIds.push(await client.v1.uploadMedia(buffer, { mimeType }));
     } catch (err) {
-      console.error("No se pudo adjuntar la imagen al tuit:", err);
+      console.error("No se pudo adjuntar una imagen al tuit:", err);
     }
   }
 
-  const { data } = mediaId
-    ? await client.v2.tweet({ text: status, media: { media_ids: [mediaId] } })
+  const { data } = mediaIds.length
+    ? await client.v2.tweet({ text: status, media: { media_ids: toMediaIds(mediaIds) } })
     : await client.v2.tweet(status);
   return data.id;
 }

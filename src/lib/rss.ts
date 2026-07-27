@@ -29,6 +29,9 @@ export interface DraftArticle {
   excerpt: string;
   tweetText: string;
   imageUrl: string | null;
+  // Fotos adicionales aparte de imageUrl (solo lo rellenan fuentes que
+  // puedan traer varias, como una cuenta de X con un tuit multi-foto).
+  extraImageUrls?: string[];
   tags: string;
   category: Category;
 }
@@ -43,7 +46,7 @@ function stripHtml(input: string): string {
     .trim();
 }
 
-function escapeHtml(input: string): string {
+export function escapeHtml(input: string): string {
   return input
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
