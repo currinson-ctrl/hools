@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { buildDraftsFromCandidates, parseFeedCandidates } from "@/lib/rss";
 import { buildDraftsFromAccountCandidates, parseAccountCandidates } from "@/lib/twitter-source";
+import { parseAliases, type KnownGroup } from "@/lib/groups";
 
 export const dynamic = "force-dynamic";
 // El plan Hobby normalmente limita a 60s, pero con Fluid Compute algunos
@@ -23,6 +24,12 @@ export async function GET(request: Request) {
   }
 
   const sources = await prisma.source.findMany({ where: { active: true } });
+  const groupRows = await prisma.group.findMany({ where: { active: true } });
+  const knownGroups: KnownGroup[] = groupRows.map((g) => ({
+    name: g.name,
+    aliases: parseAliases(g.aliases),
+    handle: g.handle,
+  }));
 
   // 1. Descargar y parsear todas las fuentes a la vez (rapido, sin tocar la
   // base ni llamar a Claude/Openverse todavia). Las fuentes RSS se parsean
@@ -63,12 +70,14 @@ export async function GET(request: Request) {
               candidates as Awaited<ReturnType<typeof parseAccountCandidates>>["candidates"],
               username!,
               source,
-              existingGuids
+              existingGuids,
+              knownGroups
             )
           : await buildDraftsFromCandidates(
               candidates as Awaited<ReturnType<typeof parseFeedCandidates>>["candidates"],
               source,
-              existingGuids
+              existingGuids,
+              knownGroups
             ),
     }))
   );

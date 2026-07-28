@@ -18,6 +18,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <Link className="tab" href="/dashboard/sources">
             Fuentes
           </Link>
+          <Link className="tab" href="/dashboard/groups">
+            Grupos
+          </Link>
         </nav>
         <form action="/api/logout" method="POST">
           <button type="submit">Salir</button>

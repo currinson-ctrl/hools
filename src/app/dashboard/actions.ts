@@ -294,3 +294,37 @@ export async function toggleSourceAction(formData: FormData) {
   revalidatePath("/dashboard/sources");
   redirect("/dashboard/sources");
 }
+
+function normalizeHandle(raw: string): string {
+  return raw.replace(/^@/, "").replace(/^https?:\/\/(x|twitter)\.com\//i, "").trim();
+}
+
+export async function addGroupAction(formData: FormData) {
+  const name = String(formData.get("name") || "").trim();
+  const aliases = String(formData.get("aliases") || "").trim();
+  const handle = normalizeHandle(String(formData.get("handle") || ""));
+
+  if (!name || !handle) {
+    withError("/dashboard/groups", "Rellena el nombre del grupo y su @handle de X");
+  }
+  if (!/^\w{1,15}$/.test(handle)) {
+    withError("/dashboard/groups", "El @handle de X no es válido (solo letras, números y _)");
+  }
+
+  await prisma.group.create({ data: { name, aliases: aliases || null, handle } });
+  revalidatePath("/dashboard/groups");
+  redirect("/dashboard/groups");
+}
+
+export async function toggleGroupAction(formData: FormData) {
+  const id = String(formData.get("id"));
+  const group = await prisma.group.findUnique({ where: { id } });
+  if (!group) withError("/dashboard/groups", "Grupo no encontrado");
+
+  await prisma.group.update({
+    where: { id },
+    data: { active: !group!.active },
+  });
+  revalidatePath("/dashboard/groups");
+  redirect("/dashboard/groups");
+}

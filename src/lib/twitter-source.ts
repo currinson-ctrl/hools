@@ -8,6 +8,7 @@ import {
   type DraftArticle,
   type FeedItem,
 } from "./rss";
+import type { KnownGroup } from "./groups";
 
 // Maximo de fotos que admite un tuit en la API de X.
 const MAX_TWEET_IMAGES = 4;
@@ -110,7 +111,8 @@ export async function buildDraftsFromAccountCandidates(
   candidates: AccountCandidate[],
   username: string,
   source: Pick<Source, "name" | "category">,
-  existingGuids: Set<string>
+  existingGuids: Set<string>,
+  knownGroups: KnownGroup[] = []
 ): Promise<DraftArticle[]> {
   const newCandidates = candidates
     .filter((c) => !existingGuids.has(c.guid))
@@ -127,7 +129,7 @@ export async function buildDraftsFromAccountCandidates(
         contentSnippet: c.text,
         enclosure: mainImage ? { url: mainImage } : undefined,
       };
-      const draft = await buildDraft(item, source);
+      const draft = await buildDraft(item, source, knownGroups);
       if (!draft || !extraImages.length) return draft;
 
       const extraImagesHtml = extraImages

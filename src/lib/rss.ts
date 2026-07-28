@@ -3,6 +3,7 @@ import type { Category, Source } from "@prisma/client";
 import { CATEGORY_HASHTAGS, CATEGORY_IMAGE_HINT } from "./sources";
 import { translateToSpanish } from "./translate";
 import { searchRelatedImage } from "./image-search";
+import { findMentionedGroups, linkMentionedGroups, type KnownGroup } from "./groups";
 
 // Cuantas traducciones lanzar en paralelo por fuente. Vercel (plan Hobby)
 // corta la funcion a los 60s, asi que preferimos varias llamadas a la vez
@@ -114,7 +115,8 @@ function extractImage(item: FeedItem): string | null {
 
 export async function buildDraft(
   item: FeedItem,
-  source: Pick<Source, "name" | "category">
+  source: Pick<Source, "name" | "category">,
+  knownGroups: KnownGroup[] = []
 ): Promise<DraftArticle | null> {
   const originalUrl = item.link;
   if (!originalUrl || !isHttpUrl(originalUrl)) return null;
@@ -137,6 +139,14 @@ export async function buildDraft(
   }
   const { title: esTitle, body: esBody } = translated;
 
+  // Grupos de aficion mencionados en la noticia (curados a mano en
+  // /dashboard/groups, nunca adivinados): se enlazan en el articulo y se
+  // mencionan en el tuit.
+  const mentionedGroups = findMentionedGroups(
+    `${originalTitle} ${snippet} ${esTitle} ${esBody}`,
+    knownGroups
+  );
+
   const safeSourceName = escapeHtml(source.name);
   const safeUrl = escapeHtml(originalUrl);
 
@@ -146,14 +156,18 @@ export async function buildDraft(
     .filter(Boolean)
     .map((p) => `<p>${escapeHtml(p)}</p>`);
 
+  const linkedBody = linkMentionedGroups(bodyParagraphs.join("\n"), mentionedGroups);
+
   const excerpt = [
-    ...bodyParagraphs,
+    linkedBody,
     `<p><em>Fuente: <a href="${safeUrl}" target="_blank" rel="noopener noreferrer nofollow">${safeSourceName}</a></em></p>`,
   ].join("\n");
 
   const hashtags = CATEGORY_HASHTAGS[source.category].join(" ");
+  const mentions = mentionedGroups.map((g) => `@${g.handle}`).join(" ");
+  const secondLine = [mentions, hashtags].filter(Boolean).join(" ");
   const tweetText = truncate(
-    `${esTitle}\n\n${hashtags}`,
+    `${esTitle}\n\n${secondLine}`,
     MAX_TWEET_CHARS - 24 // deja hueco para el enlace que se añade al publicar
   );
 
@@ -248,14 +262,15 @@ export async function parseFeedCandidates(
 export async function buildDraftsFromCandidates(
   candidates: FeedCandidate[],
   source: Pick<Source, "name" | "category">,
-  existingGuids: Set<string>
+  existingGuids: Set<string>,
+  knownGroups: KnownGroup[] = []
 ): Promise<DraftArticle[]> {
   const newCandidates = candidates
     .filter((c) => !existingGuids.has(c.guid))
     .slice(0, MAX_ITEMS_PER_SOURCE);
 
   const drafts = await mapWithConcurrency(newCandidates, TRANSLATE_CONCURRENCY, (c) =>
-    buildDraft(c.item, source)
+    buildDraft(c.item, source, knownGroups)
   );
 
   return drafts.filter((d): d is DraftArticle => d !== null);

@@ -49,6 +49,22 @@ model Source {
   articles  Article[]
 }
 
+// Grupos de aficion (peñas/ultras) con su cuenta oficial de X verificada a
+// mano por el usuario. Si el nombre (o un alias) aparece mencionado en una
+// noticia, se enlaza en el articulo y se menciona (@handle) en el tuit. No
+// hay resolucion automatica de "cual es la cuenta oficial": es intencional,
+// para evitar etiquetar publicamente una cuenta equivocada.
+model Group {
+  id        String   @id @default(cuid())
+  name      String
+  // Variantes/alias del nombre (con o sin tildes, abreviaturas...), separados por comas.
+  aliases   String?
+  // Handle de X sin arroba.
+  handle    String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
 model Article {
   id        String   @id @default(cuid())
   sourceId  String
