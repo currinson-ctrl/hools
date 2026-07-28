@@ -129,8 +129,9 @@ export async function approveArticleAction(formData: FormData) {
       }
     }
 
+    const publishInstagram = formData.get("publishInstagram") === "on";
     let instagramMediaId: string | null = null;
-    if (isInstagramConfigured() && article!.imageUrl) {
+    if (isInstagramConfigured() && article!.imageUrl && publishInstagram) {
       try {
         instagramMediaId = await postToInstagram(article!.tweetText, article!.imageUrl);
       } catch (igErr) {

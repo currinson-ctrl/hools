@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { CATEGORY_LABEL } from "@/lib/sources";
+import { isInstagramConfigured } from "@/lib/instagram";
 import {
   approveArticleAction,
   regenerateImageAction,
@@ -109,6 +110,18 @@ export default async function ArticleReviewPage({
           <form action={approveArticleAction}>
             <input type="hidden" name="id" value={article.id} />
             <input type="hidden" name="returnTo" value={returnTo} />
+            {isInstagramConfigured() && (
+              <label style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+                <input
+                  type="checkbox"
+                  name="publishInstagram"
+                  defaultChecked={Boolean(article.imageUrl)}
+                  disabled={!article.imageUrl}
+                />
+                También en Instagram
+                {!article.imageUrl && " (necesita imagen)"}
+              </label>
+            )}
             <button className="primary" type="submit">
               Aprobar y publicar en Shopify + X
             </button>
