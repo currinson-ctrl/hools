@@ -128,7 +128,34 @@ aun así conviene vigilar el saldo en `console.x.com` si añades varias cuentas.
 Si `TWITTER_BEARER_TOKEN` no está configurada, esas fuentes simplemente no
 producen noticias nuevas (no rompen el resto del rastreo).
 
-### 4. Acceso al dashboard
+### 4. Instagram (opcional)
+
+Al aprobar un artículo, si hay imagen y está configurado, también se publica
+como foto en el feed de Instagram (con el mismo texto que el tuit, sin
+enlace — Instagram no permite enlaces clicables en el pie de foto).
+Instagram exige imagen siempre; si el artículo no tiene, se omite igual que
+X cuando falta configuración.
+
+1. La cuenta de Instagram debe ser **Business o Creator**, vinculada a una
+   página de Facebook (Instagram → Configuración → Cuenta → Cambiar a
+   cuenta profesional).
+2. Crea una app en [developers.facebook.com](https://developers.facebook.com)
+   (tipo "Empresa"), añade el caso de uso **"Administrar mensajes y
+   contenido en Instagram"**.
+3. Añade tu cuenta de Instagram como **Evaluador de Instagram** en Roles de
+   la app, y acéptalo desde Instagram → Configuración → Aplicaciones y
+   sitios web → Invitaciones para evaluadores.
+4. En el propio caso de uso, punto "Genera identificadores de acceso",
+   añade la cuenta y genera el **identificador de acceso** →
+   `INSTAGRAM_ACCESS_TOKEN`. Ese mismo punto muestra el id numérico de la
+   cuenta → `INSTAGRAM_USER_ID`.
+
+A diferencia de X, la API de Instagram es **gratuita** (límite de 25
+publicaciones/24h, muy por encima del volumen de este blog). El token dura
+aproximadamente 60 días; cuando caduque, hay que generar uno nuevo desde el
+mismo panel y actualizar la variable de entorno.
+
+### 5. Acceso al dashboard
 
 `DASHBOARD_PASSWORD` (contraseña única de acceso) y `SESSION_SECRET` (cadena
 aleatoria larga, ej. `openssl rand -hex 32`) — es una única persona/cuenta

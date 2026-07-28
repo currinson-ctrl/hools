@@ -9,6 +9,7 @@ import {
   updateArticleOnShopify,
 } from "@/lib/shopify";
 import { isTwitterConfigured, postTweet } from "@/lib/twitter";
+import { isInstagramConfigured, postToInstagram } from "@/lib/instagram";
 import { translateToSpanish } from "@/lib/translate";
 import { searchRelatedImage } from "@/lib/image-search";
 import { Category, SourceType } from "@prisma/client";
@@ -128,6 +129,16 @@ export async function approveArticleAction(formData: FormData) {
       }
     }
 
+    let instagramMediaId: string | null = null;
+    if (isInstagramConfigured() && article!.imageUrl) {
+      try {
+        instagramMediaId = await postToInstagram(article!.tweetText, article!.imageUrl);
+      } catch (igErr) {
+        // Igual que con X: el blog ya se publico, no revertimos por esto.
+        console.error("Fallo al publicar en Instagram:", igErr);
+      }
+    }
+
     await prisma.article.update({
       where: { id },
       data: {
@@ -135,6 +146,7 @@ export async function approveArticleAction(formData: FormData) {
         shopifyArticleId,
         shopifyHandle: handle,
         tweetId,
+        instagramMediaId,
         reviewedAt: new Date(),
         publishedAt: new Date(),
       },

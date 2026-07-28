@@ -92,6 +92,7 @@ model Article {
   shopifyArticleId String? // gid://shopify/Article/...
   shopifyHandle    String?
   tweetId          String?
+  instagramMediaId String?
 
   reviewedAt  DateTime?
   publishedAt DateTime?

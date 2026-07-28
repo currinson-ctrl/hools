@@ -128,6 +128,7 @@ export default async function ArticleReviewPage({
           <div className="banner ok">
             Publicado. Handle de Shopify: {article.shopifyHandle}
             {article.tweetId && <> · Tuit: {article.tweetId}</>}
+            {article.instagramMediaId && <> · Instagram: {article.instagramMediaId}</>}
           </div>
           <form action={unpublishArticleAction} style={{ marginTop: 12 }}>
             <input type="hidden" name="id" value={article.id} />
