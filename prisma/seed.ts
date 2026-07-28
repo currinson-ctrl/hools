@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { SEED_SOURCES } from "../src/lib/sources";
+import { SEED_GROUPS } from "../src/lib/groups-seed";
 
 const prisma = new PrismaClient();
 
@@ -12,6 +13,15 @@ async function main() {
     });
   }
   console.log(`Sembradas ${SEED_SOURCES.length} fuentes.`);
+
+  for (const group of SEED_GROUPS) {
+    await prisma.group.upsert({
+      where: { handle: group.handle },
+      update: { name: group.name },
+      create: group,
+    });
+  }
+  console.log(`Sembrados ${SEED_GROUPS.length} grupos.`);
 }
 
 main()

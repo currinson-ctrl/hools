@@ -60,7 +60,7 @@ model Group {
   // Variantes/alias del nombre (con o sin tildes, abreviaturas...), separados por comas.
   aliases   String?
   // Handle de X sin arroba.
-  handle    String
+  handle    String   @unique
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
 }
