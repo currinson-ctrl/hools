@@ -25,7 +25,13 @@ export function findMentionedGroups(text: string, groups: KnownGroup[]): KnownGr
 
   return groups.filter((group) =>
     [group.name, ...group.aliases].some((candidate) => {
-      const pattern = new RegExp(`\\b${escapeRegExp(foldAccents(candidate).toLowerCase())}\\b`);
+      const folded = foldAccents(candidate).toLowerCase();
+      // \b solo funciona entre caracter de palabra y no-palabra: si el alias
+      // empieza/termina en un simbolo (ej. "Biri$"), anclarlo con \b haria
+      // que no casara nunca; en ese extremo no se exige limite.
+      const start = /^\w/.test(folded) ? "\\b" : "";
+      const end = /\w$/.test(folded) ? "\\b" : "";
+      const pattern = new RegExp(`${start}${escapeRegExp(folded)}${end}`);
       return pattern.test(normalizedText);
     })
   );

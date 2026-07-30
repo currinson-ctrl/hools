@@ -4,9 +4,11 @@
  * handle, idempotente) - despues se gestionan desde /dashboard/groups sin
  * tocar codigo.
  */
-export const SEED_GROUPS: Array<{ name: string; handle: string }> = [
+export const SEED_GROUPS: Array<{ name: string; handle: string; aliases?: string }> = [
   { name: "Gradafans Real Madrid", handle: "GradaFansRMCF" },
-  { name: "Biris Oficial", handle: "birisoficial" },
+  // "Biris Norte" es el nombre real del grupo; en tuits aparece tambien
+  // como "Biris" a secas o estilizado "Biri$".
+  { name: "Biris Oficial", handle: "birisoficial", aliases: "Biris Norte, Biris, Biri$" },
   { name: "Frente Atlético", handle: "FA82Oficial" },
   { name: "Bultzad", handle: "BultzadaTX" },
   { name: "Indar Gorri", handle: "19IndarGorri87" },
