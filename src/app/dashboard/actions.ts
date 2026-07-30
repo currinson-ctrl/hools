@@ -97,7 +97,10 @@ export async function approveArticleAction(formData: FormData) {
   const id = String(formData.get("id"));
   const returnTo = String(formData.get("returnTo") || "/dashboard");
 
-  const article = await prisma.article.findUnique({ where: { id } });
+  const article = await prisma.article.findUnique({
+    where: { id },
+    include: { source: true },
+  });
   if (!article) withError(returnTo, "Artículo no encontrado");
   if (article!.status === "PUBLISHED") redirect(returnTo);
 
@@ -167,7 +170,16 @@ export async function approveArticleAction(formData: FormData) {
             imageUrl: article!.imageUrl,
           });
         } else if (article!.imageUrl) {
-          instagramMediaId = await postToInstagram(tweetText, article!.imageUrl);
+          // Atribucion de la fuente en el pie de foto (en stories la API no
+          // admite texto, ahi no se puede).
+          const sourceCredit =
+            article!.source.type === "X_ACCOUNT"
+              ? `📸 Fuente: @${article!.source.feedUrl} (en X)`
+              : `📸 Fuente: ${article!.source.name}`;
+          instagramMediaId = await postToInstagram(
+            `${tweetText}\n\n${sourceCredit}`,
+            article!.imageUrl
+          );
         }
       } catch (igErr) {
         // Igual que con X: el blog ya se publico, no revertimos por esto.
