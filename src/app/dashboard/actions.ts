@@ -12,6 +12,7 @@ import { isTwitterConfigured, postTweet } from "@/lib/twitter";
 import { isInstagramConfigured, postStoryToInstagram, postToInstagram } from "@/lib/instagram";
 import { translateToSpanish } from "@/lib/translate";
 import { searchRelatedImage } from "@/lib/image-search";
+import { findMentionedGroups, linkMentionedGroups, parseAliases } from "@/lib/groups";
 import { Category, SourceType } from "@prisma/client";
 
 function withError(basePath: string, message: string): never {
@@ -104,10 +105,31 @@ export async function approveArticleAction(formData: FormData) {
   // pero si se avisan al final para no dejarlos solo en los logs.
   const warnings: string[] = [];
 
+  // La deteccion de grupos corre al generar el borrador, pero los articulos
+  // que ya estaban en cola cuando se anadio un grupo/alias (o los editados a
+  // mano) se quedarian sin enlace: se repite aqui sobre el texto final, con
+  // cuidado de no enlazar/mencionar dos veces lo que ya viene enlazado.
+  let excerpt = article!.excerpt;
+  let tweetText = article!.tweetText;
+  const groupRows = await prisma.group.findMany({ where: { active: true } });
+  const mentionedGroups = findMentionedGroups(`${article!.title} ${excerpt} ${tweetText}`, groupRows.map((g) => ({
+    name: g.name,
+    aliases: parseAliases(g.aliases),
+    handle: g.handle,
+  })));
+  const toLink = mentionedGroups.filter((g) => !excerpt.includes(`x.com/${g.handle}`));
+  if (toLink.length) excerpt = linkMentionedGroups(excerpt, toLink);
+  for (const group of mentionedGroups) {
+    if (tweetText.toLowerCase().includes(`@${group.handle.toLowerCase()}`)) continue;
+    const withMention = `${tweetText} @${group.handle}`;
+    // mismo margen que al generar el tuit: 280 menos el hueco del enlace
+    if (withMention.length <= 256) tweetText = withMention;
+  }
+
   try {
     const { shopifyArticleId, handle } = await publishArticleToShopify({
       title: article!.title,
-      bodyHtml: article!.excerpt,
+      bodyHtml: excerpt,
       tags: article!.tags.split(",").map((t) => t.trim()).filter(Boolean),
       imageUrl: article!.imageUrl,
     });
@@ -120,7 +142,7 @@ export async function approveArticleAction(formData: FormData) {
     if (isTwitterConfigured()) {
       try {
         const images = [article!.imageUrl, ...(article!.extraImageUrls?.split(",") || [])];
-        tweetId = await postTweet(article!.tweetText, publicUrl, images);
+        tweetId = await postTweet(tweetText, publicUrl, images);
       } catch (tweetErr) {
         // La publicación en el blog ya tuvo éxito; no revertimos por un fallo en X.
         // Node trunca objetos anidados (ej. "data: [Object]") en los logs, asi
@@ -145,7 +167,7 @@ export async function approveArticleAction(formData: FormData) {
             imageUrl: article!.imageUrl,
           });
         } else if (article!.imageUrl) {
-          instagramMediaId = await postToInstagram(article!.tweetText, article!.imageUrl);
+          instagramMediaId = await postToInstagram(tweetText, article!.imageUrl);
         }
       } catch (igErr) {
         // Igual que con X: el blog ya se publico, no revertimos por esto.
@@ -158,6 +180,9 @@ export async function approveArticleAction(formData: FormData) {
       where: { id },
       data: {
         status: "PUBLISHED",
+        // se guarda lo publicado de verdad (con los enlaces/menciones anadidos)
+        excerpt,
+        tweetText,
         shopifyArticleId,
         shopifyHandle: handle,
         tweetId,
