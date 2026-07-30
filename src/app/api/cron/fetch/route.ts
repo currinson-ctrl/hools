@@ -111,6 +111,7 @@ export async function GET(request: Request) {
           tweetText: draft.tweetText,
           imageUrl: draft.imageUrl,
           extraImageUrls: draft.extraImageUrls?.length ? draft.extraImageUrls.join(",") : null,
+          videoUrl: draft.videoUrl ?? null,
           tags: draft.tags,
         },
       });

@@ -10,6 +10,10 @@ import {
   updateArticleAction,
 } from "../../actions";
 
+// Publicar (Shopify + X + Instagram; un video de story tarda en procesarse)
+// puede superar los 60s por defecto; mismo margen que /dashboard.
+export const maxDuration = 280;
+
 export default async function ArticleReviewPage({
   params,
   searchParams,
@@ -56,6 +60,16 @@ export default async function ArticleReviewPage({
             alt=""
             style={{ maxWidth: 240, borderRadius: 8, marginTop: 8, display: "block" }}
           />
+        )}
+
+        {article.videoUrl && (
+          <div className="meta" style={{ marginTop: 8 }}>
+            🎬 El tuit de origen trae vídeo —{" "}
+            <a href={article.videoUrl} target="_blank" rel="noreferrer">
+              verlo
+            </a>{" "}
+            (se puede publicar como story de Instagram)
+          </div>
         )}
 
         {article.extraImageUrls && (
@@ -112,14 +126,17 @@ export default async function ArticleReviewPage({
             <input type="hidden" name="returnTo" value={returnTo} />
             {isInstagramConfigured() && (
               <label style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-                <input
-                  type="checkbox"
-                  name="publishInstagram"
-                  defaultChecked={Boolean(article.imageUrl)}
-                  disabled={!article.imageUrl}
-                />
-                También en Instagram
-                {!article.imageUrl && " (necesita imagen)"}
+                Instagram:
+                <select
+                  name="instagramMode"
+                  defaultValue={article.videoUrl ? "story" : article.imageUrl ? "post" : "none"}
+                >
+                  <option value="none">No publicar</option>
+                  {article.imageUrl && <option value="post">Publicación (foto)</option>}
+                  {(article.videoUrl || article.imageUrl) && (
+                    <option value="story">Story{article.videoUrl ? " (vídeo)" : " (foto)"}</option>
+                  )}
+                </select>
               </label>
             )}
             <button className="primary" type="submit">

@@ -105,13 +105,17 @@ export default async function DashboardPage({
                   <input type="hidden" name="returnTo" value={returnTo} />
                   {isInstagramConfigured() && (
                     <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      <input
-                        type="checkbox"
-                        name="publishInstagram"
-                        defaultChecked={Boolean(article.imageUrl)}
-                        disabled={!article.imageUrl}
-                      />
-                      Instagram
+                      Instagram:
+                      <select
+                        name="instagramMode"
+                        defaultValue={article.videoUrl ? "story" : article.imageUrl ? "post" : "none"}
+                      >
+                        <option value="none">No</option>
+                        {article.imageUrl && <option value="post">Publicación</option>}
+                        {(article.videoUrl || article.imageUrl) && (
+                          <option value="story">Story{article.videoUrl ? " (vídeo)" : ""}</option>
+                        )}
+                      </select>
                     </label>
                   )}
                   <button className="primary" type="submit">

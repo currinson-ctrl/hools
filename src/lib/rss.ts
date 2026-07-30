@@ -33,6 +33,8 @@ export interface DraftArticle {
   // Fotos adicionales aparte de imageUrl (solo lo rellenan fuentes que
   // puedan traer varias, como una cuenta de X con un tuit multi-foto).
   extraImageUrls?: string[];
+  // mp4 del tuit de origen, si lo trae (solo fuentes de X).
+  videoUrl?: string | null;
   tags: string;
   category: Category;
 }

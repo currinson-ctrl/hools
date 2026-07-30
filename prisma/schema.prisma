@@ -85,6 +85,9 @@ model Article {
   // de una, separadas por comas. Se adjuntan tambien al tuit publicado y se
   // insertan en el cuerpo del articulo. Casi siempre vacio (RSS solo da una).
   extraImageUrls String?
+  // URL del video (mp4) cuando el tuit de origen lo trae. Se usa para
+  // publicarlo como story de Instagram; imageUrl guarda su miniatura.
+  videoUrl String?
   tags      String // comma-separated
 
   status ArticleStatus @default(PENDING)

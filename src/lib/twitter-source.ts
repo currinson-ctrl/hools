@@ -34,6 +34,8 @@ export interface AccountCandidate {
   text: string;
   // Todas las fotos adjuntas al tuit, en orden (puede estar vacio).
   imageUrls: string[];
+  // mp4 del tuit si lleva video (la miniatura va en imageUrls).
+  videoUrl: string | null;
 }
 
 type SourceForAccount = Pick<Source, "id" | "feedUrl" | "externalId" | "lastFetchedId">;
@@ -70,7 +72,7 @@ export async function parseAccountCandidates(
       since_id: source.lastFetchedId || undefined,
       "tweet.fields": ["attachments"],
       expansions: ["attachments.media_keys"],
-      "media.fields": ["url", "type", "preview_image_url"],
+      "media.fields": ["url", "type", "preview_image_url", "variants"],
     });
 
     const candidates: AccountCandidate[] = timeline.tweets.map((tweet) => {
@@ -79,11 +81,19 @@ export async function parseAccountCandidates(
         .filter((m) => m.type === "photo" && m.url)
         .map((m) => m.url as string);
       const thumbnail = media.find((m) => m.preview_image_url)?.preview_image_url;
+      // De un tuit con video se guarda el mp4 de mayor bitrate (los feeds
+      // HLS .m3u8 no le valen a la API de Instagram).
+      const videoUrl =
+        media
+          .find((m) => m.type === "video" || m.type === "animated_gif")
+          ?.variants?.filter((v) => v.content_type === "video/mp4" && v.url)
+          .sort((a, b) => (b.bit_rate ?? 0) - (a.bit_rate ?? 0))[0]?.url ?? null;
       return {
         guid: `x:${tweet.id}`,
         tweetId: tweet.id,
         text: tweet.text,
         imageUrls: photos.length ? photos : thumbnail ? [thumbnail] : [],
+        videoUrl,
       };
     });
 
@@ -119,7 +129,7 @@ export async function buildDraftsFromAccountCandidates(
     .slice(0, MAX_ITEMS_PER_SOURCE);
 
   const drafts = await Promise.all(
-    newCandidates.map(async (c) => {
+    newCandidates.map(async (c): Promise<DraftArticle | null> => {
       const [mainImage, ...extraImages] = c.imageUrls;
       const item: FeedItem = {
         link: `https://x.com/${username}/status/${c.tweetId}`,
@@ -130,13 +140,15 @@ export async function buildDraftsFromAccountCandidates(
         enclosure: mainImage ? { url: mainImage } : undefined,
       };
       const draft = await buildDraft(item, source, knownGroups);
-      if (!draft || !extraImages.length) return draft;
+      if (!draft) return draft;
+      const withVideo = { ...draft, videoUrl: c.videoUrl };
+      if (!extraImages.length) return withVideo;
 
       const extraImagesHtml = extraImages
         .map((url) => `<p><img src="${escapeHtml(url)}" alt="" /></p>`)
         .join("\n");
       return {
-        ...draft,
+        ...withVideo,
         excerpt: draft.excerpt.replace(
           "<p><em>Fuente:",
           `${extraImagesHtml}\n<p><em>Fuente:`

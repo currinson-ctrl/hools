@@ -23,21 +23,39 @@ async function graphPost(path: string, params: Record<string, string>): Promise<
   return data;
 }
 
-// El contenedor de media tarda un poco en procesar la imagen antes de poder
-// publicarlo: se consulta su estado con un pequeño backoff en vez de
-// publicar a ciegas justo despues de crearlo.
-async function waitUntilReady(containerId: string, accessToken: string): Promise<void> {
-  for (let attempt = 0; attempt < 5; attempt++) {
+// El contenedor de media tarda un poco en procesar la imagen/video antes de
+// poder publicarlo: se consulta su estado con un pequeño backoff en vez de
+// publicar a ciegas justo despues de crearlo. Un video tarda bastante mas
+// que una foto, de ahi que los intentos sean configurables.
+async function waitUntilReady(
+  containerId: string,
+  accessToken: string,
+  attempts = 5,
+  delayMs = 1500
+): Promise<void> {
+  for (let attempt = 0; attempt < attempts; attempt++) {
     const res = await fetch(
       `https://graph.instagram.com/${GRAPH_VERSION}/${containerId}?fields=status_code&access_token=${accessToken}`
     );
     const data = (await res.json()) as { status_code?: string };
     if (data.status_code === "FINISHED") return;
     if (data.status_code === "ERROR") {
-      throw new Error("Instagram no pudo procesar la imagen del contenedor");
+      throw new Error("Instagram no pudo procesar el contenido del contenedor");
     }
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
   }
+}
+
+async function publishContainer(containerId: string, userId: string, accessToken: string): Promise<string> {
+  const published = await graphPost(`${userId}/media_publish`, {
+    creation_id: containerId,
+    access_token: accessToken,
+  });
+  const mediaId = published.id as string | undefined;
+  if (!mediaId) {
+    throw new Error(`Instagram no devolvio un id de publicacion: ${JSON.stringify(published)}`);
+  }
+  return mediaId;
 }
 
 /**
@@ -61,13 +79,41 @@ export async function postToInstagram(caption: string, imageUrl: string): Promis
 
   await waitUntilReady(containerId, accessToken);
 
-  const published = await graphPost(`${userId}/media_publish`, {
-    creation_id: containerId,
+  return publishContainer(containerId, userId, accessToken);
+}
+
+/**
+ * Publica una story de Instagram con el video del tuit (preferido) o, si no
+ * hay video, con la imagen de portada. Las stories de la API no llevan pie
+ * de texto (Instagram lo ignora), asi que solo se envia el medio.
+ */
+export async function postStoryToInstagram(media: {
+  videoUrl?: string | null;
+  imageUrl?: string | null;
+}): Promise<string> {
+  const accessToken = getEnv("INSTAGRAM_ACCESS_TOKEN");
+  const userId = getEnv("INSTAGRAM_USER_ID");
+
+  const params: Record<string, string> = {
+    media_type: "STORIES",
     access_token: accessToken,
-  });
-  const mediaId = published.id as string | undefined;
-  if (!mediaId) {
-    throw new Error(`Instagram no devolvio un id de publicacion: ${JSON.stringify(published)}`);
+  };
+  if (media.videoUrl) {
+    params.video_url = media.videoUrl;
+  } else if (media.imageUrl) {
+    params.image_url = media.imageUrl;
+  } else {
+    throw new Error("Una story necesita un video o una imagen");
   }
-  return mediaId;
+
+  const container = await graphPost(`${userId}/media`, params);
+  const containerId = container.id as string | undefined;
+  if (!containerId) {
+    throw new Error(`Instagram no devolvio un id de contenedor: ${JSON.stringify(container)}`);
+  }
+
+  // Los videos tardan en procesarse mucho mas que las fotos.
+  await waitUntilReady(containerId, accessToken, media.videoUrl ? 20 : 5, 3000);
+
+  return publishContainer(containerId, userId, accessToken);
 }

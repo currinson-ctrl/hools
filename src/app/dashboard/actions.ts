@@ -9,7 +9,7 @@ import {
   updateArticleOnShopify,
 } from "@/lib/shopify";
 import { isTwitterConfigured, postTweet } from "@/lib/twitter";
-import { isInstagramConfigured, postToInstagram } from "@/lib/instagram";
+import { isInstagramConfigured, postStoryToInstagram, postToInstagram } from "@/lib/instagram";
 import { translateToSpanish } from "@/lib/translate";
 import { searchRelatedImage } from "@/lib/image-search";
 import { Category, SourceType } from "@prisma/client";
@@ -134,11 +134,19 @@ export async function approveArticleAction(formData: FormData) {
       }
     }
 
-    const publishInstagram = formData.get("publishInstagram") === "on";
+    // "none" | "post" (publicacion de foto en el feed) | "story"
+    const instagramMode = String(formData.get("instagramMode") || "none");
     let instagramMediaId: string | null = null;
-    if (isInstagramConfigured() && article!.imageUrl && publishInstagram) {
+    if (isInstagramConfigured() && instagramMode !== "none") {
       try {
-        instagramMediaId = await postToInstagram(article!.tweetText, article!.imageUrl);
+        if (instagramMode === "story") {
+          instagramMediaId = await postStoryToInstagram({
+            videoUrl: article!.videoUrl,
+            imageUrl: article!.imageUrl,
+          });
+        } else if (article!.imageUrl) {
+          instagramMediaId = await postToInstagram(article!.tweetText, article!.imageUrl);
+        }
       } catch (igErr) {
         // Igual que con X: el blog ya se publico, no revertimos por esto.
         console.error("Fallo al publicar en Instagram:", igErr);
