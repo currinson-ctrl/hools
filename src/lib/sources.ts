@@ -67,6 +67,25 @@ export const CATEGORY_HASHTAGS: Record<Category, string[]> = {
   MODA: ["#Casual", "#TerraceFashion", "#Hools"],
 };
 
+// Cierre comercial que se anade al final de cada articulo, segun su tema:
+// es el unico puente del blog a la tienda, asi que apunta a la coleccion que
+// mejor encaja con lo que se acaba de leer. Cambia aqui los destinos si
+// reorganizas las colecciones de Shopify.
+export const CATEGORY_CTA: Record<Category, { path: string; text: string }> = {
+  AFICION: {
+    path: "/collections/terrace",
+    text: "Polos de cultura terrace, para los que viven la grada",
+  },
+  VIAJES: {
+    path: "/collections/mod",
+    text: "Away y Trasferta: los polos de los días fuera de casa",
+  },
+  MODA: {
+    path: "/collections/productos",
+    text: "Todos los polos Hools: algodón pesado, hechos en Portugal",
+  },
+};
+
 // Consulta de respaldo para buscar una foto de stock cuando la fuente RSS
 // no trae ninguna imagen. En ingles porque el banco de imagenes (Openverse)
 // tiene mejor cobertura/etiquetado en ingles.

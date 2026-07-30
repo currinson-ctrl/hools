@@ -1,6 +1,6 @@
 import Parser from "rss-parser";
 import type { Category, Source } from "@prisma/client";
-import { CATEGORY_HASHTAGS, CATEGORY_IMAGE_HINT } from "./sources";
+import { CATEGORY_CTA, CATEGORY_HASHTAGS, CATEGORY_IMAGE_HINT } from "./sources";
 import { translateToSpanish } from "./translate";
 import { searchRelatedImage } from "./image-search";
 import { findMentionedGroups, linkMentionedGroups, type KnownGroup } from "./groups";
@@ -161,9 +161,14 @@ export async function buildDraft(
 
   const linkedBody = linkMentionedGroups(bodyParagraphs.join("\n"), mentionedGroups);
 
+  const cta = CATEGORY_CTA[source.category];
+  const publicDomain = process.env.SHOPIFY_PUBLIC_DOMAIN || "www.hoolsbrand.com";
+  const ctaUrl = `https://${publicDomain}${cta.path}?utm_source=blog&utm_medium=article&utm_campaign=away-end`;
+
   const excerpt = [
     linkedBody,
     `<p><em>Fuente: <a href="${safeUrl}" target="_blank" rel="noopener noreferrer nofollow">${safeSourceName}</a></em></p>`,
+    `<p><em>Return to the Origins</em> — <a href="${escapeHtml(ctaUrl)}">${escapeHtml(cta.text)}</a>.</p>`,
   ].join("\n");
 
   const hashtags = CATEGORY_HASHTAGS[source.category].join(" ");

@@ -159,6 +159,17 @@ export interface PublishArticleInput {
   imageUrl?: string | null;
 }
 
+/**
+ * Shopify usa `summary` para mostrar el articulo en el listado del blog y
+ * como meta description; sin el, el tema recorta el cuerpo a lo bruto. Se
+ * deriva del primer parrafo para que siga cuadrando si el texto se edita.
+ */
+function buildSummary(bodyHtml: string): string {
+  const firstParagraph = /<p>([\s\S]*?)<\/p>/i.exec(bodyHtml)?.[1] ?? bodyHtml;
+  const text = firstParagraph.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  return text.length <= 155 ? text : text.slice(0, 154).trimEnd() + "…";
+}
+
 export interface PublishArticleResult {
   shopifyArticleId: string;
   handle: string;
@@ -176,10 +187,13 @@ async function createArticle(
         blogId,
         title: input.title,
         body: input.bodyHtml,
+        summary: buildSummary(input.bodyHtml),
         author: { name: "Hools" },
         tags: input.tags,
         isPublished: true,
-        ...(includeImage && input.imageUrl ? { image: { url: input.imageUrl } } : {}),
+        ...(includeImage && input.imageUrl
+          ? { image: { url: input.imageUrl, altText: input.title } }
+          : {}),
       },
     }
   );
@@ -228,8 +242,12 @@ async function updateArticle(
     id: shopifyArticleId,
     article: {
       ...(input.title !== undefined ? { title: input.title } : {}),
-      ...(input.bodyHtml !== undefined ? { body: input.bodyHtml } : {}),
-      ...(includeImage && input.imageUrl ? { image: { url: input.imageUrl } } : {}),
+      ...(input.bodyHtml !== undefined
+        ? { body: input.bodyHtml, summary: buildSummary(input.bodyHtml) }
+        : {}),
+      ...(includeImage && input.imageUrl
+        ? { image: { url: input.imageUrl, ...(input.title ? { altText: input.title } : {}) } }
+        : {}),
     },
   });
   return data.articleUpdate;

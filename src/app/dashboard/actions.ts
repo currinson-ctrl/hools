@@ -140,7 +140,9 @@ export async function approveArticleAction(formData: FormData) {
 
     const blogHandle = process.env.SHOPIFY_BLOG_HANDLE || "";
     const publicDomain = process.env.SHOPIFY_PUBLIC_DOMAIN || "";
-    const publicUrl = `https://${publicDomain}/blogs/${blogHandle}/${handle}`;
+    const articleUrl = `https://${publicDomain}/blogs/${blogHandle}/${handle}`;
+    // Etiquetado para poder ver en Shopify Analytics que trae cada canal.
+    const publicUrl = `${articleUrl}?utm_source=twitter&utm_medium=social&utm_campaign=away-end`;
 
     let tweetId: string | null = null;
     if (isTwitterConfigured()) {
