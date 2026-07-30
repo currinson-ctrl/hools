@@ -284,10 +284,22 @@ export async function addSourceAction(formData: FormData) {
   }
 
   if (type === SourceType.X_ACCOUNT) {
-    feedUrl = feedUrl.replace(/^@/, "").replace(/^https?:\/\/(x|twitter)\.com\//i, "").trim();
-    if (!/^\w{1,15}$/.test(feedUrl)) {
+    feedUrl = normalizeHandle(feedUrl);
+    if (!isValidHandle(feedUrl)) {
       withError("/dashboard/sources", "El @handle de X no es válido (solo letras, números y _)");
     }
+  } else if (!isHttpUrl(feedUrl)) {
+    // Sin esto, un @handle guardado como RSS acaba en una peticion a
+    // localhost ("ECONNREFUSED 127.0.0.1:80") y la fuente no lee nada.
+    withError(
+      "/dashboard/sources",
+      "Para un feed RSS hace falta una URL completa (http://...). Si querías seguir una cuenta de X, elige el tipo \"Cuenta de X (Twitter)\"."
+    );
+  }
+
+  const existing = await prisma.source.findUnique({ where: { feedUrl } });
+  if (existing) {
+    withError("/dashboard/sources", `Esa fuente ya existe: "${existing.name}"`);
   }
 
   await prisma.source.create({ data: { name, feedUrl, category, type } });
@@ -308,8 +320,67 @@ export async function toggleSourceAction(formData: FormData) {
   redirect("/dashboard/sources");
 }
 
+/**
+ * Cambia una fuente de RSS a cuenta de X (o al contrario) sin perder su
+ * historial de articulos. Sirve para arreglar fuentes creadas con el tipo
+ * equivocado, ej. un @handle guardado como si fuera un feed RSS.
+ */
+export async function switchSourceTypeAction(formData: FormData) {
+  const id = String(formData.get("id"));
+  const source = await prisma.source.findUnique({ where: { id } });
+  if (!source) withError("/dashboard/sources", "Fuente no encontrada");
+
+  const toXAccount = source!.type === SourceType.RSS;
+  if (!toXAccount) {
+    withError(
+      "/dashboard/sources",
+      "Para convertirla en fuente RSS hace falta la URL del feed: pausa esta y añádela de nuevo."
+    );
+  }
+
+  const handle = normalizeHandle(source!.feedUrl);
+  if (!isValidHandle(handle)) {
+    withError(
+      "/dashboard/sources",
+      `"${source!.feedUrl}" no parece un @handle de X válido, así que no se puede convertir.`
+    );
+  }
+
+  const clash = await prisma.source.findUnique({ where: { feedUrl: handle } });
+  if (clash && clash.id !== id) {
+    withError("/dashboard/sources", `Ya existe otra fuente con el handle @${handle}: "${clash.name}"`);
+  }
+
+  await prisma.source.update({
+    where: { id },
+    data: {
+      type: SourceType.X_ACCOUNT,
+      feedUrl: handle,
+      // Se reinician los cursores cacheados: pertenecian a la lectura
+      // anterior y ya no valen para la cuenta recien resuelta.
+      externalId: null,
+      lastFetchedId: null,
+    },
+  });
+  revalidatePath("/dashboard/sources");
+  redirect("/dashboard/sources");
+}
+
 function normalizeHandle(raw: string): string {
   return raw.replace(/^@/, "").replace(/^https?:\/\/(x|twitter)\.com\//i, "").trim();
+}
+
+function isValidHandle(value: string): boolean {
+  return /^\w{1,15}$/.test(value);
+}
+
+function isHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 export async function addGroupAction(formData: FormData) {

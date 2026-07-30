@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
 import { Category, SourceType } from "@prisma/client";
 import { CATEGORY_LABEL } from "@/lib/sources";
-import { addSourceAction, toggleSourceAction } from "../actions";
+import { addSourceAction, switchSourceTypeAction, toggleSourceAction } from "../actions";
 
 export default async function SourcesPage({
   searchParams,
@@ -30,11 +30,23 @@ export default async function SourcesPage({
           <div className="excerpt">
             {source.type === SourceType.X_ACCOUNT ? `@${source.feedUrl}` : source.feedUrl}
           </div>
+          {source.type === SourceType.RSS && !source.feedUrl.startsWith("http") && (
+            <div className="banner error" style={{ marginTop: 8 }}>
+              Esto no es una URL de feed: como fuente RSS no lee nada. Si es una
+              cuenta de X, conviértela con el botón de abajo.
+            </div>
+          )}
           <div className="row">
             <form action={toggleSourceAction}>
               <input type="hidden" name="id" value={source.id} />
               <button type="submit">{source.active ? "Pausar" : "Activar"}</button>
             </form>
+            {source.type === SourceType.RSS && !source.feedUrl.startsWith("http") && (
+              <form action={switchSourceTypeAction}>
+                <input type="hidden" name="id" value={source.id} />
+                <button type="submit">Convertir en cuenta de X</button>
+              </form>
+            )}
           </div>
         </div>
       ))}
