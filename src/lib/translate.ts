@@ -17,6 +17,8 @@ export interface TranslatedArticle {
   title: string;
   /** Cuerpo del articulo ya con parrafos separados por saltos de linea dobles. */
   body: string;
+  /** Pie de foto para Instagram (gancho + pregunta + hashtags de nicho), o null si no vino. */
+  igCaption: string | null;
 }
 
 function extractJson(raw: string): string {
@@ -56,7 +58,7 @@ export async function translateToSpanish(input: {
   try {
     const message = await getClient().messages.create({
       model: MODEL,
-      max_tokens: 900,
+      max_tokens: 1200,
       messages: [
         {
           role: "user",
@@ -71,8 +73,12 @@ Fragmento original: "${input.snippet}"
 
 Si NO encaja, responde SOLO con este JSON, sin texto adicional: {"relevant": false}
 
-Si SI encaja, escribe un ARTICULO COMPLETO Y ORIGINAL en español de España, de entre 300 y 450 palabras, en 4-6 parrafos. No traduzcas ni resumas el original: usalo solo como punto de partida, y desarrolla tu propio contenido con contexto, trasfondo y análisis. No copies frases del original. Tono periodístico natural, directo, como si lo hubieras escrito tú desde cero. Responde SOLO con este JSON, sin texto adicional ni bloques de codigo (el cuerpo con los parrafos separados por \\n\\n):
-{"relevant": true, "title": "titular en español, breve", "body": "parrafo 1\\n\\nparrafo 2\\n\\nparrafo 3..."}`,
+Si SI encaja, escribe un ARTICULO COMPLETO Y ORIGINAL en español de España, de entre 300 y 450 palabras, en 4-6 parrafos. No traduzcas ni resumas el original: usalo solo como punto de partida, y desarrolla tu propio contenido con contexto, trasfondo y análisis. No copies frases del original. Tono periodístico natural, directo, como si lo hubieras escrito tú desde cero.
+
+Genera ademas "igCaption": un pie de foto para Instagram sobre la misma noticia. Reglas: 2-3 frases cortas con gancho directo (tono cultura terrace/ultra, sin sonar a marca corporativa) + una pregunta final a la audiencia para invitar a comentar. NUNCA uses @menciones. Cierra con una linea de 8-12 hashtags mezclando nicho y tema (ej. #terraceculture #awaydays #casuals #ultras #groundhopping mas los especificos de esta noticia). Sin enlaces.
+
+Responde SOLO con este JSON, sin texto adicional ni bloques de codigo (el cuerpo con los parrafos separados por \\n\\n):
+{"relevant": true, "title": "titular en español, breve", "body": "parrafo 1\\n\\nparrafo 2\\n\\nparrafo 3...", "igCaption": "pie de foto para Instagram\\n\\n#hashtags"}`,
         },
       ],
     });
@@ -83,13 +89,14 @@ Si SI encaja, escribe un ARTICULO COMPLETO Y ORIGINAL en español de España, de
       relevant?: boolean;
       title?: string;
       body?: string;
+      igCaption?: string;
     };
 
     if (!parsed.relevant) return null;
     if (!parsed.title || !parsed.body) {
       throw new Error("Respuesta sin los campos esperados");
     }
-    return { title: parsed.title, body: parsed.body };
+    return { title: parsed.title, body: parsed.body, igCaption: parsed.igCaption || null };
   } catch (err) {
     console.error("Fallo al traducir/filtrar con Claude, se descarta el item:", err);
     return null;

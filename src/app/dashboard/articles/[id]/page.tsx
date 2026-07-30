@@ -92,6 +92,11 @@ export default async function ArticleReviewPage({
         <label htmlFor="tweetText">Texto del tuit</label>
         <textarea id="tweetText" name="tweetText" defaultValue={article.tweetText} />
 
+        <label htmlFor="igCaption">
+          Pie de foto de Instagram (si se deja vacío, se usa el texto del tuit)
+        </label>
+        <textarea id="igCaption" name="igCaption" defaultValue={article.igCaption || ""} />
+
         <div className="row">
           <button className="primary" type="submit">
             Guardar cambios

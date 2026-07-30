@@ -25,6 +25,7 @@ export async function updateArticleAction(formData: FormData) {
   const title = String(formData.get("title") || "").trim();
   const excerpt = String(formData.get("excerpt") || "").trim();
   const tweetText = String(formData.get("tweetText") || "").trim();
+  const igCaption = String(formData.get("igCaption") || "").trim();
   const imageUrl = String(formData.get("imageUrl") || "").trim();
 
   if (!id || !title || !excerpt) {
@@ -49,7 +50,7 @@ export async function updateArticleAction(formData: FormData) {
 
   await prisma.article.update({
     where: { id },
-    data: { title, excerpt, tweetText, imageUrl: imageUrl || null },
+    data: { title, excerpt, tweetText, igCaption: igCaption || null, imageUrl: imageUrl || null },
   });
 
   revalidatePath(`/dashboard/articles/${id}`);
@@ -170,14 +171,17 @@ export async function approveArticleAction(formData: FormData) {
             imageUrl: article!.imageUrl,
           });
         } else if (article!.imageUrl) {
-          // Atribucion de la fuente en el pie de foto (en stories la API no
-          // admite texto, ahi no se puede).
+          // Pie propio de Instagram si existe (mas largo, con hashtags de
+          // nicho y sin @menciones de X, que en IG apuntarian a otra cuenta);
+          // si no, el texto del tuit. Y la atribucion de la fuente al final
+          // (en stories la API no admite texto, ahi no se puede).
+          const caption = article!.igCaption?.trim() || tweetText;
           const sourceCredit =
             article!.source.type === "X_ACCOUNT"
               ? `📸 Fuente: @${article!.source.feedUrl} (en X)`
               : `📸 Fuente: ${article!.source.name}`;
           instagramMediaId = await postToInstagram(
-            `${tweetText}\n\n${sourceCredit}`,
+            `${caption}\n\n${sourceCredit}`,
             article!.imageUrl
           );
         }

@@ -109,6 +109,7 @@ export async function GET(request: Request) {
           title: draft.title,
           excerpt: draft.excerpt,
           tweetText: draft.tweetText,
+          igCaption: draft.igCaption,
           imageUrl: draft.imageUrl,
           extraImageUrls: draft.extraImageUrls?.length ? draft.extraImageUrls.join(",") : null,
           videoUrl: draft.videoUrl ?? null,

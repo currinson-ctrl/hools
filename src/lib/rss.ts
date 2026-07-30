@@ -29,6 +29,7 @@ export interface DraftArticle {
   title: string;
   excerpt: string;
   tweetText: string;
+  igCaption: string | null;
   imageUrl: string | null;
   // Fotos adicionales aparte de imageUrl (solo lo rellenan fuentes que
   // puedan traer varias, como una cuenta de X con un tuit multi-foto).
@@ -194,6 +195,7 @@ export async function buildDraft(
     title: esTitle,
     excerpt,
     tweetText,
+    igCaption: translated.igCaption,
     imageUrl,
     tags: [source.category, source.name].join(","),
     category: source.category,

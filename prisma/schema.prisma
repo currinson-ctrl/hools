@@ -80,6 +80,9 @@ model Article {
   title     String
   excerpt   String // HTML corto: resumen propio + cita breve + enlace "leer mas en <fuente>"
   tweetText String
+  // Pie de foto especifico para Instagram (mas largo que el tuit, con
+  // hashtags de nicho y sin @menciones). Si es null se usa tweetText.
+  igCaption String?
   imageUrl  String?
   // Fotos adicionales (aparte de imageUrl) cuando el tuit de origen trae mas
   // de una, separadas por comas. Se adjuntan tambien al tuit publicado y se
