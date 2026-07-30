@@ -271,3 +271,60 @@ export async function deleteArticleFromShopify(shopifyArticleId: string): Promis
     );
   }
 }
+
+interface ProductsResponse {
+  products: {
+    nodes: Array<{
+      title: string;
+      handle: string;
+      description: string;
+      featuredMedia: { preview: { image: { url: string } | null } | null } | null;
+      priceRangeV2: { minVariantPrice: { amount: string; currencyCode: string } };
+    }>;
+  };
+}
+
+const PRODUCTS_QUERY = /* GraphQL */ `
+  query NewsletterProducts {
+    products(first: 12, query: "status:active", sortKey: CREATED_AT) {
+      nodes {
+        title
+        handle
+        description
+        featuredMedia {
+          preview {
+            image {
+              url
+            }
+          }
+        }
+        priceRangeV2 {
+          minVariantPrice {
+            amount
+            currencyCode
+          }
+        }
+      }
+    }
+  }
+`;
+
+/**
+ * Productos activos de la tienda para el resumen semanal. Requiere el scope
+ * read_products en la app: si la app solo tiene scopes de contenido, la
+ * llamada falla y quien llama debe usar su catalogo de respaldo.
+ */
+export async function fetchActiveProducts(): Promise<
+  Array<{ title: string; handle: string; price: string; imageUrl: string; blurb: string }>
+> {
+  const data = await shopifyAdminRequest<ProductsResponse>(PRODUCTS_QUERY, {});
+  return data.products.nodes
+    .filter((p) => p.featuredMedia?.preview?.image?.url)
+    .map((p) => ({
+      title: p.title,
+      handle: p.handle,
+      price: `${Number(p.priceRangeV2.minVariantPrice.amount).toFixed(2).replace(".", ",")} €`,
+      imageUrl: p.featuredMedia!.preview!.image!.url,
+      blurb: p.description.length > 160 ? p.description.slice(0, 159).trimEnd() + "…" : p.description,
+    }));
+}
