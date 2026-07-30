@@ -10,9 +10,11 @@ import {
 } from "@/lib/shopify";
 import { isTwitterConfigured, postTweet } from "@/lib/twitter";
 import { isInstagramConfigured, postStoryToInstagram, postToInstagram } from "@/lib/instagram";
+import { isFacebookConfigured, postToFacebook } from "@/lib/facebook";
 import { translateToSpanish } from "@/lib/translate";
 import { searchRelatedImage } from "@/lib/image-search";
 import { findMentionedGroups, linkMentionedGroups, parseAliases } from "@/lib/groups";
+import { buildCtaHtml } from "@/lib/sources";
 import { Category, SourceType } from "@prisma/client";
 
 function withError(basePath: string, message: string): never {
@@ -162,6 +164,20 @@ export async function approveArticleAction(formData: FormData) {
       }
     }
 
+    const publishFacebook = formData.get("publishFacebook") === "on";
+    let facebookPostId: string | null = null;
+    if (isFacebookConfigured() && publishFacebook) {
+      try {
+        // En Facebook si tiene sentido el enlace (a diferencia de Instagram),
+        // asi que se manda el texto del tuit + la URL del articulo.
+        const fbUrl = `${articleUrl}?utm_source=facebook&utm_medium=social&utm_campaign=away-end`;
+        facebookPostId = await postToFacebook(article!.tweetText, fbUrl, article!.imageUrl);
+      } catch (fbErr) {
+        console.error("Fallo al publicar en Facebook:", fbErr);
+        warnings.push(`Facebook: ${fbErr instanceof Error ? fbErr.message : String(fbErr)}`);
+      }
+    }
+
     // "none" | "post" (publicacion de foto en el feed) | "story"
     const instagramMode = String(formData.get("instagramMode") || "none");
     let instagramMediaId: string | null = null;
@@ -205,6 +221,7 @@ export async function approveArticleAction(formData: FormData) {
         shopifyHandle: handle,
         tweetId,
         instagramMediaId,
+        facebookPostId,
         reviewedAt: new Date(),
         publishedAt: new Date(),
       },
@@ -277,6 +294,54 @@ const CLEANUP_CONCURRENCY = 6;
  * como maximo CLEANUP_BATCH_SIZE por click para no acercarse al limite de
  * tiempo de la funcion; si quedan mas, se puede pulsar otra vez.
  */
+/**
+ * Anade a los articulos ya publicados el cierre con enlace a la tienda (los
+ * anteriores acababan en "Fuente:" sin ninguna salida al catalogo) y, de
+ * paso, al reenviarlos a Shopify se rellenan summary y el alt de la imagen,
+ * que antes iban vacios. Idempotente: salta los que ya tienen el cierre.
+ */
+export async function backfillPublishedArticlesAction(formData: FormData) {
+  const returnTo = String(formData.get("returnTo") || "/dashboard?status=PUBLISHED");
+
+  const published = await prisma.article.findMany({
+    where: { status: "PUBLISHED", shopifyArticleId: { not: null } },
+    orderBy: { publishedAt: "desc" },
+  });
+
+  let updated = 0;
+  let skipped = 0;
+  const failures: string[] = [];
+
+  for (const article of published) {
+    if (article.excerpt.includes("Return to the Origins")) {
+      skipped += 1;
+      continue;
+    }
+    const excerpt = `${article.excerpt}\n${buildCtaHtml(article.category)}`;
+    try {
+      await updateArticleOnShopify(article.shopifyArticleId!, {
+        title: article.title,
+        bodyHtml: excerpt,
+        imageUrl: article.imageUrl,
+      });
+      await prisma.article.update({ where: { id: article.id }, data: { excerpt } });
+      updated += 1;
+    } catch (err) {
+      failures.push(`${article.title}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  revalidatePath("/dashboard");
+  const summary =
+    `Actualizados ${updated}, ya tenían cierre ${skipped}` +
+    (failures.length ? `, fallaron ${failures.length}` : "");
+  if (failures.length) {
+    console.error("Fallos al añadir el cierre a publicados:", failures.join(" | "));
+    withError(returnTo, `${summary}. Detalle en los logs.`);
+  }
+  redirect(`${returnTo}&notice=${encodeURIComponent(summary)}`);
+}
+
 export async function cleanupOffTopicAction(formData: FormData) {
   const returnTo = String(formData.get("returnTo") || "/dashboard?status=PENDING");
 

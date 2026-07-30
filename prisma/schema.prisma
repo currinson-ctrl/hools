@@ -99,6 +99,7 @@ model Article {
   shopifyHandle    String?
   tweetId          String?
   instagramMediaId String?
+  facebookPostId   String?
 
   reviewedAt  DateTime?
   publishedAt DateTime?

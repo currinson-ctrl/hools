@@ -155,6 +155,26 @@ publicaciones/24h, muy por encima del volumen de este blog). El token dura
 aproximadamente 60 días; cuando caduque, hay que generar uno nuevo desde el
 mismo panel y actualizar la variable de entorno.
 
+#### Facebook (opcional)
+
+Publica en la página de Facebook de la marca al aprobar, con una casilla
+propia en el panel. A diferencia de Instagram, aquí el enlace al artículo sí
+es clicable, así que el post lleva texto + enlace (y la foto si la hay).
+Usa la misma app de Meta:
+
+1. Ve al [Explorador de la API Graph](https://developers.facebook.com/tools/explorer/),
+   elige tu app y pide los permisos `pages_manage_posts`, `pages_read_engagement`
+   y `pages_show_list`.
+2. Genera un token de usuario, y con él consulta `me/accounts`: ahí aparece
+   tu página con su `id` → `FACEBOOK_PAGE_ID` y su `access_token` (token **de
+   página**) → `FACEBOOK_PAGE_ACCESS_TOKEN`.
+3. Si generas el token de página a partir de un token de usuario de larga
+   duración, el de página no caduca; si no, habrá que renovarlo cada ~60 días
+   igual que el de Instagram.
+
+También gratuita. Si estas variables no están configuradas, la casilla de
+Facebook no aparece y el resto sigue funcionando igual.
+
 ### 5. Acceso al dashboard
 
 `DASHBOARD_PASSWORD` (contraseña única de acceso) y `SESSION_SECRET` (cadena

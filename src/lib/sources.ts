@@ -71,6 +71,13 @@ export const CATEGORY_HASHTAGS: Record<Category, string[]> = {
 // es el unico puente del blog a la tienda, asi que apunta a la coleccion que
 // mejor encaja con lo que se acaba de leer. Cambia aqui los destinos si
 // reorganizas las colecciones de Shopify.
+export function buildCtaHtml(category: Category): string {
+  const cta = CATEGORY_CTA[category];
+  const publicDomain = process.env.SHOPIFY_PUBLIC_DOMAIN || "www.hoolsbrand.com";
+  const url = `https://${publicDomain}${cta.path}?utm_source=blog&utm_medium=article&utm_campaign=away-end`;
+  return `<p><em>Return to the Origins</em> — <a href="${url}">${cta.text}</a>.</p>`;
+}
+
 export const CATEGORY_CTA: Record<Category, { path: string; text: string }> = {
   AFICION: {
     path: "/collections/terrace",

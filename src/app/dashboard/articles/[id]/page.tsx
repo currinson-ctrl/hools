@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { CATEGORY_LABEL } from "@/lib/sources";
 import { isInstagramConfigured } from "@/lib/instagram";
+import { isFacebookConfigured } from "@/lib/facebook";
 import {
   approveArticleAction,
   regenerateImageAction,
@@ -129,6 +130,12 @@ export default async function ArticleReviewPage({
           <form action={approveArticleAction}>
             <input type="hidden" name="id" value={article.id} />
             <input type="hidden" name="returnTo" value={returnTo} />
+            {isFacebookConfigured() && (
+              <label style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+                <input type="checkbox" name="publishFacebook" defaultChecked />
+                También en Facebook
+              </label>
+            )}
             {isInstagramConfigured() && (
               <label style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
                 Instagram:
@@ -164,6 +171,7 @@ export default async function ArticleReviewPage({
             Publicado. Handle de Shopify: {article.shopifyHandle}
             {article.tweetId && <> · Tuit: {article.tweetId}</>}
             {article.instagramMediaId && <> · Instagram: {article.instagramMediaId}</>}
+            {article.facebookPostId && <> · Facebook: {article.facebookPostId}</>}
           </div>
           <form action={unpublishArticleAction} style={{ marginTop: 12 }}>
             <input type="hidden" name="id" value={article.id} />

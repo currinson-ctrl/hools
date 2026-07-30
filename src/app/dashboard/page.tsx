@@ -3,8 +3,10 @@ import { prisma } from "@/lib/db";
 import { ArticleStatus } from "@prisma/client";
 import { CATEGORY_LABEL } from "@/lib/sources";
 import { isInstagramConfigured } from "@/lib/instagram";
+import { isFacebookConfigured } from "@/lib/facebook";
 import {
   approveArticleAction,
+  backfillPublishedArticlesAction,
   cleanupOffTopicAction,
   rejectArticleAction,
   unpublishArticleAction,
@@ -54,6 +56,14 @@ export default async function DashboardPage({
             </button>
           </form>
         )}
+        {status === "PUBLISHED" && (
+          <form action={backfillPublishedArticlesAction}>
+            <input type="hidden" name="returnTo" value={returnTo} />
+            <button type="submit" title="Añade a los artículos ya publicados el cierre con enlace a la tienda, y rellena en Shopify el resumen y el texto alternativo de la imagen">
+              Añadir cierre de tienda a los publicados
+            </button>
+          </form>
+        )}
       </div>
 
       {articles.length === 0 && (
@@ -89,6 +99,7 @@ export default async function DashboardPage({
               )}
               {article.tweetId && <>· Tuit publicado</>}
               {article.instagramMediaId && <> · Instagram publicado</>}
+              {article.facebookPostId && <> · Facebook publicado</>}
             </div>
           )}
           <div className="row">
@@ -116,6 +127,12 @@ export default async function DashboardPage({
                           <option value="story">Story{article.videoUrl ? " (vídeo)" : ""}</option>
                         )}
                       </select>
+                    </label>
+                  )}
+                  {isFacebookConfigured() && (
+                    <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <input type="checkbox" name="publishFacebook" defaultChecked />
+                      Facebook
                     </label>
                   )}
                   <button className="primary" type="submit">
