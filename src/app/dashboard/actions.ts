@@ -100,6 +100,10 @@ export async function approveArticleAction(formData: FormData) {
   if (!article) withError(returnTo, "Artículo no encontrado");
   if (article!.status === "PUBLISHED") redirect(returnTo);
 
+  // Los fallos de X/Instagram no abortan la publicacion (el blog ya salio),
+  // pero si se avisan al final para no dejarlos solo en los logs.
+  const warnings: string[] = [];
+
   try {
     const { shopifyArticleId, handle } = await publishArticleToShopify({
       title: article!.title,
@@ -126,6 +130,7 @@ export async function approveArticleAction(formData: FormData) {
             ? JSON.stringify((tweetErr as { data?: unknown }).data)
             : String(tweetErr);
         console.error("Fallo al publicar en X:", detail);
+        warnings.push(`X: ${detail}`);
       }
     }
 
@@ -137,6 +142,7 @@ export async function approveArticleAction(formData: FormData) {
       } catch (igErr) {
         // Igual que con X: el blog ya se publico, no revertimos por esto.
         console.error("Fallo al publicar en Instagram:", igErr);
+        warnings.push(`Instagram: ${igErr instanceof Error ? igErr.message : String(igErr)}`);
       }
     }
 
@@ -158,6 +164,11 @@ export async function approveArticleAction(formData: FormData) {
   }
 
   revalidatePath("/dashboard");
+  if (warnings.length) {
+    // El redirect de withError lanza, asi que va fuera del try/catch de arriba
+    // para no confundirse con un fallo de la publicacion en el blog.
+    withError(returnTo, `Publicado en el blog, pero falló: ${warnings.join(" | ")}`.slice(0, 400));
+  }
   redirect(returnTo);
 }
 

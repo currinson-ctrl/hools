@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { ArticleStatus } from "@prisma/client";
 import { CATEGORY_LABEL } from "@/lib/sources";
+import { isInstagramConfigured } from "@/lib/instagram";
 import {
   approveArticleAction,
   cleanupOffTopicAction,
@@ -87,6 +88,7 @@ export default async function DashboardPage({
                 </>
               )}
               {article.tweetId && <>· Tuit publicado</>}
+              {article.instagramMediaId && <> · Instagram publicado</>}
             </div>
           )}
           <div className="row">
@@ -98,9 +100,20 @@ export default async function DashboardPage({
             </a>
             {status === "PENDING" && (
               <>
-                <form action={approveArticleAction}>
+                <form action={approveArticleAction} className="row" style={{ alignItems: "center" }}>
                   <input type="hidden" name="id" value={article.id} />
                   <input type="hidden" name="returnTo" value={returnTo} />
+                  {isInstagramConfigured() && (
+                    <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <input
+                        type="checkbox"
+                        name="publishInstagram"
+                        defaultChecked={Boolean(article.imageUrl)}
+                        disabled={!article.imageUrl}
+                      />
+                      Instagram
+                    </label>
+                  )}
                   <button className="primary" type="submit">
                     Aprobar y publicar
                   </button>
