@@ -83,6 +83,37 @@ export async function postToInstagram(caption: string, imageUrl: string): Promis
 }
 
 /**
+ * Publica un reel: video con pie de foto, que ademas aparece en la cuadricula
+ * del perfil (share_to_feed). Instagram tarda bastante mas en procesar un
+ * reel que una foto, de ahi la espera larga.
+ */
+export async function postReelToInstagram(
+  caption: string,
+  videoUrl: string,
+  coverImageUrl?: string | null
+): Promise<string> {
+  const accessToken = getEnv("INSTAGRAM_ACCESS_TOKEN");
+  const userId = getEnv("INSTAGRAM_USER_ID");
+
+  const container = await graphPost(`${userId}/media`, {
+    media_type: "REELS",
+    video_url: videoUrl,
+    caption,
+    share_to_feed: "true",
+    access_token: accessToken,
+    ...(coverImageUrl ? { cover_url: coverImageUrl } : {}),
+  });
+  const containerId = container.id as string | undefined;
+  if (!containerId) {
+    throw new Error(`Instagram no devolvio un id de contenedor: ${JSON.stringify(container)}`);
+  }
+
+  await waitUntilReady(containerId, accessToken, 30, 4000);
+
+  return publishContainer(containerId, userId, accessToken);
+}
+
+/**
  * Publica una story de Instagram con el video del tuit (preferido) o, si no
  * hay video, con la imagen de portada. Las stories de la API no llevan pie
  * de texto (Instagram lo ignora), asi que solo se envia el medio.

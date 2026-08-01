@@ -119,10 +119,11 @@ export default async function DashboardPage({
                       Instagram:
                       <select
                         name="instagramMode"
-                        defaultValue={article.videoUrl ? "story" : article.imageUrl ? "post" : "none"}
+                        defaultValue={article.videoUrl ? "reel" : article.imageUrl ? "post" : "none"}
                       >
                         <option value="none">No</option>
                         {article.imageUrl && <option value="post">Publicación</option>}
+                        {article.videoUrl && <option value="reel">Reel</option>}
                         {(article.videoUrl || article.imageUrl) && (
                           <option value="story">Story{article.videoUrl ? " (vídeo)" : ""}</option>
                         )}

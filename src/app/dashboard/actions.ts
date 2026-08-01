@@ -9,7 +9,12 @@ import {
   updateArticleOnShopify,
 } from "@/lib/shopify";
 import { isTwitterConfigured, postTweet } from "@/lib/twitter";
-import { isInstagramConfigured, postStoryToInstagram, postToInstagram } from "@/lib/instagram";
+import {
+  isInstagramConfigured,
+  postReelToInstagram,
+  postStoryToInstagram,
+  postToInstagram,
+} from "@/lib/instagram";
 import { isFacebookConfigured, postToFacebook } from "@/lib/facebook";
 import { translateToSpanish } from "@/lib/translate";
 import { searchRelatedImage } from "@/lib/image-search";
@@ -178,30 +183,35 @@ export async function approveArticleAction(formData: FormData) {
       }
     }
 
-    // "none" | "post" (publicacion de foto en el feed) | "story"
+    // "none" | "post" (foto en el feed) | "reel" (video) | "story"
     const instagramMode = String(formData.get("instagramMode") || "none");
     let instagramMediaId: string | null = null;
     if (isInstagramConfigured() && instagramMode !== "none") {
       try {
+        // Pie propio de Instagram si existe (mas largo, con hashtags de nicho
+        // y sin @menciones de X, que en IG apuntarian a otra cuenta); si no,
+        // el texto del tuit. Con la atribucion de la fuente al final. Las
+        // stories no lo usan: ahi la API no admite texto.
+        const caption = article!.igCaption?.trim() || tweetText;
+        const sourceCredit =
+          article!.source.type === "X_ACCOUNT"
+            ? `📸 Fuente: @${article!.source.feedUrl} (en X)`
+            : `📸 Fuente: ${article!.source.name}`;
+        const fullCaption = `${caption}\n\n${sourceCredit}`;
+
         if (instagramMode === "story") {
           instagramMediaId = await postStoryToInstagram({
             videoUrl: article!.videoUrl,
             imageUrl: article!.imageUrl,
           });
-        } else if (article!.imageUrl) {
-          // Pie propio de Instagram si existe (mas largo, con hashtags de
-          // nicho y sin @menciones de X, que en IG apuntarian a otra cuenta);
-          // si no, el texto del tuit. Y la atribucion de la fuente al final
-          // (en stories la API no admite texto, ahi no se puede).
-          const caption = article!.igCaption?.trim() || tweetText;
-          const sourceCredit =
-            article!.source.type === "X_ACCOUNT"
-              ? `📸 Fuente: @${article!.source.feedUrl} (en X)`
-              : `📸 Fuente: ${article!.source.name}`;
-          instagramMediaId = await postToInstagram(
-            `${caption}\n\n${sourceCredit}`,
+        } else if (instagramMode === "reel" && article!.videoUrl) {
+          instagramMediaId = await postReelToInstagram(
+            fullCaption,
+            article!.videoUrl,
             article!.imageUrl
           );
+        } else if (article!.imageUrl) {
+          instagramMediaId = await postToInstagram(fullCaption, article!.imageUrl);
         }
       } catch (igErr) {
         // Igual que con X: el blog ya se publico, no revertimos por esto.

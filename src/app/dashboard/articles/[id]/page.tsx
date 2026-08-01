@@ -69,7 +69,7 @@ export default async function ArticleReviewPage({
             <a href={article.videoUrl} target="_blank" rel="noreferrer">
               verlo
             </a>{" "}
-            (se publicará en X, y en Instagram si eliges «Story»)
+            (se publicará en X, y en Instagram si eliges «Reel» o «Story»)
           </div>
         )}
 
@@ -141,10 +141,11 @@ export default async function ArticleReviewPage({
                 Instagram:
                 <select
                   name="instagramMode"
-                  defaultValue={article.videoUrl ? "story" : article.imageUrl ? "post" : "none"}
+                  defaultValue={article.videoUrl ? "reel" : article.imageUrl ? "post" : "none"}
                 >
                   <option value="none">No publicar</option>
                   {article.imageUrl && <option value="post">Publicación (foto)</option>}
+                  {article.videoUrl && <option value="reel">Reel (vídeo, con texto)</option>}
                   {(article.videoUrl || article.imageUrl) && (
                     <option value="story">Story{article.videoUrl ? " (vídeo)" : " (foto)"}</option>
                   )}
