@@ -69,7 +69,7 @@ export default async function ArticleReviewPage({
             <a href={article.videoUrl} target="_blank" rel="noreferrer">
               verlo
             </a>{" "}
-            (se puede publicar como story de Instagram)
+            (se publicará en X, y en Instagram si eliges «Story»)
           </div>
         )}
 

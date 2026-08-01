@@ -45,16 +45,35 @@ function toMediaIds(ids: string[]): MediaIds {
 export async function postTweet(
   text: string,
   link: string,
-  imageUrls?: (string | null | undefined)[] | null
+  imageUrls?: (string | null | undefined)[] | null,
+  videoUrl?: string | null
 ): Promise<string> {
   const client = getClient();
   const status = `${text}\n\n${link}`;
 
-  const urls = (imageUrls || [])
-    .filter((url): url is string => Boolean(url))
-    .slice(0, MAX_TWEET_IMAGES);
-
   const mediaIds: string[] = [];
+
+  // X no permite mezclar video y fotos en el mismo tuit: si la noticia trae
+  // video, va el video solo. La subida es por trozos y ademas hay que
+  // esperar a que X lo procese, de eso se encarga uploadMedia. Si algo falla
+  // se cae a las fotos en vez de quedarse el tuit sin nada.
+  if (videoUrl) {
+    try {
+      const response = await fetch(videoUrl);
+      if (response.ok) {
+        const mimeType = response.headers.get("content-type") || "video/mp4";
+        const buffer = Buffer.from(await response.arrayBuffer());
+        mediaIds.push(await client.v1.uploadMedia(buffer, { mimeType }));
+      }
+    } catch (err) {
+      console.error("No se pudo adjuntar el video al tuit, se intenta con las fotos:", err);
+    }
+  }
+
+  const urls = mediaIds.length
+    ? []
+    : (imageUrls || []).filter((url): url is string => Boolean(url)).slice(0, MAX_TWEET_IMAGES);
+
   for (const url of urls) {
     try {
       const response = await fetch(url);
