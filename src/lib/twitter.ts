@@ -91,3 +91,21 @@ export async function postTweet(
     : await client.v2.tweet(status);
   return data.id;
 }
+
+/**
+ * Borra un tuit ya publicado. La API de X no tiene "editar tuit" (el boton de
+ * edicion de la web es exclusivo de Premium y no esta expuesto en la API), asi
+ * que corregir el texto de algo ya publicado obliga a borrar y volver a
+ * publicar. Si el tuit ya no existe (borrado a mano desde la app) no se trata
+ * como error: el objetivo —que no quede el texto viejo— ya se cumplio.
+ */
+export async function deleteTweet(tweetId: string): Promise<void> {
+  const client = getClient();
+  try {
+    await client.v2.deleteTweet(tweetId);
+  } catch (err) {
+    const status = (err as { code?: number })?.code;
+    if (status === 404) return;
+    throw err;
+  }
+}

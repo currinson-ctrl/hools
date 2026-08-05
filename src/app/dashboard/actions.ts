@@ -8,7 +8,7 @@ import {
   publishArticleToShopify,
   updateArticleOnShopify,
 } from "@/lib/shopify";
-import { isTwitterConfigured, postTweet } from "@/lib/twitter";
+import { deleteTweet, isTwitterConfigured, postTweet } from "@/lib/twitter";
 import {
   isInstagramConfigured,
   postReelToInstagram,
@@ -19,7 +19,7 @@ import { isFacebookConfigured, postToFacebook } from "@/lib/facebook";
 import { translateToSpanish } from "@/lib/translate";
 import { searchRelatedImage } from "@/lib/image-search";
 import { findMentionedGroups, linkMentionedGroups, parseAliases } from "@/lib/groups";
-import { buildCtaHtml } from "@/lib/sources";
+import { buildBlogArticleUrl, buildCtaHtml } from "@/lib/sources";
 import { Category, SourceType } from "@prisma/client";
 
 function withError(basePath: string, message: string): never {
@@ -60,8 +60,77 @@ export async function updateArticleAction(formData: FormData) {
     data: { title, excerpt, tweetText, igCaption: igCaption || null, imageUrl: imageUrl || null },
   });
 
+  // Guardar no toca el tuit vivo: X no permite editar un tuit ya publicado,
+  // hay que borrarlo y volver a publicarlo (eso pierde likes/RTs y cambia el
+  // enlace), asi que es una decision del revisor, no un efecto secundario de
+  // pulsar "Guardar". Se avisa para que el cambio no parezca perdido.
+  const tweetOutOfSync =
+    article!.status === "PUBLISHED" && Boolean(article!.tweetId) && tweetText !== article!.tweetedText;
+
   revalidatePath(`/dashboard/articles/${id}`);
-  redirect(`/dashboard/articles/${id}?saved=1`);
+  redirect(`/dashboard/articles/${id}?saved=1${tweetOutOfSync ? "&tweetStale=1" : ""}`);
+}
+
+/**
+ * Sincroniza con X el texto editado de un articulo ya publicado. La API de X
+ * no expone la edicion de tuits, asi que la unica via es borrar el tuit
+ * anterior y publicar uno nuevo: el tuit cambia de id/URL y pierde las
+ * interacciones que tuviera. Tambien sirve para publicar el tuit por primera
+ * vez cuando el articulo salio en el blog pero X fallo en ese momento.
+ */
+export async function republishTweetAction(formData: FormData) {
+  const id = String(formData.get("id"));
+  const returnTo = `/dashboard/articles/${id}`;
+
+  if (!isTwitterConfigured()) {
+    withError(returnTo, "X no está configurado (faltan las credenciales TWITTER_*)");
+  }
+
+  const article = await prisma.article.findUnique({ where: { id } });
+  if (!article) withError(returnTo, "Artículo no encontrado");
+  if (article!.status !== "PUBLISHED" || !article!.shopifyHandle) {
+    withError(returnTo, "El artículo no está publicado todavía");
+  }
+
+  // Primero se borra el viejo: si el borrado falla, mejor abortar que dejar
+  // dos tuits distintos de la misma noticia conviviendo en el timeline.
+  if (article!.tweetId) {
+    try {
+      await deleteTweet(article!.tweetId);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      withError(returnTo, `No se pudo borrar el tuit anterior: ${message}`);
+    }
+    // El tuit viejo ya no existe: se limpia antes de reintentar publicar para
+    // que un fallo a continuacion no deje guardado un id que apunta a nada.
+    await prisma.article.update({
+      where: { id },
+      data: { tweetId: null, tweetedText: null },
+    });
+  }
+
+  const publicUrl = buildBlogArticleUrl(article!.shopifyHandle!, "twitter");
+  const images = [article!.imageUrl, ...(article!.extraImageUrls?.split(",") || [])];
+
+  let tweetId: string;
+  try {
+    tweetId = await postTweet(article!.tweetText, publicUrl, images, article!.videoUrl);
+  } catch (err) {
+    const detail =
+      err && typeof err === "object" && "data" in err
+        ? JSON.stringify((err as { data?: unknown }).data)
+        : String(err);
+    console.error("Fallo al republicar en X:", detail);
+    withError(returnTo, `El tuit anterior se borró, pero el nuevo falló: ${detail}`.slice(0, 400));
+  }
+
+  await prisma.article.update({
+    where: { id },
+    data: { tweetId, tweetedText: article!.tweetText },
+  });
+
+  revalidatePath(returnTo);
+  redirect(`${returnTo}?notice=${encodeURIComponent("Tuit actualizado en X con el texto nuevo.")}`);
 }
 
 /**
@@ -145,11 +214,7 @@ export async function approveArticleAction(formData: FormData) {
       imageUrl: article!.imageUrl,
     });
 
-    const blogHandle = process.env.SHOPIFY_BLOG_HANDLE || "";
-    const publicDomain = process.env.SHOPIFY_PUBLIC_DOMAIN || "";
-    const articleUrl = `https://${publicDomain}/blogs/${blogHandle}/${handle}`;
-    // Etiquetado para poder ver en Shopify Analytics que trae cada canal.
-    const publicUrl = `${articleUrl}?utm_source=twitter&utm_medium=social&utm_campaign=away-end`;
+    const publicUrl = buildBlogArticleUrl(handle, "twitter");
 
     let tweetId: string | null = null;
     if (isTwitterConfigured()) {
@@ -175,7 +240,7 @@ export async function approveArticleAction(formData: FormData) {
       try {
         // En Facebook si tiene sentido el enlace (a diferencia de Instagram),
         // asi que se manda el texto del tuit + la URL del articulo.
-        const fbUrl = `${articleUrl}?utm_source=facebook&utm_medium=social&utm_campaign=away-end`;
+        const fbUrl = buildBlogArticleUrl(handle, "facebook");
         facebookPostId = await postToFacebook(article!.tweetText, fbUrl, article!.imageUrl);
       } catch (fbErr) {
         console.error("Fallo al publicar en Facebook:", fbErr);
@@ -230,6 +295,9 @@ export async function approveArticleAction(formData: FormData) {
         shopifyArticleId,
         shopifyHandle: handle,
         tweetId,
+        // solo si el tuit salio: si X fallo, queda null y la ficha ofrece
+        // publicarlo a posteriori
+        tweetedText: tweetId ? tweetText : null,
         instagramMediaId,
         facebookPostId,
         reviewedAt: new Date(),
@@ -273,6 +341,7 @@ export async function unpublishArticleAction(formData: FormData) {
       shopifyArticleId: null,
       shopifyHandle: null,
       tweetId: null,
+      tweetedText: null,
       publishedAt: null,
     },
   });

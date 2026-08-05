@@ -110,6 +110,19 @@ sirve como credencial de la Admin API; no la uses aquí.)
 Si estas variables no están configuradas, el sistema sigue publicando en el
 blog de Shopify con normalidad y simplemente omite el tuit (no falla).
 
+#### Editar el texto de un tuit ya publicado
+
+La API de X **no permite editar un tuit publicado** (el botón de edición de la
+web es exclusivo de Premium y no está expuesto en la API). Por eso, guardar un
+texto nuevo en la ficha del artículo actualiza el blog y la base de datos, pero
+no el tuit que ya está en X: la ficha avisa del desfase y ofrece
+**«Actualizar el tuit en X»**, que borra el tuit anterior y publica uno nuevo
+con el texto guardado. El tuit cambia de enlace y pierde likes, RTs y
+respuestas, así que es un paso manual y no un efecto secundario de guardar.
+
+Ese mismo botón sirve para publicar el tuit a posteriori cuando el artículo
+salió en el blog pero X falló en ese momento.
+
 #### Fuentes de tipo "Cuenta de X" (opcional)
 
 Además de fuentes RSS, en `/dashboard/sources` puedes añadir una fuente de

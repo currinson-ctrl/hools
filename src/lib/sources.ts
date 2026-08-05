@@ -78,6 +78,18 @@ export function buildCtaHtml(category: Category): string {
   return `<p><em>Return to the Origins</em> — <a href="${url}">${cta.text}</a>.</p>`;
 }
 
+/**
+ * URL publica del articulo en el blog de Shopify, etiquetada para poder ver en
+ * Shopify Analytics que trae cada canal. Se comparte entre la publicacion
+ * inicial y la republicacion del tuit para que el enlace sea siempre el mismo.
+ */
+export function buildBlogArticleUrl(handle: string, utmSource: string): string {
+  const blogHandle = process.env.SHOPIFY_BLOG_HANDLE || "";
+  const publicDomain = process.env.SHOPIFY_PUBLIC_DOMAIN || "";
+  const url = `https://${publicDomain}/blogs/${blogHandle}/${handle}`;
+  return `${url}?utm_source=${utmSource}&utm_medium=social&utm_campaign=away-end`;
+}
+
 export const CATEGORY_CTA: Record<Category, { path: string; text: string }> = {
   AFICION: {
     path: "/collections/terrace",

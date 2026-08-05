@@ -98,6 +98,10 @@ model Article {
   shopifyArticleId String? // gid://shopify/Article/...
   shopifyHandle    String?
   tweetId          String?
+  // Texto con el que se publico de verdad el tuit vivo. Como X no permite
+  // editar un tuit ya publicado, tweetText puede quedarse por delante de lo
+  // que se ve en X: comparando ambos sabemos si el tuit esta desactualizado.
+  tweetedText      String?
   instagramMediaId String?
   facebookPostId   String?
 
