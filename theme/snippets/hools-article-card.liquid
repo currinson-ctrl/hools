@@ -42,32 +42,12 @@
     else
       assign img_width = 700
   endcase
-
-  # Encuadre. Recortar al marco (cover) sale bien con fotos apaisadas, pero
-  # las miniaturas de vídeo de X vienen a menudo verticales: recortar 16/9 de
-  # una imagen 9/16 deja una franja del centro y el resultado parece
-  # descuadrado. Cuando la imagen no es claramente apaisada se muestra entera
-  # y centrada (contain) sobre una copia difuminada de ella misma, que rellena
-  # el marco sin cortar nada.
-  #
-  # En las miniaturas de la columna lateral no aplica: son cuadradas y de 88px,
-  # ahí el desenfoque no se vería y el recorte no molesta.
-  assign media_fit = 'cover'
-  if article.image and variant != 'aside'
-    assign aspect = article.image.aspect_ratio
-    if aspect < 1.25
-      assign media_fit = 'contain'
-    endif
-  endif
 -%}
 
 <article class="hools-card hools-card--{{ variant }}">
   <a class="hools-card__link" href="{{ article.url }}">
     {%- if article.image -%}
-      <div
-        class="hools-card__media hools-card__media--{{ media_fit }}"
-        {% if media_fit == 'contain' %}style="--card-blur-bg:url('{{ article.image | image_url: width: 400 }}');"{% endif %}
-      >
+      <div class="hools-card__media">
         <img
           src="{{ article.image | image_url: width: img_width }}"
           alt="{{ article.image.alt | default: article.title | escape }}"

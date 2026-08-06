@@ -28,9 +28,51 @@
       assign active_label = cat_labels[forloop.index0]
     endif
   endfor
+
 -%}
 
 {%- paginate blog.articles by per_page -%}
+
+  {%- liquid
+    # ---- Elección de la noticia destacada ----
+    # OJO: este bloque va DENTRO del paginate a propósito. Fuera de él
+    # `blog.articles` son todos los artículos del blog, no los de esta página,
+    # y las posiciones calculadas no valdrían para indexar aquí dentro.
+    #
+    # El hueco de la destacada es 16/9 y muy grande, así que una imagen vertical
+    # (el frame de un vídeo de X suele serlo) queda fatal ahí: se recorta a una
+    # franja del centro. En vez de maquillar la imagen, se elige para ese hueco
+    # la primera noticia cuya foto sea apaisada de verdad. Las descartadas no se
+    # pierden: caen en las posiciones secundarias, más pequeñas, donde el
+    # recorte no molesta.
+    #
+    # hero_min_ratio: 1.4 ≈ 7/5. Por debajo de eso el recorte a 16/9 empieza a
+    # comerse demasiado alto. Súbelo a 1.7 para exigir casi panorámica.
+    assign hero_min_ratio = 1.4
+    assign hero_scan = 12
+
+    assign hero_index = -1
+    for candidate in blog.articles limit: hero_scan
+      if hero_index == -1 and candidate.image and candidate.image.aspect_ratio >= hero_min_ratio
+        assign hero_index = forloop.index0
+      endif
+    endfor
+    # Si ninguna vale (blog nuevo, racha de vídeos verticales), manda la última
+    # noticia como hasta ahora: mejor eso que quedarse sin portada.
+    if hero_index == -1
+      assign hero_index = 0
+    endif
+
+    # El resto conserva su orden. Liquid no sabe quitar un elemento de una
+    # lista, así que se acumulan las posiciones sobrantes y se parten en una.
+    assign rest_positions = ''
+    for candidate in blog.articles
+      unless forloop.index0 == hero_index
+        assign rest_positions = rest_positions | append: forloop.index0 | append: ','
+      endunless
+    endfor
+    assign rest = rest_positions | split: ','
+  -%}
 
   <div class="hools-blog">
 
@@ -90,28 +132,28 @@
 
       {% comment %} ---------- PORTADA ---------- {% endcomment %}
       {%- comment -%}
-        En la primera página manda la última noticia. Al paginar no tiene
-        sentido volver a montar una destacada gigante, así que a partir de ahí
-        todo va en rejilla.
+        La destacada se elige arriba (primera noticia con foto apaisada); el
+        resto ocupa las posiciones secundarias en su orden original. Al paginar
+        no tiene sentido volver a montar una destacada gigante, así que a
+        partir de ahí todo va en rejilla.
       {%- endcomment -%}
       {%- if paginate.current_page == 1 -%}
         <div class="hools-cover">
 
           <div class="hools-cover__main">
-            {%- for article in blog.articles limit: 1 -%}
-              {%- render 'hools-article-card',
-                article: article,
-                variant: 'hero',
-                show_lead: true,
-                show_date: true
-              -%}
-            {%- endfor -%}
+            {%- render 'hools-article-card',
+              article: blog.articles[hero_index],
+              variant: 'hero',
+              show_lead: true,
+              show_date: true
+            -%}
 
-            {%- if blog.articles.size > 1 -%}
+            {%- if rest.size > 0 -%}
               <div class="hools-cover__pair">
-                {%- for article in blog.articles offset: 1 limit: 2 -%}
+                {%- for position in rest limit: 2 -%}
+                  {%- assign at = position | plus: 0 -%}
                   {%- render 'hools-article-card',
-                    article: article,
+                    article: blog.articles[at],
                     variant: 'secondary',
                     show_lead: false,
                     show_date: false
@@ -121,12 +163,13 @@
             {%- endif -%}
           </div>
 
-          {%- if blog.articles.size > 3 -%}
+          {%- if rest.size > 2 -%}
             <aside class="hools-cover__aside">
               <h2 class="hools-rail__title">{{ section.settings.rail_title }}</h2>
-              {%- for article in blog.articles offset: 3 limit: 4 -%}
+              {%- for position in rest offset: 2 limit: 4 -%}
+                {%- assign at = position | plus: 0 -%}
                 {%- render 'hools-article-card',
-                  article: article,
+                  article: blog.articles[at],
                   variant: 'aside',
                   show_lead: false,
                   show_date: false
@@ -137,13 +180,20 @@
 
         </div>
 
-        {%- assign grid_offset = 7 -%}
+        {%- assign is_cover = true -%}
       {%- else -%}
-        {%- assign grid_offset = 0 -%}
+        {%- assign is_cover = false -%}
       {%- endif -%}
 
       {% comment %} ---------- REJILLA ---------- {% endcomment %}
-      {%- if blog.articles.size > grid_offset -%}
+      {%- comment -%}
+        En la portada la rejilla recoge lo que queda tras la destacada, las dos
+        secundarias y las cuatro del lateral (6 de `rest`). En el resto de
+        páginas no hay portada, así que van todas.
+      {%- endcomment -%}
+      {%- if is_cover %}{% assign grid_size = rest.size | minus: 6 %}{% else %}{% assign grid_size = blog.articles.size %}{% endif -%}
+
+      {%- if grid_size > 0 -%}
         <section class="hools-more">
           <h2 class="hools-more__title">
             {%- if active_tag != blank -%}
@@ -154,14 +204,26 @@
           </h2>
 
           <div class="hools-grid">
-            {%- for article in blog.articles offset: grid_offset -%}
-              {%- render 'hools-article-card',
-                article: article,
-                variant: 'grid',
-                show_lead: false,
-                show_date: true
-              -%}
-            {%- endfor -%}
+            {%- if is_cover -%}
+              {%- for position in rest offset: 6 -%}
+                {%- assign at = position | plus: 0 -%}
+                {%- render 'hools-article-card',
+                  article: blog.articles[at],
+                  variant: 'grid',
+                  show_lead: false,
+                  show_date: true
+                -%}
+              {%- endfor -%}
+            {%- else -%}
+              {%- for article in blog.articles -%}
+                {%- render 'hools-article-card',
+                  article: article,
+                  variant: 'grid',
+                  show_lead: false,
+                  show_date: true
+                -%}
+              {%- endfor -%}
+            {%- endif -%}
           </div>
         </section>
       {%- endif -%}
@@ -363,32 +425,19 @@
     background:#e8e8e8;
   }
 
+  /* Recorte al marco en todas las tarjetas. Las imágenes que no encajan en el
+     hueco grande de la destacada no se maquillan: sencillamente no se eligen
+     para ese hueco (ver la selección de destacada arriba). En los huecos
+     pequeños el recorte no molesta. */
   .hools-card__media img{
     display:block;
-    position:relative;
     width:100%;
     height:100%;
     object-fit:cover;
     transition:transform .4s ease;
   }
 
-  /* Imágenes que no son apaisadas (típicamente el frame de un vídeo vertical
-     de X): se muestran enteras y centradas sobre una copia difuminada de sí
-     mismas, en vez de recortar 16/9 y quedarse con una franja del centro. */
-  .hools-card__media--contain img{ object-fit:contain; }
-
-  .hools-card__media--contain::before{
-    content:'';
-    position:absolute;
-    inset:0;
-    background-image:var(--card-blur-bg);
-    background-size:cover;
-    background-position:center;
-    filter:blur(24px) saturate(.7) brightness(.7);
-    transform:scale(1.2);
-  }
-
-  .hools-card__link:hover .hools-card__media--cover img{ transform:scale(1.03); }
+  .hools-card__link:hover .hools-card__media img{ transform:scale(1.03); }
 
   .hools-card__kicker{
     display:inline-block;
