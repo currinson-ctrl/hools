@@ -254,8 +254,17 @@
 
 .hools-content p{ margin:0 0 24px; }
 
-/* Entradilla: la genera el agregador como primer párrafo del cuerpo. */
-.hools-content .hools-lead{
+/* Entradilla. En los artículos maquetados la genera el agregador como primer
+   párrafo del cuerpo (p.hools-lead). Los publicados antes de maquetar el blog
+   no la traen, así que se le da el mismo trato a su primer párrafo: conservan
+   una entrada en grande aunque no se remaqueten nunca.
+
+   Se hace aquí y no pintando article.excerpt como entradilla (que es lo que
+   hacía la plantilla antigua) porque el resumen de esos artículos es ese mismo
+   primer párrafo recortado a 155 caracteres: saldría la primera frase dos
+   veces seguidas, una cortada y otra entera. */
+.hools-content .hools-lead,
+.hools-content > p:first-child{
   font-family:var(--hools-sans);
   font-size:22px;
   line-height:1.6;

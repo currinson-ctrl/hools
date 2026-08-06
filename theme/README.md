@@ -24,13 +24,19 @@ lado, hay que renombrarla en el otro**:
 
 | Clase                       | Qué es                                  |
 | --------------------------- | --------------------------------------- |
-| `p.hools-lead`              | entradilla destacada                    |
+| `p.hools-lead`              | entradilla destacada (ver nota abajo)   |
 | `h2`                        | ladillos                                |
 | `blockquote.hools-pullquote`| cita a gran tamaño                      |
 | `figure.hools-gallery`      | galería de fotos dentro del texto       |
 | `aside.hools-facts`         | recuadro «la ficha»                     |
 | `p.hools-source`            | atribución a la fuente original         |
 | `aside.hools-shop-cta`      | cierre con enlace a la tienda           |
+
+Los artículos publicados **antes** de la maquetación no traen `p.hools-lead`.
+Para que no se queden sin entradilla si no se remaquetan, la plantilla estila
+igual el primer párrafo del cuerpo (`.hools-content > p:first-child`). Como en
+los maquetados ese primer párrafo *es* la entradilla, la misma regla vale para
+los dos casos y no hace falta ninguna condición en Liquid.
 
 Las etiquetas `AFICION` / `VIAJES` / `MODA` que pone el agregador son además lo
 que alimenta el antetítulo de las tarjetas y el filtro por categoría de la
