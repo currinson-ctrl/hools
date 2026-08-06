@@ -16,6 +16,14 @@ El blog `the-away-end` y sus artículos usan el sufijo de plantilla
 `hools-editorial`, que es lo que hace que se rendericen con estas secciones y
 no con las de serie del tema (`main-blog` / `main-article`).
 
+> **El sufijo del blog NO lo heredan sus artículos.** Hay que ponérselo a cada
+> artículo, y por eso el agregador manda `templateSuffix` en `articleCreate` y
+> en `articleUpdate` (`SHOPIFY_ARTICLE_TEMPLATE_SUFFIX`, en `src/lib/shopify.ts`).
+> Un artículo sin sufijo se renderiza con `main-article` de serie, que recorta
+> la imagen destacada a un banner: con las fotos verticales que llegan de X, el
+> resultado es una franja estirada. Si ves eso en un artículo, lo primero que
+> hay que mirar es su `templateSuffix`.
+
 ## Contrato con el agregador
 
 `src/lib/article-html.ts` genera el cuerpo de cada artículo con unas clases

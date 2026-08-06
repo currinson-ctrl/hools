@@ -17,9 +17,21 @@
 {% endcomment %}
 
 {%- liquid
-  assign hero_bg = blank
+  # El hero es una banda ancha a sangre. Una foto apaisada la llena bien, pero
+  # las verticales (el frame de un vídeo de X suele ser 9/16) salen ampliadas
+  # muchísimo y con casi todo recortado: parece una imagen deformada.
+  #
+  # Así que solo se usa la foto del artículo como fondo cuando es apaisada. Si
+  # no lo es, el hero tira de la imagen de marca configurada en la sección y la
+  # foto de verdad se muestra dentro del artículo, a su proporción, sin
+  # estirarla ni recortarla.
+  assign hero_uses_photo = false
+  if section.settings.hero_use_featured_as_bg and article.image and article.image.aspect_ratio >= 1.4
+    assign hero_uses_photo = true
+  endif
 
-  if section.settings.hero_use_featured_as_bg and article.image
+  assign hero_bg = blank
+  if hero_uses_photo
     assign hero_bg = article.image | image_url: width: 2400
   elsif section.settings.hero_bg_image != blank
     assign hero_bg = section.settings.hero_bg_image | image_url: width: 2400
@@ -75,6 +87,23 @@
   <!-- ================= CUERPO ================= -->
   <section class="hools-body">
     <div class="hools-body__inner">
+      {%- comment -%}
+        La foto del artículo, cuando no ha servido de fondo del hero por no ser
+        apaisada. Va fuera de .hools-content a propósito: dentro rompería el
+        `p:first-child` del que depende la entradilla de los artículos que aún
+        no están remaquetados.
+      {%- endcomment -%}
+      {%- if article.image and hero_uses_photo == false -%}
+        <figure class="hools-figure">
+          <img
+            src="{{ article.image | image_url: width: 1400 }}"
+            alt="{{ article.image.alt | default: article.title | escape }}"
+            width="{{ article.image.width }}"
+            height="{{ article.image.height }}"
+          >
+        </figure>
+      {%- endif -%}
+
       {%- comment -%}
         La entradilla ya viene dentro del cuerpo (p.hools-lead), así que aquí
         no se vuelve a pintar article.excerpt: saldría duplicada.
@@ -159,6 +188,7 @@
   background-image:var(--hero-bg, none), linear-gradient(135deg,#0f1f18,#213B2E);
   background-size:cover;
   background-position:center;
+  background-repeat:no-repeat;
 }
 
 .hools-mag-hero__overlay{
@@ -243,6 +273,23 @@
 
 .hools-body__inner{
   max-width:var(--read-width);
+  margin:0 auto;
+}
+
+/* Foto del artículo cuando no es apaisada: entera, centrada y a su
+   proporción. Se le pone tope de altura porque una 9/16 a ancho completo
+   ocuparía dos pantallas antes de empezar a leer. */
+.hools-figure{
+  margin:0 0 40px;
+  text-align:center;
+}
+
+.hools-figure img{
+  display:block;
+  max-width:100%;
+  max-height:70vh;
+  width:auto;
+  height:auto;
   margin:0 auto;
 }
 
@@ -529,6 +576,8 @@
   :root{ --hero-height:460px; --band-padding-x:18px; --band-padding-y:20px; }
   .hools-mag-band{ top:50%; }
   .hools-body{ padding:48px 16px; }
+  .hools-figure{ margin-bottom:32px; }
+  .hools-figure img{ max-height:60vh; }
   .hools-content{ font-size:17px; }
   .hools-content .hools-lead{ font-size:19px; }
   .hools-content .hools-gallery{
@@ -550,8 +599,8 @@
     { "type": "checkbox", "id": "show_share_buttons", "label": "Mostrar botones compartir", "default": true },
     { "type": "checkbox", "id": "show_related", "label": "Mostrar «Sigue leyendo»", "default": true },
     { "type": "checkbox", "id": "show_featured_image", "label": "Mostrar imagen destacada normal", "default": false },
-    { "type": "checkbox", "id": "hero_use_featured_as_bg", "label": "Usar imagen destacada como fondo del hero", "default": true },
-    { "type": "image_picker", "id": "hero_bg_image", "label": "Imagen de fondo del hero (si no usas destacada)" },
+    { "type": "checkbox", "id": "hero_use_featured_as_bg", "label": "Usar imagen destacada como fondo del hero (solo si es apaisada)", "default": true },
+    { "type": "image_picker", "id": "hero_bg_image", "label": "Imagen de fondo del hero (se usa si la del artículo no es apaisada)" },
     { "type": "text", "id": "hero_band_text_left", "label": "Texto banda blanca (izquierda, si el artículo no tiene categoría)", "default": "FOOTBALL CULTURE" },
     { "type": "text", "id": "hero_band_text_right", "label": "Texto banda blanca (derecha)", "default": "AWAY FROM HERE" },
     { "type": "checkbox", "id": "cta_show", "label": "Mostrar banda CTA sobre el hero", "default": true },

@@ -182,6 +182,18 @@ export interface PublishArticleResult {
   handle: string;
 }
 
+/**
+ * Sin sufijo de plantilla, Shopify renderiza el articulo con la plantilla de
+ * serie del tema (que recorta la imagen destacada a un banner) en vez de con
+ * la editorial de Hools. Es facil no darse cuenta porque el sufijo del blog no
+ * lo heredan sus articulos: hay que ponerlo articulo a articulo.
+ */
+function articleTemplateSuffix(): string | null {
+  const suffix = process.env.SHOPIFY_ARTICLE_TEMPLATE_SUFFIX;
+  if (suffix === undefined) return "hools-editorial";
+  return suffix.trim() || null;
+}
+
 async function createArticle(
   input: PublishArticleInput,
   blogId: string,
@@ -198,6 +210,7 @@ async function createArticle(
         author: { name: "Hools" },
         tags: input.tags,
         isPublished: true,
+        templateSuffix: articleTemplateSuffix(),
         ...(includeImage && input.imageUrl
           ? { image: { url: input.imageUrl, altText: input.title } }
           : {}),
@@ -248,6 +261,10 @@ async function updateArticle(
   const data = await shopifyAdminRequest<ArticleUpdateResponse>(ARTICLE_UPDATE_MUTATION, {
     id: shopifyArticleId,
     article: {
+      // Se reenvia en cada actualizacion a proposito: asi los articulos que se
+      // publicaron sin sufijo (y salieron con la plantilla de serie) quedan
+      // reparados al pasar por el remaquetado o por una edicion.
+      templateSuffix: articleTemplateSuffix(),
       ...(input.title !== undefined ? { title: input.title } : {}),
       ...(input.bodyHtml !== undefined
         ? { body: input.bodyHtml, summary: buildSummary(input.bodyHtml) }
