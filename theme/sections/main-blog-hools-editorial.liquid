@@ -1,0 +1,465 @@
+{% comment %}
+  HOOLS · PORTADA DEL BLOG (the-away-end)
+
+  Sustituye al carrusel de tarjetas iguales que había antes. La portada ahora
+  tiene jerarquía de portal: una noticia destacada que manda, dos secundarias,
+  una columna lateral de titulares y una rejilla con el resto.
+
+  - H1 SEO real (oculto), como en la versión anterior.
+  - Cabecera del blog compacta: cabe la destacada sin hacer scroll.
+  - Navegación por categoría vía etiquetas (AFICION / VIAJES / MODA).
+{% endcomment %}
+
+{%- liquid
+  assign per_page = 19
+
+  assign cat_tags = 'AFICION,VIAJES,MODA' | split: ','
+  assign cat_labels = 'Afición,Desplazamientos,Casual' | split: ','
+
+  assign active_tag = ''
+  for tag in current_tags
+    assign active_tag = tag | upcase
+  endfor
+
+  assign active_label = ''
+  for tag in cat_tags
+    if tag == active_tag
+      assign active_label = cat_labels[forloop.index0]
+    endif
+  endfor
+-%}
+
+{%- paginate blog.articles by per_page -%}
+
+  <div class="hools-blog">
+
+    {% comment %} ---------- CABECERA COMPACTA ---------- {% endcomment %}
+    <header class="hools-masthead">
+      <div class="hools-masthead__inner">
+        <h1 class="hools-h1-seo">{{ section.settings.hero_seo_title }}</h1>
+
+        <div class="hools-masthead__brand">
+          <span class="hools-masthead__name">{{ section.settings.title_line_1 }} {{ section.settings.title_line_2 }}</span>
+          {%- if section.settings.hero_subtitle != blank -%}
+            <span class="hools-masthead__tagline">{{ section.settings.hero_subtitle }}</span>
+          {%- endif -%}
+        </div>
+
+        <nav class="hools-masthead__nav" aria-label="Categorías del blog">
+          <a
+            class="hools-masthead__cat{% if active_tag == blank %} is-active{% endif %}"
+            href="{{ blog.url }}"
+          >Todo</a>
+          {%- for tag in cat_tags -%}
+            {%- if blog.all_tags contains tag -%}
+              <a
+                class="hools-masthead__cat{% if active_tag == tag %} is-active{% endif %}"
+                href="{{ blog.url }}/tagged/{{ tag | handleize }}"
+              >{{ cat_labels[forloop.index0] }}</a>
+            {%- endif -%}
+          {%- endfor -%}
+        </nav>
+      </div>
+    </header>
+
+    {%- if blog.articles.size == 0 -%}
+      <p class="hools-blog__empty">Todavía no hay artículos publicados aquí.</p>
+    {%- else -%}
+
+      {% comment %} ---------- PORTADA ---------- {% endcomment %}
+      {%- comment -%}
+        En la primera página manda la última noticia. Al paginar o filtrar por
+        categoría no tiene sentido volver a montar una destacada gigante, así
+        que a partir de ahí todo va en rejilla.
+      {%- endcomment -%}
+      {%- if paginate.current_page == 1 -%}
+        <div class="hools-cover">
+
+          <div class="hools-cover__main">
+            {%- for article in blog.articles limit: 1 -%}
+              {%- render 'hools-article-card',
+                article: article,
+                variant: 'hero',
+                show_lead: true,
+                show_date: true
+              -%}
+            {%- endfor -%}
+
+            {%- if blog.articles.size > 1 -%}
+              <div class="hools-cover__pair">
+                {%- for article in blog.articles offset: 1 limit: 2 -%}
+                  {%- render 'hools-article-card',
+                    article: article,
+                    variant: 'secondary',
+                    show_lead: false,
+                    show_date: false
+                  -%}
+                {%- endfor -%}
+              </div>
+            {%- endif -%}
+          </div>
+
+          {%- if blog.articles.size > 3 -%}
+            <aside class="hools-cover__aside">
+              <h2 class="hools-rail__title">{{ section.settings.rail_title }}</h2>
+              {%- for article in blog.articles offset: 3 limit: 4 -%}
+                {%- render 'hools-article-card',
+                  article: article,
+                  variant: 'aside',
+                  show_lead: false,
+                  show_date: false
+                -%}
+              {%- endfor -%}
+            </aside>
+          {%- endif -%}
+
+        </div>
+
+        {%- assign grid_offset = 7 -%}
+      {%- else -%}
+        {%- assign grid_offset = 0 -%}
+      {%- endif -%}
+
+      {% comment %} ---------- REJILLA ---------- {% endcomment %}
+      {%- if blog.articles.size > grid_offset -%}
+        <section class="hools-more">
+          <h2 class="hools-more__title">
+            {%- if active_tag != blank -%}
+              {{ active_label | default: active_tag }}
+            {%- else -%}
+              {{ section.settings.grid_title }}
+            {%- endif -%}
+          </h2>
+
+          <div class="hools-grid">
+            {%- for article in blog.articles offset: grid_offset -%}
+              {%- render 'hools-article-card',
+                article: article,
+                variant: 'grid',
+                show_lead: false,
+                show_date: true
+              -%}
+            {%- endfor -%}
+          </div>
+        </section>
+      {%- endif -%}
+
+      {%- if paginate.pages > 1 -%}
+        <div class="hools-pagination">
+          {%- render 'pagination', paginate: paginate -%}
+        </div>
+      {%- endif -%}
+
+    {%- endif -%}
+
+  </div>
+
+{%- endpaginate -%}
+
+<style>
+  .hools-blog{
+    --hools-black:#151515;
+    --hools-green:#213B2E;
+    --hools-gold:#CCB229;
+    --hools-off:#F8F8F8;
+    --hools-line:rgba(21,21,21,.12);
+    --hools-serif:"Source Serif 4", Georgia, serif;
+    --hools-sans:"Muli", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+    --hools-wrap:1280px;
+
+    background:var(--hools-off);
+    color:var(--hools-black);
+    padding-bottom:72px;
+  }
+
+  /* El H1 de verdad sigue existiendo para SEO, solo que no se pinta: el
+     rótulo visible del blog es la marca, no el titular optimizado. */
+  .hools-blog .hools-h1-seo{
+    position:absolute;
+    width:1px; height:1px;
+    overflow:hidden;
+    clip:rect(0 0 0 0);
+    white-space:nowrap;
+  }
+
+  /* ---------- CABECERA DEL BLOG ---------- */
+  .hools-masthead{
+    border-bottom:2px solid var(--hools-black);
+    background:#fff;
+  }
+
+  .hools-masthead__inner{
+    max-width:var(--hools-wrap);
+    margin:0 auto;
+    padding:14px 20px 0;
+    display:flex;
+    flex-wrap:wrap;
+    /* flex-end y no baseline: así las pestañas de categoría quedan pegadas al
+       filo inferior y su subrayado activo cae sobre la línea de la cabecera. */
+    align-items:flex-end;
+    gap:8px 24px;
+  }
+
+  .hools-masthead__brand{
+    display:flex;
+    align-items:baseline;
+    gap:12px;
+    flex:1 1 auto;
+  }
+
+  .hools-masthead__name{
+    font-family:var(--hools-serif);
+    font-size:clamp(24px,3vw,34px);
+    line-height:1;
+    letter-spacing:-.01em;
+  }
+
+  .hools-masthead__tagline{
+    font-family:var(--hools-sans);
+    font-size:12px;
+    color:rgba(21,21,21,.6);
+  }
+
+  .hools-masthead__nav{
+    display:flex;
+    gap:4px;
+    flex:0 0 auto;
+    overflow-x:auto;
+    max-width:100%;
+  }
+
+  .hools-masthead__cat{
+    font-family:var(--hools-sans);
+    font-size:12px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.1em;
+    text-decoration:none;
+    color:rgba(21,21,21,.65);
+    padding:10px 12px;
+    border-bottom:3px solid transparent;
+    white-space:nowrap;
+  }
+
+  .hools-masthead__cat:hover{ color:var(--hools-black); }
+
+  .hools-masthead__cat.is-active{
+    color:var(--hools-green);
+    border-bottom-color:var(--hools-gold);
+  }
+
+  /* ---------- PORTADA ---------- */
+  .hools-cover{
+    max-width:var(--hools-wrap);
+    margin:0 auto;
+    padding:28px 20px 0;
+    display:grid;
+    grid-template-columns:minmax(0,1fr) 340px;
+    gap:32px;
+  }
+
+  .hools-cover__pair{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:28px;
+    margin-top:32px;
+    padding-top:28px;
+    border-top:1px solid var(--hools-line);
+  }
+
+  .hools-cover__aside{
+    border-left:1px solid var(--hools-line);
+    padding-left:28px;
+  }
+
+  .hools-rail__title,
+  .hools-more__title{
+    font-family:var(--hools-sans);
+    font-size:12px;
+    font-weight:800;
+    text-transform:uppercase;
+    letter-spacing:.14em;
+    color:var(--hools-green);
+    margin:0 0 16px;
+    padding-bottom:8px;
+    border-bottom:2px solid var(--hools-gold);
+  }
+
+  /* ---------- TARJETAS ---------- */
+  .hools-card__link{
+    display:block;
+    text-decoration:none;
+    color:inherit;
+  }
+
+  .hools-card__media{
+    overflow:hidden;
+    background:#e8e8e8;
+  }
+
+  .hools-card__media img{
+    display:block;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    transition:transform .4s ease;
+  }
+
+  .hools-card__link:hover .hools-card__media img{ transform:scale(1.03); }
+
+  .hools-card__kicker{
+    display:inline-block;
+    font-family:var(--hools-sans);
+    font-size:11px;
+    font-weight:800;
+    text-transform:uppercase;
+    letter-spacing:.12em;
+    color:var(--hools-green);
+    margin-bottom:6px;
+  }
+
+  .hools-card__title{
+    font-family:var(--hools-serif);
+    font-weight:400;
+    line-height:1.15;
+    margin:0;
+    letter-spacing:-.01em;
+  }
+
+  .hools-card__link:hover .hools-card__title{
+    text-decoration:underline;
+    text-decoration-color:var(--hools-gold);
+    text-underline-offset:3px;
+    text-decoration-thickness:2px;
+  }
+
+  .hools-card__lead{
+    font-family:var(--hools-sans);
+    font-size:16px;
+    line-height:1.55;
+    color:rgba(21,21,21,.78);
+    margin:12px 0 0;
+    max-width:60ch;
+  }
+
+  .hools-card__date{
+    display:block;
+    font-family:var(--hools-sans);
+    font-size:12px;
+    color:rgba(21,21,21,.5);
+    margin-top:10px;
+  }
+
+  /* Destacada */
+  .hools-card--hero .hools-card__media{ aspect-ratio:16/9; }
+  .hools-card--hero .hools-card__text{ padding-top:16px; }
+  .hools-card--hero .hools-card__title{ font-size:clamp(30px,4vw,52px); }
+
+  /* Las dos de debajo */
+  .hools-card--secondary .hools-card__media{ aspect-ratio:3/2; }
+  .hools-card--secondary .hools-card__text{ padding-top:12px; }
+  .hools-card--secondary .hools-card__title{ font-size:clamp(19px,1.9vw,24px); }
+
+  /* Columna lateral: miniatura a la izquierda, titular a la derecha */
+  .hools-card--aside{
+    padding:14px 0;
+    border-bottom:1px solid var(--hools-line);
+  }
+  .hools-card--aside:last-child{ border-bottom:0; }
+
+  .hools-card--aside .hools-card__link{
+    display:grid;
+    grid-template-columns:88px minmax(0,1fr);
+    gap:14px;
+    align-items:start;
+  }
+
+  .hools-card--aside .hools-card__media{ aspect-ratio:1/1; }
+  .hools-card--aside .hools-card__title{ font-size:16px; line-height:1.3; }
+
+  /* Rejilla */
+  .hools-card--grid .hools-card__media{ aspect-ratio:3/2; }
+  .hools-card--grid .hools-card__text{ padding-top:12px; }
+  .hools-card--grid .hools-card__title{ font-size:19px; }
+
+  .hools-more{
+    max-width:var(--hools-wrap);
+    margin:56px auto 0;
+    padding:0 20px;
+  }
+
+  .hools-grid{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:32px 28px;
+  }
+
+  .hools-pagination,
+  .hools-blog__empty{
+    max-width:var(--hools-wrap);
+    margin:40px auto 0;
+    padding:0 20px;
+    font-family:var(--hools-sans);
+  }
+
+  /* ---------- CABECERA DE LA TIENDA MÁS ESTRECHA ----------
+     Solo afecta a las páginas del blog: este <style> se sirve con la sección,
+     que únicamente se renderiza aquí. Va con !important porque el tema
+     escribe el padding de la cabecera en un <style> propio a partir de los
+     ajustes del editor. */
+  .section-header .header,
+  .shopify-section-group-header-group .header{
+    padding-top:8px !important;
+    padding-bottom:8px !important;
+  }
+
+  .section-header .header__heading-logo{ max-height:38px; width:auto; }
+
+  /* ---------- RESPONSIVE ---------- */
+  @media (max-width:1100px){
+    .hools-cover{ grid-template-columns:minmax(0,1fr); }
+    .hools-cover__aside{
+      border-left:0;
+      padding-left:0;
+      border-top:1px solid var(--hools-line);
+      padding-top:24px;
+    }
+    .hools-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+  }
+
+  @media (max-width:749px){
+    .hools-masthead__inner{ padding:12px 16px 0; }
+    .hools-cover{ padding:20px 16px 0; gap:24px; }
+    .hools-cover__pair{
+      grid-template-columns:minmax(0,1fr);
+      gap:24px;
+      margin-top:24px;
+      padding-top:20px;
+    }
+    .hools-more{ margin-top:40px; padding:0 16px; }
+    .hools-grid{ grid-template-columns:minmax(0,1fr); gap:28px; }
+    .hools-card--hero .hools-card__lead{ font-size:15px; }
+  }
+</style>
+
+{% schema %}
+{
+  "name": "Hools Blog Cover",
+  "settings": [
+    { "type": "text", "id": "title_line_1", "label": "Nombre del blog (1ª parte)", "default": "The Away" },
+    { "type": "text", "id": "title_line_2", "label": "Nombre del blog (2ª parte)", "default": "End" },
+    { "type": "text", "id": "hero_subtitle", "label": "Lema junto al nombre", "default": "La historia que se escribe en el sector visitante." },
+    { "type": "text", "id": "hero_seo_title", "label": "Título SEO (H1 real, no visible)", "default": "Cultura terrace y fútbol casual: la historia que se escribe en el sector visitante" },
+    { "type": "text", "id": "rail_title", "label": "Título de la columna lateral", "default": "También hoy" },
+    { "type": "text", "id": "grid_title", "label": "Título de la rejilla", "default": "Más historias" },
+    { "type": "image_picker", "id": "hero_image", "label": "Imagen de portada (ya no se usa en este diseño)" },
+    { "type": "text", "id": "hero_band_left", "label": "Kicker izquierda (en desuso)" },
+    { "type": "text", "id": "hero_band_right", "label": "Kicker derecha (en desuso)" },
+    { "type": "text", "id": "carousel_title", "label": "Título carrusel (en desuso)" },
+    { "type": "range", "id": "carousel_count", "min": 4, "max": 24, "step": 1, "label": "Artículos en carrusel (en desuso)", "default": 12 }
+  ],
+  "presets": [
+    { "name": "Hools Blog Cover" }
+  ]
+}
+{% endschema %}

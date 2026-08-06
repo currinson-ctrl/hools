@@ -1,13 +1,7 @@
 import { TwitterApi } from "twitter-api-v2";
 import type { Source } from "@prisma/client";
 import { prisma } from "./db";
-import {
-  buildDraft,
-  escapeHtml,
-  MAX_ITEMS_PER_SOURCE,
-  type DraftArticle,
-  type FeedItem,
-} from "./rss";
+import { buildDraft, MAX_ITEMS_PER_SOURCE, type DraftArticle, type FeedItem } from "./rss";
 import type { KnownGroup } from "./groups";
 
 // Maximo de fotos que admite un tuit en la API de X.
@@ -139,21 +133,12 @@ export async function buildDraftsFromAccountCandidates(
         contentSnippet: c.text,
         enclosure: mainImage ? { url: mainImage } : undefined,
       };
-      const draft = await buildDraft(item, source, knownGroups);
+      const draft = await buildDraft(item, source, knownGroups, extraImages);
       if (!draft) return draft;
-      const withVideo = { ...draft, videoUrl: c.videoUrl };
-      if (!extraImages.length) return withVideo;
-
-      const extraImagesHtml = extraImages
-        .map((url) => `<p><img src="${escapeHtml(url)}" alt="" /></p>`)
-        .join("\n");
       return {
-        ...withVideo,
-        excerpt: draft.excerpt.replace(
-          "<p><em>Fuente:",
-          `${extraImagesHtml}\n<p><em>Fuente:`
-        ),
-        extraImageUrls: extraImages,
+        ...draft,
+        videoUrl: c.videoUrl,
+        ...(extraImages.length ? { extraImageUrls: extraImages } : {}),
       };
     })
   );

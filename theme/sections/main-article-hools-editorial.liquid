@@ -1,0 +1,553 @@
+{% comment %}
+  HOOLS · ARTÍCULO EDITORIAL
+
+  Hero de revista (banda blanca sobre la foto) + cuerpo maquetado.
+
+  El cuerpo lo genera el agregador (src/lib/article-html.ts) con estas clases,
+  que son el contrato entre los dos lados: si se renombran allí, hay que
+  renombrarlas aquí.
+
+    p.hools-lead        entradilla destacada
+    h2                  ladillos
+    blockquote.hools-pullquote   cita a gran tamaño
+    figure.hools-gallery         fotos repartidas por el texto
+    aside.hools-facts            recuadro "la ficha"
+    p.hools-source               atribución a la fuente original
+    aside.hools-shop-cta         cierre con enlace a la tienda
+{% endcomment %}
+
+{%- liquid
+  assign hero_bg = blank
+
+  if section.settings.hero_use_featured_as_bg and article.image
+    assign hero_bg = article.image | image_url: width: 2400
+  elsif section.settings.hero_bg_image != blank
+    assign hero_bg = section.settings.hero_bg_image | image_url: width: 2400
+  endif
+
+  assign kicker = ''
+  for tag in article.tags
+    assign upper_tag = tag | upcase
+    case upper_tag
+      when 'AFICION'
+        assign kicker = 'Afición'
+      when 'VIAJES'
+        assign kicker = 'Desplazamientos'
+      when 'MODA'
+        assign kicker = 'Casual'
+    endcase
+  endfor
+-%}
+
+<article class="hools-article" itemscope itemtype="http://schema.org/Article">
+
+  <!-- ================= HERO ================= -->
+  <header class="hools-mag-hero" {% if hero_bg != blank %}style="--hero-bg:url('{{ hero_bg }}');"{% endif %}>
+    <div class="hools-mag-hero__overlay" aria-hidden="true"></div>
+
+    <div class="hools-mag-band">
+      <div class="hools-mag-band__inner">
+        <div class="hools-mag-band__kicker">
+          <span class="hools-mag-band__left">{{ kicker | default: section.settings.hero_band_text_left }}</span>
+          <span class="hools-mag-band__sep">|</span>
+          <span class="hools-mag-band__right">{{ section.settings.hero_band_text_right }}</span>
+        </div>
+
+        <h1 class="hools-mag-title" itemprop="headline">{{ article.title }}</h1>
+
+        {% if section.settings.show_date %}
+          <p class="hools-mag-meta">
+            <time datetime="{{ article.published_at | date: '%Y-%m-%d' }}" itemprop="datePublished">
+              {{ article.published_at | date: "%-d %B %Y" }}
+            </time>
+          </p>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if section.settings.cta_show %}
+      <a class="hools-mag-cta" href="{{ section.settings.cta_link }}">
+        <span class="hools-mag-cta__text">{{ section.settings.cta_text }}</span>
+      </a>
+    {% endif %}
+  </header>
+
+  <!-- ================= CUERPO ================= -->
+  <section class="hools-body">
+    <div class="hools-body__inner">
+      {%- comment -%}
+        La entradilla ya viene dentro del cuerpo (p.hools-lead), así que aquí
+        no se vuelve a pintar article.excerpt: saldría duplicada.
+      {%- endcomment -%}
+      <div class="hools-content rte" itemprop="articleBody">
+        {{ article.content }}
+      </div>
+
+      {% if section.settings.show_share_buttons %}
+        <div class="hools-footer">
+          <div class="hools-divider hools-divider--small" aria-hidden="true"></div>
+          <p class="hools-footer__title">Compartir</p>
+
+          <div class="hools-share">
+            <a class="hools-share__btn" href="https://twitter.com/intent/tweet?url={{ canonical_url | url_encode }}&text={{ article.title | url_encode }}" target="_blank" rel="noopener">X</a>
+            <a class="hools-share__btn" href="https://www.facebook.com/sharer/sharer.php?u={{ canonical_url | url_encode }}" target="_blank" rel="noopener">Facebook</a>
+            <a class="hools-share__btn" href="https://wa.me/?text={{ article.title | url_encode }}%20{{ canonical_url | url_encode }}" target="_blank" rel="noopener">WhatsApp</a>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </section>
+
+  <!-- ================= SIGUE LEYENDO ================= -->
+  {%- if section.settings.show_related -%}
+    {%- assign related_count = 0 -%}
+    <section class="hools-related">
+      <div class="hools-related__inner">
+        <h2 class="hools-related__title">Sigue leyendo</h2>
+        <div class="hools-related__grid">
+          {%- for related in blog.articles limit: 6 -%}
+            {%- if related.id != article.id and related_count < 3 -%}
+              {%- assign related_count = related_count | plus: 1 -%}
+              <a class="hools-related__card" href="{{ related.url }}">
+                {%- if related.image -%}
+                  <img src="{{ related.image | image_url: width: 600 }}" alt="{{ related.title | escape }}" loading="lazy">
+                {%- else -%}
+                  <span class="hools-related__ph" aria-hidden="true"></span>
+                {%- endif -%}
+                <span class="hools-related__headline">{{ related.title }}</span>
+              </a>
+            {%- endif -%}
+          {%- endfor -%}
+        </div>
+      </div>
+    </section>
+  {%- endif -%}
+</article>
+
+<style>
+:root{
+  --hools-black:#151515;
+  --hools-white:#FFFFFF;
+  --hools-off:#F8F8F8;
+  --hools-green:#213B2E;
+  --hools-gold:#CCB229;
+
+  --hools-serif:"Source Serif 4", Georgia, serif;
+  --hools-sans:"Muli", system-ui, -apple-system, sans-serif;
+
+  --read-width: 760px;
+  --hero-height: 520px;
+  --band-padding-y: 26px;
+  --band-padding-x: 28px;
+}
+
+.hools-article{
+  background:var(--hools-off);
+  color:var(--hools-black);
+}
+
+/* ================= HERO ================= */
+.hools-mag-hero{
+  position:relative;
+  min-height:var(--hero-height);
+  width:100%;
+  overflow:hidden;
+  /* var() suelto en el atajo `background` invalida toda la declaración cuando
+     el artículo no trae foto y --hero-bg no está definida, y ahí se perdía
+     también el degradado de reserva. Con background-image y valor por defecto
+     el degradado sobrevive. */
+  background-image:var(--hero-bg, none), linear-gradient(135deg,#0f1f18,#213B2E);
+  background-size:cover;
+  background-position:center;
+}
+
+.hools-mag-hero__overlay{
+  position:absolute; inset:0;
+  background:linear-gradient(to bottom, rgba(0,0,0,.35) 0%, rgba(0,0,0,.15) 40%, rgba(0,0,0,.35) 100%);
+}
+
+.hools-mag-band{
+  position:absolute;
+  left:50%;
+  top:52%;
+  transform:translate(-50%,-50%);
+  width:min(1100px, calc(100% - 40px));
+  z-index:2;
+  background:rgba(255,255,255,.96);
+  box-shadow:0 18px 60px rgba(0,0,0,.25);
+}
+
+.hools-mag-band__inner{ padding:var(--band-padding-y) var(--band-padding-x); }
+
+.hools-mag-band__kicker{
+  font-family:var(--hools-sans);
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  font-size:12px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  color:rgba(21,21,21,.85);
+  margin-bottom:14px;
+}
+
+.hools-mag-band__left{ font-weight:800; color:var(--hools-green); }
+.hools-mag-band__right{ font-style:italic; font-weight:700; }
+
+.hools-mag-title{
+  font-family:var(--hools-serif);
+  font-weight:400;
+  line-height:1.06;
+  font-size:clamp(32px,4.2vw,58px);
+  margin:0;
+}
+
+.hools-mag-meta{
+  font-family:var(--hools-sans);
+  font-size:13px;
+  margin:12px 0 0;
+  opacity:.8;
+}
+
+.hools-mag-cta{
+  position:absolute;
+  left:50%;
+  bottom:18px;
+  transform:translateX(-50%);
+  width:min(900px, calc(100% - 60px));
+  height:72px;
+  z-index:3;
+  background:var(--hools-green);
+  color:#fff;
+  text-decoration:none;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow:0 14px 40px rgba(0,0,0,.25);
+  transition:background .3s ease;
+}
+
+.hools-mag-cta:hover{ background:#1a2f24; }
+
+.hools-mag-cta__text{
+  font-family:var(--hools-sans);
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  font-weight:600;
+  font-size:clamp(15px,1.8vw,20px);
+  padding:0 16px;
+}
+
+/* ================= CUERPO ================= */
+.hools-body{ padding:72px 20px; }
+
+.hools-body__inner{
+  max-width:var(--read-width);
+  margin:0 auto;
+}
+
+.hools-content{
+  font-family:var(--hools-sans);
+  font-size:18px;
+  line-height:1.85;
+}
+
+.hools-content p{ margin:0 0 24px; }
+
+/* Entradilla: la genera el agregador como primer párrafo del cuerpo. */
+.hools-content .hools-lead{
+  font-family:var(--hools-sans);
+  font-size:22px;
+  line-height:1.6;
+  font-weight:600;
+  margin:0 0 32px;
+  padding-bottom:28px;
+  border-bottom:2px solid var(--hools-gold);
+}
+
+.hools-content h2{
+  font-family:var(--hools-serif);
+  font-weight:400;
+  font-size:clamp(25px,2.6vw,34px);
+  line-height:1.2;
+  margin:52px 0 18px;
+}
+
+.hools-content h3{
+  font-family:var(--hools-serif);
+  font-weight:400;
+  font-size:22px;
+  margin:36px 0 12px;
+}
+
+/* Cita destacada: sin recuadro, a gran tamaño, para partir el texto. */
+.hools-content .hools-pullquote{
+  margin:44px 0;
+  padding:0 0 0 24px;
+  border-left:4px solid var(--hools-gold);
+  background:none;
+  box-shadow:none;
+}
+
+.hools-content .hools-pullquote p{
+  font-family:var(--hools-serif);
+  font-size:clamp(22px,2.4vw,30px);
+  line-height:1.3;
+  color:var(--hools-green);
+  margin:0;
+}
+
+/* Galería: se sale del ancho de lectura para respirar. */
+.hools-content .hools-gallery{
+  margin:44px 0;
+  padding:0;
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+  width:min(100vw - 40px, 1000px);
+  margin-left:50%;
+  transform:translateX(-50%);
+}
+
+.hools-content .hools-gallery--single{ grid-template-columns:minmax(0,1fr); }
+
+.hools-content .hools-gallery img{
+  display:block;
+  width:100%;
+  height:100%;
+  aspect-ratio:4/3;
+  object-fit:cover;
+  background:#e8e8e8;
+}
+
+/* Recuadro "la ficha" */
+.hools-content .hools-facts{
+  margin:44px 0;
+  padding:22px 24px;
+  background:#fff;
+  border-top:3px solid var(--hools-green);
+  box-shadow:0 10px 30px rgba(0,0,0,.06);
+}
+
+.hools-content .hools-facts__title{
+  font-family:var(--hools-sans);
+  font-size:11px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.14em;
+  color:var(--hools-green);
+  margin:0 0 14px;
+}
+
+.hools-content .hools-facts__list{ margin:0; }
+
+.hools-content .hools-facts__row{
+  display:grid;
+  grid-template-columns:130px minmax(0,1fr);
+  gap:12px;
+  padding:8px 0;
+  border-top:1px solid rgba(21,21,21,.1);
+}
+
+.hools-content .hools-facts__row:first-child{ border-top:0; }
+
+.hools-content .hools-facts__row dt{
+  font-family:var(--hools-sans);
+  font-size:12px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  color:rgba(21,21,21,.55);
+  margin:0;
+}
+
+.hools-content .hools-facts__row dd{
+  font-family:var(--hools-sans);
+  font-size:16px;
+  margin:0;
+}
+
+/* Fuente */
+.hools-content .hools-source{
+  font-family:var(--hools-sans);
+  font-size:13px;
+  color:rgba(21,21,21,.55);
+  margin:36px 0 0;
+}
+
+.hools-content .hools-source a{ color:inherit; }
+
+/* Cierre de tienda: antes era una cursiva perdida, ahora es un bloque. */
+.hools-content .hools-shop-cta{
+  margin:36px 0 0;
+  padding:26px 28px;
+  background:var(--hools-green);
+  color:#fff;
+}
+
+.hools-content .hools-shop-cta__kicker{
+  font-family:var(--hools-sans);
+  font-size:11px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.16em;
+  color:var(--hools-gold);
+  margin:0 0 8px;
+}
+
+.hools-content .hools-shop-cta__text{
+  font-family:var(--hools-serif);
+  font-size:clamp(20px,2.2vw,26px);
+  line-height:1.25;
+  margin:0 0 16px;
+}
+
+.hools-content .hools-shop-cta__action{ margin:0; }
+
+.hools-content .hools-shop-cta__action a{
+  display:inline-block;
+  font-family:var(--hools-sans);
+  font-size:13px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.1em;
+  text-decoration:none;
+  color:var(--hools-black);
+  background:var(--hools-gold);
+  padding:12px 22px;
+}
+
+.hools-content .hools-shop-cta__action a:hover{ background:#e0c433; }
+
+/* Compartir */
+.hools-divider{ height:1px; background:var(--hools-gold); margin:0 0 40px; }
+.hools-divider--small{ margin:50px 0 20px; }
+
+.hools-footer__title{
+  font-family:var(--hools-sans);
+  font-size:12px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  opacity:.7;
+  margin:0 0 10px;
+}
+
+.hools-share{ display:flex; gap:12px; flex-wrap:wrap; }
+
+.hools-share__btn{
+  font-family:var(--hools-sans);
+  padding:10px 16px;
+  border:1px solid rgba(0,0,0,.16);
+  border-radius:999px;
+  background:var(--hools-white);
+  color:var(--hools-black);
+  text-decoration:none;
+}
+
+.hools-share__btn:hover{ border-color:var(--hools-gold); }
+
+/* ================= SIGUE LEYENDO ================= */
+.hools-related{
+  background:#fff;
+  border-top:1px solid rgba(21,21,21,.1);
+  padding:48px 20px 64px;
+}
+
+.hools-related__inner{ max-width:1100px; margin:0 auto; }
+
+.hools-related__title{
+  font-family:var(--hools-sans);
+  font-size:12px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.14em;
+  color:var(--hools-green);
+  margin:0 0 20px;
+  padding-bottom:8px;
+  border-bottom:2px solid var(--hools-gold);
+}
+
+.hools-related__grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:28px;
+}
+
+.hools-related__card{ text-decoration:none; color:inherit; display:block; }
+
+.hools-related__card img,
+.hools-related__ph{
+  display:block;
+  width:100%;
+  aspect-ratio:3/2;
+  object-fit:cover;
+  background:#e8e8e8;
+}
+
+.hools-related__headline{
+  display:block;
+  font-family:var(--hools-serif);
+  font-size:19px;
+  line-height:1.25;
+  margin-top:12px;
+}
+
+.hools-related__card:hover .hools-related__headline{
+  text-decoration:underline;
+  text-decoration-color:var(--hools-gold);
+  text-underline-offset:3px;
+  text-decoration-thickness:2px;
+}
+
+/* ---------- CABECERA DE LA TIENDA MÁS ESTRECHA ----------
+   Solo afecta a las páginas de artículo: este <style> se sirve con la
+   sección. !important porque el tema escribe el padding de la cabecera en un
+   <style> propio a partir de los ajustes del editor. */
+.section-header .header,
+.shopify-section-group-header-group .header{
+  padding-top:8px !important;
+  padding-bottom:8px !important;
+}
+
+.section-header .header__heading-logo{ max-height:38px; width:auto; }
+
+/* ================= RESPONSIVE ================= */
+@media (max-width:900px){
+  .hools-related__grid{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+
+@media (max-width:640px){
+  :root{ --hero-height:460px; --band-padding-x:18px; --band-padding-y:20px; }
+  .hools-mag-band{ top:50%; }
+  .hools-body{ padding:48px 16px; }
+  .hools-content{ font-size:17px; }
+  .hools-content .hools-lead{ font-size:19px; }
+  .hools-content .hools-gallery{
+    grid-template-columns:minmax(0,1fr);
+    width:auto;
+    margin-left:0;
+    transform:none;
+  }
+  .hools-content .hools-facts__row{ grid-template-columns:minmax(0,1fr); gap:2px; }
+  .hools-related__grid{ grid-template-columns:minmax(0,1fr); }
+}
+</style>
+
+{% schema %}
+{
+  "name": "Hools Editorial",
+  "settings": [
+    { "type": "checkbox", "id": "show_date", "label": "Mostrar fecha", "default": true },
+    { "type": "checkbox", "id": "show_share_buttons", "label": "Mostrar botones compartir", "default": true },
+    { "type": "checkbox", "id": "show_related", "label": "Mostrar «Sigue leyendo»", "default": true },
+    { "type": "checkbox", "id": "show_featured_image", "label": "Mostrar imagen destacada normal", "default": false },
+    { "type": "checkbox", "id": "hero_use_featured_as_bg", "label": "Usar imagen destacada como fondo del hero", "default": true },
+    { "type": "image_picker", "id": "hero_bg_image", "label": "Imagen de fondo del hero (si no usas destacada)" },
+    { "type": "text", "id": "hero_band_text_left", "label": "Texto banda blanca (izquierda, si el artículo no tiene categoría)", "default": "FOOTBALL CULTURE" },
+    { "type": "text", "id": "hero_band_text_right", "label": "Texto banda blanca (derecha)", "default": "AWAY FROM HERE" },
+    { "type": "checkbox", "id": "cta_show", "label": "Mostrar banda CTA sobre el hero", "default": true },
+    { "type": "text", "id": "cta_text", "label": "Texto CTA", "default": "SHOP TERRACE COLLECTION NOW" },
+    { "type": "url", "id": "cta_link", "label": "Enlace CTA" }
+  ]
+}
+{% endschema %}

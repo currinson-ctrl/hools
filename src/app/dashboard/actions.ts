@@ -16,9 +16,15 @@ import {
   postToInstagram,
 } from "@/lib/instagram";
 import { isFacebookConfigured, postToFacebook } from "@/lib/facebook";
-import { translateToSpanish } from "@/lib/translate";
+import { restructureSpanishArticle, translateToSpanish } from "@/lib/translate";
 import { searchRelatedImage } from "@/lib/image-search";
 import { findMentionedGroups, linkMentionedGroups, parseAliases } from "@/lib/groups";
+import {
+  buildArticleHtml,
+  isRestructured,
+  parseLegacyArticleHtml,
+  type ArticleSection,
+} from "@/lib/article-html";
 import { buildBlogArticleUrl, buildCtaHtml } from "@/lib/sources";
 import { Category, SourceType } from "@prisma/client";
 
@@ -416,6 +422,117 @@ export async function backfillPublishedArticlesAction(formData: FormData) {
     (failures.length ? `, fallaron ${failures.length}` : "");
   if (failures.length) {
     console.error("Fallos al añadir el cierre a publicados:", failures.join(" | "));
+    withError(returnTo, `${summary}. Detalle en los logs.`);
+  }
+  redirect(`${returnTo}&notice=${encodeURIComponent(summary)}`);
+}
+
+// Cuantos articulos remaquetar por click. Cada uno gasta una llamada a
+// Claude, asi que se procesan por tandas para no acercarse al limite de
+// tiempo de la funcion; como la accion es idempotente, basta con volver a
+// pulsar hasta que no queden.
+const RESTRUCTURE_BATCH_SIZE = 8;
+
+/**
+ * Remaqueta los articulos ya publicados con la estructura nueva (entradilla,
+ * ladillos, cita destacada, galeria y cierre de tienda como bloque), tanto en
+ * la base como en Shopify. Los articulos antiguos se generaron como una tira
+ * de parrafos y no se guardo el JSON con el que se escribieron, asi que hay
+ * que descomponer su HTML y pedirle a Claude que lo agrupe — sin reescribir
+ * el texto, solo añadiendo la maquetacion.
+ *
+ * Idempotente: salta los que ya estan maquetados.
+ */
+export async function restructurePublishedArticlesAction(formData: FormData) {
+  const returnTo = String(formData.get("returnTo") || "/dashboard?status=PUBLISHED");
+
+  const published = await prisma.article.findMany({
+    where: { status: "PUBLISHED", shopifyArticleId: { not: null } },
+    orderBy: { publishedAt: "desc" },
+    include: { source: true },
+  });
+
+  const pending = published.filter((a) => !isRestructured(a.excerpt));
+  const batch = pending.slice(0, RESTRUCTURE_BATCH_SIZE);
+
+  // Los grupos de aficion se vuelven a enlazar despues de remaquetar: el
+  // texto se reconstruye desde cero y perderia los enlaces que ya tenia.
+  const groups = await prisma.group.findMany({ where: { active: true } });
+  const knownGroups = groups.map((g) => ({
+    name: g.name,
+    handle: g.handle,
+    aliases: parseAliases(g.aliases),
+  }));
+
+  let updated = 0;
+  let basic = 0;
+  const failures: string[] = [];
+
+  for (const article of batch) {
+    const legacy = parseLegacyArticleHtml(article.excerpt);
+    if (!legacy.paragraphs.length) {
+      failures.push(`${article.title}: no se pudo leer el cuerpo`);
+      continue;
+    }
+
+    const restructured = await restructureSpanishArticle({
+      title: article.title,
+      paragraphs: legacy.paragraphs,
+    });
+
+    // Sin clave de Claude (o si la llamada falla o pierde parrafos) se
+    // maqueta igualmente lo que no necesita criterio: entradilla, galeria y
+    // cierre de tienda. Se pierden solo los ladillos y la cita.
+    let lead: string;
+    let sections: ArticleSection[];
+    if (restructured) {
+      ({ lead, sections } = restructured);
+    } else {
+      basic += 1;
+      const [first, ...rest] = legacy.paragraphs;
+      lead = first;
+      sections = [{ heading: null, paragraphs: rest.length ? rest : [first] }];
+    }
+
+    const mentionedGroups = findMentionedGroups(
+      `${article.originalTitle} ${article.title} ${legacy.paragraphs.join(" ")}`,
+      knownGroups
+    );
+
+    const excerpt = buildArticleHtml({
+      lead,
+      sections,
+      pullQuote: restructured?.pullQuote ?? null,
+      facts: restructured?.facts ?? [],
+      galleryImageUrls: legacy.imageUrls,
+      sourceName: legacy.sourceName ?? article.source?.name ?? "la fuente original",
+      sourceUrl: legacy.sourceUrl ?? article.originalUrl,
+      category: article.category,
+      decorate: (html) => linkMentionedGroups(html, mentionedGroups),
+    });
+
+    try {
+      await updateArticleOnShopify(article.shopifyArticleId!, {
+        title: article.title,
+        bodyHtml: excerpt,
+        imageUrl: article.imageUrl,
+      });
+      await prisma.article.update({ where: { id: article.id }, data: { excerpt } });
+      updated += 1;
+    } catch (err) {
+      failures.push(`${article.title}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  revalidatePath("/dashboard");
+  const left = pending.length - updated;
+  const summary =
+    `Remaquetados ${updated}` +
+    (basic ? ` (${basic} sin ladillos, ver logs)` : "") +
+    (left > 0 ? `, quedan ${left}: vuelve a pulsar` : ", no queda ninguno") +
+    (failures.length ? `, fallaron ${failures.length}` : "");
+  if (failures.length) {
+    console.error("Fallos al remaquetar publicados:", failures.join(" | "));
     withError(returnTo, `${summary}. Detalle en los logs.`);
   }
   redirect(`${returnTo}&notice=${encodeURIComponent(summary)}`);

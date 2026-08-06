@@ -1,3 +1,5 @@
+import { extractLead } from "./article-html";
+
 interface ShopifyGraphQLResponse<T> {
   data?: T;
   errors?: Array<{ message: string }>;
@@ -162,11 +164,16 @@ export interface PublishArticleInput {
 /**
  * Shopify usa `summary` para mostrar el articulo en el listado del blog y
  * como meta description; sin el, el tema recorta el cuerpo a lo bruto. Se
- * deriva del primer parrafo para que siga cuadrando si el texto se edita.
+ * toma la entradilla, que es la frase escrita justo para eso, y solo se
+ * recae en el primer parrafo si el articulo no la trae (los publicados antes
+ * de maquetar el blog).
  */
 function buildSummary(bodyHtml: string): string {
-  const firstParagraph = /<p>([\s\S]*?)<\/p>/i.exec(bodyHtml)?.[1] ?? bodyHtml;
-  const text = firstParagraph.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  const source =
+    extractLead(bodyHtml) ??
+    /<p[^>]*>([\s\S]*?)<\/p>/i.exec(bodyHtml)?.[1] ??
+    bodyHtml;
+  const text = source.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
   return text.length <= 155 ? text : text.slice(0, 154).trimEnd() + "…";
 }
 

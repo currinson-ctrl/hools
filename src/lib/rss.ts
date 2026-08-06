@@ -1,6 +1,9 @@
 import Parser from "rss-parser";
 import type { Category, Source } from "@prisma/client";
-import { buildCtaHtml, CATEGORY_HASHTAGS, CATEGORY_IMAGE_HINT } from "./sources";
+import { CATEGORY_HASHTAGS, CATEGORY_IMAGE_HINT } from "./sources";
+import { buildArticleHtml } from "./article-html";
+
+export { escapeHtml } from "./article-html";
 import { translateToSpanish } from "./translate";
 import { searchRelatedImage } from "./image-search";
 import { findMentionedGroups, linkMentionedGroups, type KnownGroup } from "./groups";
@@ -48,15 +51,6 @@ function stripHtml(input: string): string {
     .replace(/<[^>]*>/g, " ")
     .replace(/\s+/g, " ")
     .trim();
-}
-
-export function escapeHtml(input: string): string {
-  return input
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
 }
 
 function truncate(input: string, max: number): string {
@@ -119,7 +113,12 @@ function extractImage(item: FeedItem): string | null {
 export async function buildDraft(
   item: FeedItem,
   source: Pick<Source, "name" | "category">,
-  knownGroups: KnownGroup[] = []
+  knownGroups: KnownGroup[] = [],
+  /**
+   * Fotos aparte de la destacada, cuando la fuente puede traer varias (un
+   * tuit multi-foto). Se maquetan como galeria dentro del texto.
+   */
+  extraImageUrls: string[] = []
 ): Promise<DraftArticle | null> {
   const originalUrl = item.link;
   if (!originalUrl || !isHttpUrl(originalUrl)) return null;
@@ -150,22 +149,17 @@ export async function buildDraft(
     knownGroups
   );
 
-  const safeSourceName = escapeHtml(source.name);
-  const safeUrl = escapeHtml(originalUrl);
-
-  const bodyParagraphs = esBody
-    .split(/\n\s*\n/)
-    .map((p) => p.trim())
-    .filter(Boolean)
-    .map((p) => `<p>${escapeHtml(p)}</p>`);
-
-  const linkedBody = linkMentionedGroups(bodyParagraphs.join("\n"), mentionedGroups);
-
-  const excerpt = [
-    linkedBody,
-    `<p><em>Fuente: <a href="${safeUrl}" target="_blank" rel="noopener noreferrer nofollow">${safeSourceName}</a></em></p>`,
-    buildCtaHtml(source.category),
-  ].join("\n");
+  const excerpt = buildArticleHtml({
+    lead: translated.lead,
+    sections: translated.sections,
+    pullQuote: translated.pullQuote,
+    facts: translated.facts,
+    galleryImageUrls: extraImageUrls,
+    sourceName: source.name,
+    sourceUrl: originalUrl,
+    category: source.category,
+    decorate: (html) => linkMentionedGroups(html, mentionedGroups),
+  });
 
   const hashtags = CATEGORY_HASHTAGS[source.category].join(" ");
   const mentions = mentionedGroups.map((g) => `@${g.handle}`).join(" ");

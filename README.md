@@ -35,6 +35,35 @@ falta. Si `ANTHROPIC_API_KEY` no está configurada o falla la llamada, esa
 noticia en concreto se queda en su idioma original en vez de bloquear el
 resto del rastreo.
 
+## Cómo está maquetado un artículo
+
+Claude no devuelve un bloque de párrafos, sino el artículo **por piezas**
+(`src/lib/translate.ts`), y `src/lib/article-html.ts` las monta en el HTML que
+se publica:
+
+```
+p.hools-lead                 entradilla (es también el resumen de Shopify:
+                             la tarjeta del listado y la meta description)
+h2 + p                       cuerpo en 3-4 secciones con ladillo
+blockquote.hools-pullquote   cita destacada, tras la primera sección
+figure.hools-gallery         fotos extra repartidas por el texto
+aside.hools-facts            recuadro "la ficha" (club, estadio, competición…)
+p.hools-source               atribución a la fuente original
+aside.hools-shop-cta         cierre con enlace a la tienda
+```
+
+Esas clases son el contrato con la plantilla del tema (ver `theme/README.md`):
+si se renombran aquí, hay que renombrarlas allí. La ficha solo aparece cuando
+la noticia original da datos concretos — al modelo se le pide expresamente que
+devuelva la lista vacía antes que inventarse cifras o nombres.
+
+Los artículos publicados **antes** de esta maquetación se pueden reprocesar
+desde `/dashboard?status=PUBLISHED` con el botón **«Remaquetar publicados»**:
+descompone el HTML antiguo y le pide a Claude que lo agrupe en secciones sin
+reescribir el texto (si se pierde algún párrafo por el camino, descarta el
+resultado y maqueta solo lo que no necesita criterio). Va por tandas de 8 y es
+idempotente, así que hay que pulsarlo hasta que avise de que no queda ninguno.
+
 ## Puesta en marcha local
 
 Necesitas una base Postgres incluso en local (ver "Base de datos" abajo) —
