@@ -9,6 +9,7 @@ cambios en un diff.
 theme/
   sections/main-blog-hools-editorial.liquid     portada del blog
   sections/main-article-hools-editorial.liquid  plantilla de artículo
+  sections/hools-blog-strip.liquid              franja de últimas noticias
   snippets/hools-article-card.liquid            tarjeta de artículo (4 variantes)
   templates/blog.hools-editorial.json           ajustes de la portada
   templates/article.hools-editorial.json        ajustes de la plantilla de artículo
