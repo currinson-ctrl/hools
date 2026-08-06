@@ -1,5 +1,4 @@
-import type { Category } from "@prisma/client";
-import { CATEGORY_CTA } from "./sources";
+import { SHOP_COLLECTIONS } from "./sources";
 
 /**
  * Construccion del HTML que se publica como cuerpo del articulo en Shopify.
@@ -43,7 +42,11 @@ export interface BuildArticleHtmlInput {
   galleryImageUrls?: string[];
   sourceName: string;
   sourceUrl: string;
-  category: Category;
+  /**
+   * Identificador estable del articulo (su guid) con el que se decide a que
+   * coleccion apunta el cierre comercial. Ver buildShopCtaHtml.
+   */
+  rotationKey: string;
   /**
    * Transforma el HTML de un bloque de parrafos ya escapado (lo usa el
    * rastreo para enlazar los grupos de aficion mencionados). Identidad si no
@@ -108,14 +111,37 @@ function renderSource(sourceName: string, sourceUrl: string): string {
 }
 
 /**
+ * Hash estable (FNV-1a de 32 bits) para repartir articulos entre colecciones.
+ *
+ * Se hashea el guid del articulo y no se usa un azar de verdad ni la fecha,
+ * por dos razones: el mismo articulo cae siempre en la misma coleccion (si
+ * cambiara al remaquetar, el enlace se movería bajo los pies de quien ya lo
+ * hubiera compartido), y el reparto es reproducible, asi que reprocesar un
+ * lote no altera lo que ya estaba publicado.
+ */
+function rotationIndex(key: string, buckets: number): number {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < key.length; i++) {
+    hash ^= key.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash % buckets;
+}
+
+/**
  * Cierre comercial del articulo. Antes era una linea en cursiva del mismo
  * peso que el cuerpo y pasaba desapercibida; ahora es un bloque propio. Se
  * mantiene como HTML dentro del articulo (y no como bloque del tema) para
  * que el unico puente del blog a la tienda siga existiendo aunque el
  * articulo se lea fuera de la plantilla (lector de RSS, vista previa, etc.).
+ *
+ * La coleccion de destino se reparte entre las de SHOP_COLLECTIONS a partir
+ * de `rotationKey` (el guid del articulo), en vez de salir de su categoria:
+ * casi todo lo que entra es AFICION, asi que por categoria el enlace acababa
+ * siendo Terrace casi siempre.
  */
-export function buildShopCtaHtml(category: Category): string {
-  const cta = CATEGORY_CTA[category];
+export function buildShopCtaHtml(rotationKey: string): string {
+  const cta = SHOP_COLLECTIONS[rotationIndex(rotationKey, SHOP_COLLECTIONS.length)];
   const publicDomain = process.env.SHOPIFY_PUBLIC_DOMAIN || "www.hoolsbrand.com";
   const url = `https://${publicDomain}${cta.path}?utm_source=blog&utm_medium=article&utm_campaign=away-end`;
   return [
@@ -239,7 +265,7 @@ export function buildArticleHtml(input: BuildArticleHtmlInput): string {
   if (facts) parts.push(facts);
 
   parts.push(renderSource(input.sourceName, input.sourceUrl));
-  parts.push(buildShopCtaHtml(input.category));
+  parts.push(buildShopCtaHtml(input.rotationKey));
 
   return parts.filter(Boolean).join("\n");
 }

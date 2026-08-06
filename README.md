@@ -57,6 +57,14 @@ si se renombran aquí, hay que renombrarlas allí. La ficha solo aparece cuando
 la noticia original da datos concretos — al modelo se le pide expresamente que
 devuelva la lista vacía antes que inventarse cifras o nombres.
 
+El cierre de tienda reparte los enlaces entre las colecciones de
+`SHOP_COLLECTIONS` (`src/lib/sources.ts`) en vez de elegirlas por la categoría
+de la noticia: como casi todo lo que entra es AFICION, por categoría el enlace
+acababa siendo Terrace prácticamente siempre. El reparto sale de un hash del
+`guid` del artículo, así que es estable (un artículo no cambia de colección al
+remaquetarlo) y reproducible. La banda verde sobre la foto se reparte igual,
+pero eso vive en el tema y se configura desde el editor.
+
 Los artículos publicados **antes** de esta maquetación se pueden reprocesar
 desde `/dashboard?status=PUBLISHED` con el botón **«Remaquetar publicados»**:
 descompone el HTML antiguo y le pide a Claude que lo agrupe en secciones sin

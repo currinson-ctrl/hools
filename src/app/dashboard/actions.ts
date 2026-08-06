@@ -507,7 +507,7 @@ export async function restructurePublishedArticlesAction(formData: FormData) {
       galleryImageUrls: legacy.imageUrls,
       sourceName: legacy.sourceName ?? article.source?.name ?? "la fuente original",
       sourceUrl: legacy.sourceUrl ?? article.originalUrl,
-      category: article.category,
+      rotationKey: article.guid,
       decorate: (html) => linkMentionedGroups(html, mentionedGroups),
     });
 

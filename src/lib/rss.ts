@@ -157,7 +157,7 @@ export async function buildDraft(
     galleryImageUrls: extraImageUrls,
     sourceName: source.name,
     sourceUrl: originalUrl,
-    category: source.category,
+    rotationKey: guid,
     decorate: (html) => linkMentionedGroups(html, mentionedGroups),
   });
 
