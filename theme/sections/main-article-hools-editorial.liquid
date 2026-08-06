@@ -366,6 +366,16 @@
   margin:36px 0 12px;
 }
 
+/* Los artículos escritos a mano antes de la maquetación separan sus secciones
+   con <hr> (el agregador no lo emite nunca). Sin esta regla salen con el <hr>
+   de serie del tema, en relieve y a todo el ancho de la caja de texto. */
+.hools-content hr{
+  border:0;
+  height:1px;
+  background:rgba(21,21,21,.12);
+  margin:44px 0;
+}
+
 /* Cita destacada: sin recuadro, a gran tamaño, para partir el texto. */
 .hools-content .hools-pullquote{
   margin:44px 0;

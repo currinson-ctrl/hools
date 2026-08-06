@@ -1,0 +1,79 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
+{
+  "sections": {
+    "main": {
+      "type": "main-blog-hools-editorial",
+      "settings": {
+        "hero_image": "shopify://shop_images/hools-blog-cultura-terrace-futbol-casual.jpg",
+        "hero_band_left": "terrace culture",
+        "hero_band_right": "RETURN TO THE ORIGINS",
+        "title_line_1": "The Away",
+        "title_line_2": "END",
+        "hero_seo_title": "Cultura terrace y fútbol casual: la historia que se escribe en el sector visitante",
+        "hero_subtitle": "La historia que se escribe en el sector visitante.",
+        "carousel_title": "Últimos artículos",
+        "carousel_count": 24
+      }
+    },
+    "collection_list_UtWH6G": {
+      "type": "collection-list",
+      "blocks": {
+        "featured_collection_TwwxyA": {
+          "type": "featured_collection",
+          "settings": {
+            "collection": "terrace"
+          }
+        },
+        "featured_collection_Uhhx9X": {
+          "type": "featured_collection",
+          "settings": {
+            "collection": "mod"
+          }
+        },
+        "featured_collection_kVMDrQ": {
+          "type": "featured_collection",
+          "settings": {
+            "collection": "ska"
+          }
+        },
+        "featured_collection_GaVnAL": {
+          "type": "featured_collection",
+          "settings": {
+            "collection": "tarjeta-regalo"
+          }
+        }
+      },
+      "block_order": [
+        "featured_collection_TwwxyA",
+        "featured_collection_Uhhx9X",
+        "featured_collection_kVMDrQ",
+        "featured_collection_GaVnAL"
+      ],
+      "name": "t:sections.collection-list.presets.name",
+      "settings": {
+        "title": "Colecciones",
+        "heading_size": "h1",
+        "image_ratio": "square",
+        "columns_desktop": 4,
+        "color_scheme": "",
+        "show_view_all": false,
+        "columns_mobile": "1",
+        "swipe_on_mobile": false,
+        "padding_top": 36,
+        "padding_bottom": 36
+      }
+    }
+  },
+  "order": [
+    "main",
+    "collection_list_UtWH6G"
+  ]
+}

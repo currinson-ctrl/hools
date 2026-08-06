@@ -10,7 +10,28 @@ theme/
   sections/main-blog-hools-editorial.liquid     portada del blog
   sections/main-article-hools-editorial.liquid  plantilla de artículo
   snippets/hools-article-card.liquid            tarjeta de artículo (4 variantes)
+  templates/blog.hools-editorial.json           ajustes de la portada
+  templates/article.hools-editorial.json        ajustes de la plantilla de artículo
 ```
+
+Los dos `templates/*.json` están aquí porque guardan ajustes que **el schema de
+la sección no puede reponer**: los `image_picker` y los `url` no admiten valor
+por defecto, así que la foto de fondo de la cabecera y las tres colecciones del
+CTA solo existen dentro de esos JSON. Si se recrean sin ellos, esas piezas se
+quedan en blanco sin que nada avise.
+
+> **El JSON de la portada lo mantiene el editor de temas, y lo guarda
+> minificado.** Su copia de aquí está formateada para que el diff se lea, así
+> que su md5 **no** coincide con el del tema aunque el contenido sea el mismo
+> (la Admin API devuelve el fichero con formato al leerlo, pero `size` y
+> `checksumMd5` son los del original minificado). Para este fichero la
+> comparación es semántica, no byte a byte. El JSON del artículo sí lo subimos
+> nosotros con formato, así que ese sí coincide.
+>
+> Ese mismo JSON arrastra dos ajustes muertos del carrusel anterior
+> (`carousel_title`, `carousel_count`) que el schema actual ya no declara. No
+> molestan — Shopify los ignora — y desaparecerán en cuanto el fichero se vuelva
+> a subir.
 
 El blog `the-away-end` y sus artículos usan el sufijo de plantilla
 `hools-editorial`, que es lo que hace que se rendericen con estas secciones y
@@ -46,6 +67,10 @@ igual el primer párrafo del cuerpo (`.hools-content > p:first-child`). Como en
 los maquetados ese primer párrafo *es* la entradilla, la misma regla vale para
 los dos casos y no hace falta ninguna condición en Liquid.
 
+Los que se escribieron a mano (los de febrero) traen además `h3` y `hr`, que el
+agregador no emite nunca. La plantilla los estila igualmente para que no salgan
+con el aspecto de serie del tema.
+
 Las etiquetas `AFICION` / `VIAJES` / `MODA` que pone el agregador son además lo
 que alimenta el antetítulo de las tarjetas y el filtro por categoría de la
 portada. La otra etiqueta de cada artículo es el nombre de la fuente y no se
@@ -65,7 +90,9 @@ Estos ficheros **no se despliegan solos**: hay que subirlos al tema. Con
 ```bash
 shopify theme push --theme <ID_DEL_TEMA> --only sections/main-blog-hools-editorial.liquid \
                                           --only sections/main-article-hools-editorial.liquid \
-                                          --only snippets/hools-article-card.liquid
+                                          --only snippets/hools-article-card.liquid \
+                                          --only templates/blog.hools-editorial.json \
+                                          --only templates/article.hools-editorial.json
 ```
 
 Trabaja siempre sobre un tema **sin publicar** y publícalo desde el admin
