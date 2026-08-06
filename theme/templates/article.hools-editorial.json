@@ -1,0 +1,37 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
+{
+  "sections": {
+    "main": {
+      "type": "main-article-hools-editorial",
+      "settings": {
+        "show_date": true,
+        "show_share_buttons": true,
+        "show_related": true,
+        "show_featured_image": true,
+        "hero_use_featured_as_bg": true,
+        "hero_bg_image": "shopify://shop_images/collage-imagenes-terrace.png",
+        "hero_band_text_left": "THE AWAY END",
+        "hero_band_text_right": "FOOTBALL CULTURE",
+        "cta_show": true,
+        "cta_rotate": true,
+        "cta_text": "COLECCIÓN TERRACE",
+        "cta_link": "/collections/terrace",
+        "cta_text_2": "COLECCIÓN SKA",
+        "cta_link_2": "/collections/ska",
+        "cta_text_3": "COLECCIÓN MOD",
+        "cta_link_3": "/collections/mod"
+      }
+    }
+  },
+  "order": [
+    "main"
+  ]
+}

@@ -53,6 +53,12 @@ usa para navegar.
 
 ## Cómo subir cambios a Shopify
 
+> **Sube siempre la sección antes que su `templates/*.json`.** Shopify valida
+> los ajustes del template contra el schema de la sección y **descarta sin
+> avisar** los que no reconoce (la mutación responde `success` igualmente). Si
+> subes primero el JSON con ajustes nuevos, se pierden y parece que el cambio
+> "no ha hecho nada".
+
 Estos ficheros **no se despliegan solos**: hay que subirlos al tema. Con
 [Shopify CLI](https://shopify.dev/docs/api/shopify-cli):
 

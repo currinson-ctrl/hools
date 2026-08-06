@@ -49,6 +49,36 @@
         assign kicker = 'Casual'
     endcase
   endfor
+
+  # ---- Colección que promociona la banda del hero ----
+  # Reparte las tres colecciones entre los artículos en vez de mandar todo a
+  # una. El reparto va por el id del artículo, NO al azar en cada visita: así
+  # cada artículo promociona siempre la misma colección (si cambiara en cada
+  # recarga parecería un fallo, rompería el caché de página y las UTM no
+  # servirían para comparar qué colección convierte mejor).
+  assign cta_slot = 0
+  if section.settings.cta_rotate
+    assign cta_slot = article.id | modulo: 3
+  endif
+
+  case cta_slot
+    when 1
+      assign cta_text = section.settings.cta_text_2
+      assign cta_link = section.settings.cta_link_2
+    when 2
+      assign cta_text = section.settings.cta_text_3
+      assign cta_link = section.settings.cta_link_3
+    else
+      assign cta_text = section.settings.cta_text
+      assign cta_link = section.settings.cta_link
+  endcase
+
+  # Si el hueco que toca está a medio rellenar, se recae en el primero antes
+  # que dejar la banda sin texto o sin destino.
+  if cta_text == blank or cta_link == blank
+    assign cta_text = section.settings.cta_text
+    assign cta_link = section.settings.cta_link
+  endif
 -%}
 
 <article class="hools-article" itemscope itemtype="http://schema.org/Article">
@@ -77,9 +107,9 @@
       </div>
     </div>
 
-    {% if section.settings.cta_show %}
-      <a class="hools-mag-cta" href="{{ section.settings.cta_link }}">
-        <span class="hools-mag-cta__text">{{ section.settings.cta_text }}</span>
+    {% if section.settings.cta_show and cta_link != blank %}
+      <a class="hools-mag-cta" href="{{ cta_link }}?utm_source=blog&utm_medium=hero&utm_campaign=away-end">
+        <span class="hools-mag-cta__text">{{ cta_text }}</span>
       </a>
     {% endif %}
   </header>
@@ -603,9 +633,16 @@
     { "type": "image_picker", "id": "hero_bg_image", "label": "Imagen de fondo del hero (se usa si la del artículo no es apaisada)" },
     { "type": "text", "id": "hero_band_text_left", "label": "Texto banda blanca (izquierda, si el artículo no tiene categoría)", "default": "FOOTBALL CULTURE" },
     { "type": "text", "id": "hero_band_text_right", "label": "Texto banda blanca (derecha)", "default": "AWAY FROM HERE" },
-    { "type": "checkbox", "id": "cta_show", "label": "Mostrar banda CTA sobre el hero", "default": true },
-    { "type": "text", "id": "cta_text", "label": "Texto CTA", "default": "SHOP TERRACE COLLECTION NOW" },
-    { "type": "url", "id": "cta_link", "label": "Enlace CTA" }
+
+    { "type": "header", "content": "Banda de colección" },
+    { "type": "checkbox", "id": "cta_show", "label": "Mostrar banda sobre el hero", "default": true },
+    { "type": "checkbox", "id": "cta_rotate", "label": "Repartir las tres colecciones entre los artículos", "default": true, "info": "Cada artículo promociona siempre la misma colección; entre todos se reparten a tercios. Desactívalo para que todos apunten a la primera." },
+    { "type": "text", "id": "cta_text", "label": "Colección 1 · texto", "default": "COLECCIÓN TERRACE" },
+    { "type": "url", "id": "cta_link", "label": "Colección 1 · enlace" },
+    { "type": "text", "id": "cta_text_2", "label": "Colección 2 · texto", "default": "COLECCIÓN SKA" },
+    { "type": "url", "id": "cta_link_2", "label": "Colección 2 · enlace" },
+    { "type": "text", "id": "cta_text_3", "label": "Colección 3 · texto", "default": "COLECCIÓN MOD" },
+    { "type": "url", "id": "cta_link_3", "label": "Colección 3 · enlace" }
   ]
 }
 {% endschema %}
