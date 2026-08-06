@@ -9,6 +9,7 @@ import {
   backfillPublishedArticlesAction,
   cleanupOffTopicAction,
   rejectArticleAction,
+  restructurePublishedArticlesAction,
   unpublishArticleAction,
 } from "./actions";
 
@@ -57,12 +58,20 @@ export default async function DashboardPage({
           </form>
         )}
         {status === "PUBLISHED" && (
-          <form action={backfillPublishedArticlesAction}>
-            <input type="hidden" name="returnTo" value={returnTo} />
-            <button type="submit" title="Añade a los artículos ya publicados el cierre con enlace a la tienda, y rellena en Shopify el resumen y el texto alternativo de la imagen">
-              Añadir cierre de tienda a los publicados
-            </button>
-          </form>
+          <div className="row" style={{ gap: 8 }}>
+            <form action={restructurePublishedArticlesAction}>
+              <input type="hidden" name="returnTo" value={returnTo} />
+              <button type="submit" title="Remaqueta los artículos ya publicados con la estructura nueva: entradilla, ladillos, cita destacada, galería y cierre de tienda. Va por tandas: púlsalo hasta que no queden">
+                Remaquetar publicados
+              </button>
+            </form>
+            <form action={backfillPublishedArticlesAction}>
+              <input type="hidden" name="returnTo" value={returnTo} />
+              <button type="submit" title="Añade a los artículos ya publicados el cierre con enlace a la tienda, y rellena en Shopify el resumen y el texto alternativo de la imagen">
+                Añadir cierre de tienda a los publicados
+              </button>
+            </form>
+          </div>
         )}
       </div>
 

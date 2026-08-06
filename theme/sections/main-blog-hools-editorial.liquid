@@ -1,0 +1,600 @@
+{% comment %}
+  HOOLS · PORTADA DEL BLOG (the-away-end)
+
+  Sustituye al carrusel de tarjetas iguales que había antes. La portada ahora
+  tiene jerarquía de portal: una noticia destacada que manda, dos secundarias,
+  una columna lateral de titulares y una rejilla con el resto.
+
+  - Mantiene la cabecera de siempre (foto + banda blanca "The Away END"), pero
+    más baja, para que la destacada entre en pantalla. Altura ajustable.
+  - H1 SEO real (oculto), como en la versión anterior.
+  - Navegación por categoría vía etiquetas (AFICION / VIAJES / MODA).
+{% endcomment %}
+
+{%- liquid
+  assign per_page = 19
+
+  assign cat_tags = 'AFICION,VIAJES,MODA' | split: ','
+  assign cat_labels = 'Afición,Desplazamientos,Casual' | split: ','
+
+  assign active_tag = ''
+  for tag in current_tags
+    assign active_tag = tag | upcase
+  endfor
+
+  assign active_label = ''
+  for tag in cat_tags
+    if tag == active_tag
+      assign active_label = cat_labels[forloop.index0]
+    endif
+  endfor
+-%}
+
+{%- paginate blog.articles by per_page -%}
+
+  {%- liquid
+    # ---- Elección de la noticia destacada ----
+    # OJO: este bloque va DENTRO del paginate a propósito. Fuera de él
+    # `blog.articles` son todos los artículos del blog, no los de esta página,
+    # y las posiciones calculadas no valdrían para indexar aquí dentro.
+    #
+    # El hueco de la destacada es 16/9 y muy grande, así que una imagen vertical
+    # (el frame de un vídeo de X suele serlo) queda fatal ahí: se recorta a una
+    # franja del centro. En vez de maquillar la imagen, se elige para ese hueco
+    # la primera noticia cuya foto sea apaisada de verdad. Las descartadas no se
+    # pierden: caen en las posiciones secundarias, más pequeñas, donde el
+    # recorte no molesta.
+    #
+    # hero_min_ratio: 1.4 ≈ 7/5. Por debajo de eso el recorte a 16/9 empieza a
+    # comerse demasiado alto. Súbelo a 1.7 para exigir casi panorámica.
+    assign hero_min_ratio = 1.4
+    assign hero_scan = 12
+
+    assign hero_index = -1
+    for candidate in blog.articles limit: hero_scan
+      if hero_index == -1 and candidate.image and candidate.image.aspect_ratio >= hero_min_ratio
+        assign hero_index = forloop.index0
+      endif
+    endfor
+    # Si ninguna vale (blog nuevo, racha de vídeos verticales), manda la última
+    # noticia como hasta ahora: mejor eso que quedarse sin portada.
+    if hero_index == -1
+      assign hero_index = 0
+    endif
+
+    # El resto conserva su orden. Liquid no sabe quitar un elemento de una
+    # lista, así que se acumulan las posiciones sobrantes y se parten en una.
+    assign rest_positions = ''
+    for candidate in blog.articles
+      unless forloop.index0 == hero_index
+        assign rest_positions = rest_positions | append: forloop.index0 | append: ','
+      endunless
+    endfor
+    assign rest = rest_positions | split: ','
+  -%}
+
+  <div class="hools-blog">
+
+    {% comment %} ---------- CABECERA ---------- {% endcomment %}
+    <header
+      class="hools-hero"
+      {% if section.settings.hero_image != blank %}
+        style="--hero-img:url('{{ section.settings.hero_image | image_url: width: 2400 }}'); --hero-height:{{ section.settings.hero_height }}px;"
+      {% else %}
+        style="--hero-height:{{ section.settings.hero_height }}px;"
+      {% endif %}
+    >
+      <div class="hools-hero__band">
+        <h1 class="hools-h1-seo">{{ section.settings.hero_seo_title }}</h1>
+
+        {%- if section.settings.hero_band_left != blank or section.settings.hero_band_right != blank -%}
+          <p class="hools-hero__kicker">
+            <span>{{ section.settings.hero_band_left }}</span>
+            {%- if section.settings.hero_band_left != blank and section.settings.hero_band_right != blank -%}
+              <span class="hools-hero__sep">|</span>
+            {%- endif -%}
+            <span class="hools-hero__kicker-em">{{ section.settings.hero_band_right }}</span>
+          </p>
+        {%- endif -%}
+
+        <p class="hools-hero__title">
+          <span class="hools-hero__line1">{{ section.settings.title_line_1 }}</span>
+          <span class="hools-hero__line2">{{ section.settings.title_line_2 }}</span>
+        </p>
+
+        {%- if section.settings.hero_subtitle != blank -%}
+          <p class="hools-hero__subtitle">{{ section.settings.hero_subtitle }}</p>
+        {%- endif -%}
+      </div>
+    </header>
+
+    <nav class="hools-catbar" aria-label="Categorías del blog">
+      <div class="hools-catbar__inner">
+        <a
+          class="hools-catbar__cat{% if active_tag == blank %} is-active{% endif %}"
+          href="{{ blog.url }}"
+        >Todo</a>
+        {%- for tag in cat_tags -%}
+          {%- if blog.all_tags contains tag -%}
+            <a
+              class="hools-catbar__cat{% if active_tag == tag %} is-active{% endif %}"
+              href="{{ blog.url }}/tagged/{{ tag | handleize }}"
+            >{{ cat_labels[forloop.index0] }}</a>
+          {%- endif -%}
+        {%- endfor -%}
+      </div>
+    </nav>
+
+    {%- if blog.articles.size == 0 -%}
+      <p class="hools-blog__empty">Todavía no hay artículos publicados aquí.</p>
+    {%- else -%}
+
+      {% comment %} ---------- PORTADA ---------- {% endcomment %}
+      {%- comment -%}
+        La destacada se elige arriba (primera noticia con foto apaisada); el
+        resto ocupa las posiciones secundarias en su orden original. Al paginar
+        no tiene sentido volver a montar una destacada gigante, así que a
+        partir de ahí todo va en rejilla.
+      {%- endcomment -%}
+      {%- if paginate.current_page == 1 -%}
+        <div class="hools-cover">
+
+          <div class="hools-cover__main">
+            {%- render 'hools-article-card',
+              article: blog.articles[hero_index],
+              variant: 'hero',
+              show_lead: true,
+              show_date: true
+            -%}
+
+            {%- if rest.size > 0 -%}
+              <div class="hools-cover__pair">
+                {%- for position in rest limit: 2 -%}
+                  {%- assign at = position | plus: 0 -%}
+                  {%- render 'hools-article-card',
+                    article: blog.articles[at],
+                    variant: 'secondary',
+                    show_lead: false,
+                    show_date: false
+                  -%}
+                {%- endfor -%}
+              </div>
+            {%- endif -%}
+          </div>
+
+          {%- if rest.size > 2 -%}
+            <aside class="hools-cover__aside">
+              <h2 class="hools-rail__title">{{ section.settings.rail_title }}</h2>
+              {%- for position in rest offset: 2 limit: 4 -%}
+                {%- assign at = position | plus: 0 -%}
+                {%- render 'hools-article-card',
+                  article: blog.articles[at],
+                  variant: 'aside',
+                  show_lead: false,
+                  show_date: false
+                -%}
+              {%- endfor -%}
+            </aside>
+          {%- endif -%}
+
+        </div>
+
+        {%- assign is_cover = true -%}
+      {%- else -%}
+        {%- assign is_cover = false -%}
+      {%- endif -%}
+
+      {% comment %} ---------- REJILLA ---------- {% endcomment %}
+      {%- comment -%}
+        En la portada la rejilla recoge lo que queda tras la destacada, las dos
+        secundarias y las cuatro del lateral (6 de `rest`). En el resto de
+        páginas no hay portada, así que van todas.
+      {%- endcomment -%}
+      {%- if is_cover %}{% assign grid_size = rest.size | minus: 6 %}{% else %}{% assign grid_size = blog.articles.size %}{% endif -%}
+
+      {%- if grid_size > 0 -%}
+        <section class="hools-more">
+          <h2 class="hools-more__title">
+            {%- if active_tag != blank -%}
+              {{ active_label | default: active_tag }}
+            {%- else -%}
+              {{ section.settings.grid_title }}
+            {%- endif -%}
+          </h2>
+
+          <div class="hools-grid">
+            {%- if is_cover -%}
+              {%- for position in rest offset: 6 -%}
+                {%- assign at = position | plus: 0 -%}
+                {%- render 'hools-article-card',
+                  article: blog.articles[at],
+                  variant: 'grid',
+                  show_lead: false,
+                  show_date: true
+                -%}
+              {%- endfor -%}
+            {%- else -%}
+              {%- for article in blog.articles -%}
+                {%- render 'hools-article-card',
+                  article: article,
+                  variant: 'grid',
+                  show_lead: false,
+                  show_date: true
+                -%}
+              {%- endfor -%}
+            {%- endif -%}
+          </div>
+        </section>
+      {%- endif -%}
+
+      {%- if paginate.pages > 1 -%}
+        <div class="hools-pagination">
+          {%- render 'pagination', paginate: paginate -%}
+        </div>
+      {%- endif -%}
+
+    {%- endif -%}
+
+  </div>
+
+{%- endpaginate -%}
+
+<style>
+  .hools-blog{
+    --hools-black:#151515;
+    --hools-green:#213B2E;
+    --hools-gold:#CCB229;
+    --hools-off:#F8F8F8;
+    --hools-line:rgba(21,21,21,.12);
+    --hools-serif:"Source Serif 4", Georgia, serif;
+    --hools-sans:"Muli", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+    --hools-wrap:1280px;
+
+    background:var(--hools-off);
+    color:var(--hools-black);
+    padding-bottom:72px;
+  }
+
+  /* El H1 de verdad sigue existiendo para SEO, solo que no se pinta: el
+     rótulo visible del blog es la marca, no el titular optimizado. */
+  .hools-blog .hools-h1-seo{
+    position:absolute;
+    width:1px; height:1px;
+    overflow:hidden;
+    clip:rect(0 0 0 0);
+    white-space:nowrap;
+  }
+
+  /* ---------- CABECERA DEL BLOG ----------
+     La cabecera de siempre de The Away End (foto de fondo + banda blanca),
+     pero más baja que antes para que la noticia destacada entre en pantalla
+     sin hacer scroll. La altura se ajusta desde el editor. */
+  .hools-hero{
+    position:relative;
+    min-height:var(--hero-height,320px);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px 20px;
+    background-image:var(--hero-img, none), linear-gradient(135deg,#0f1f18,#213B2E);
+    background-size:cover;
+    background-position:center;
+    background-repeat:no-repeat;
+  }
+
+  .hools-hero::after{
+    content:'';
+    position:absolute; inset:0;
+    background:linear-gradient(to bottom, rgba(0,0,0,.30), rgba(0,0,0,.15) 45%, rgba(0,0,0,.35));
+  }
+
+  .hools-hero__band{
+    position:relative;
+    z-index:1;
+    width:min(560px, 100%);
+    background:rgba(255,255,255,.96);
+    box-shadow:0 18px 60px rgba(0,0,0,.22);
+    padding:20px 26px;
+    text-align:center;
+  }
+
+  .hools-hero__kicker{
+    font-family:var(--hools-sans);
+    text-transform:uppercase;
+    letter-spacing:.12em;
+    font-size:11px;
+    color:rgba(21,21,21,.85);
+    margin:0 0 10px;
+  }
+
+  .hools-hero__sep{ margin:0 8px; opacity:.5; }
+  .hools-hero__kicker-em{ font-style:italic; font-weight:700; }
+
+  .hools-hero__title{
+    margin:0;
+    line-height:.92;
+    font-family:var(--hools-serif);
+    color:rgba(21,21,21,.82);
+  }
+
+  .hools-hero__line1{
+    display:block;
+    font-size:clamp(20px,2.6vw,30px);
+  }
+
+  .hools-hero__line2{
+    display:block;
+    font-size:clamp(46px,7vw,76px);
+    letter-spacing:-.02em;
+  }
+
+  .hools-hero__subtitle{
+    font-family:var(--hools-sans);
+    font-size:13px;
+    font-weight:500;
+    line-height:1.4;
+    color:#151515;
+    margin:12px auto 0;
+    max-width:36ch;
+  }
+
+  /* Barra de categorías, justo bajo la cabecera */
+  .hools-catbar{
+    background:#fff;
+    border-bottom:2px solid var(--hools-black);
+  }
+
+  .hools-catbar__inner{
+    max-width:var(--hools-wrap);
+    margin:0 auto;
+    padding:0 20px;
+    display:flex;
+    gap:4px;
+    overflow-x:auto;
+  }
+
+  .hools-catbar__cat{
+    font-family:var(--hools-sans);
+    font-size:12px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.1em;
+    text-decoration:none;
+    color:rgba(21,21,21,.65);
+    padding:13px 14px;
+    border-bottom:3px solid transparent;
+    margin-bottom:-2px;
+    white-space:nowrap;
+  }
+
+  .hools-catbar__cat:hover{ color:var(--hools-black); }
+
+  .hools-catbar__cat.is-active{
+    color:var(--hools-green);
+    border-bottom-color:var(--hools-gold);
+  }
+
+  /* ---------- PORTADA ---------- */
+  .hools-cover{
+    max-width:var(--hools-wrap);
+    margin:0 auto;
+    padding:28px 20px 0;
+    display:grid;
+    grid-template-columns:minmax(0,1fr) 340px;
+    gap:32px;
+  }
+
+  .hools-cover__pair{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:28px;
+    margin-top:32px;
+    padding-top:28px;
+    border-top:1px solid var(--hools-line);
+  }
+
+  .hools-cover__aside{
+    border-left:1px solid var(--hools-line);
+    padding-left:28px;
+  }
+
+  .hools-rail__title,
+  .hools-more__title{
+    font-family:var(--hools-sans);
+    font-size:12px;
+    font-weight:800;
+    text-transform:uppercase;
+    letter-spacing:.14em;
+    color:var(--hools-green);
+    margin:0 0 16px;
+    padding-bottom:8px;
+    border-bottom:2px solid var(--hools-gold);
+  }
+
+  /* ---------- TARJETAS ---------- */
+  .hools-card__link{
+    display:block;
+    text-decoration:none;
+    color:inherit;
+  }
+
+  .hools-card__media{
+    position:relative;
+    overflow:hidden;
+    background:#e8e8e8;
+  }
+
+  /* Recorte al marco en todas las tarjetas. Las imágenes que no encajan en el
+     hueco grande de la destacada no se maquillan: sencillamente no se eligen
+     para ese hueco (ver la selección de destacada arriba). En los huecos
+     pequeños el recorte no molesta. */
+  .hools-card__media img{
+    display:block;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    transition:transform .4s ease;
+  }
+
+  .hools-card__link:hover .hools-card__media img{ transform:scale(1.03); }
+
+  .hools-card__kicker{
+    display:inline-block;
+    font-family:var(--hools-sans);
+    font-size:11px;
+    font-weight:800;
+    text-transform:uppercase;
+    letter-spacing:.12em;
+    color:var(--hools-green);
+    margin-bottom:6px;
+  }
+
+  .hools-card__title{
+    font-family:var(--hools-serif);
+    font-weight:400;
+    line-height:1.15;
+    margin:0;
+    letter-spacing:-.01em;
+  }
+
+  .hools-card__link:hover .hools-card__title{
+    text-decoration:underline;
+    text-decoration-color:var(--hools-gold);
+    text-underline-offset:3px;
+    text-decoration-thickness:2px;
+  }
+
+  .hools-card__lead{
+    font-family:var(--hools-sans);
+    font-size:16px;
+    line-height:1.55;
+    color:rgba(21,21,21,.78);
+    margin:12px 0 0;
+    max-width:60ch;
+  }
+
+  .hools-card__date{
+    display:block;
+    font-family:var(--hools-sans);
+    font-size:12px;
+    color:rgba(21,21,21,.5);
+    margin-top:10px;
+  }
+
+  /* Destacada */
+  .hools-card--hero .hools-card__media{ aspect-ratio:16/9; }
+  .hools-card--hero .hools-card__text{ padding-top:16px; }
+  .hools-card--hero .hools-card__title{ font-size:clamp(30px,4vw,52px); }
+
+  /* Las dos de debajo */
+  .hools-card--secondary .hools-card__media{ aspect-ratio:3/2; }
+  .hools-card--secondary .hools-card__text{ padding-top:12px; }
+  .hools-card--secondary .hools-card__title{ font-size:clamp(19px,1.9vw,24px); }
+
+  /* Columna lateral: miniatura a la izquierda, titular a la derecha */
+  .hools-card--aside{
+    padding:14px 0;
+    border-bottom:1px solid var(--hools-line);
+  }
+  .hools-card--aside:last-child{ border-bottom:0; }
+
+  .hools-card--aside .hools-card__link{
+    display:grid;
+    grid-template-columns:88px minmax(0,1fr);
+    gap:14px;
+    align-items:start;
+  }
+
+  .hools-card--aside .hools-card__media{ aspect-ratio:1/1; }
+  .hools-card--aside .hools-card__title{ font-size:16px; line-height:1.3; }
+
+  /* Rejilla */
+  .hools-card--grid .hools-card__media{ aspect-ratio:3/2; }
+  .hools-card--grid .hools-card__text{ padding-top:12px; }
+  .hools-card--grid .hools-card__title{ font-size:19px; }
+
+  .hools-more{
+    max-width:var(--hools-wrap);
+    margin:56px auto 0;
+    padding:0 20px;
+  }
+
+  .hools-grid{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:32px 28px;
+  }
+
+  .hools-pagination,
+  .hools-blog__empty{
+    max-width:var(--hools-wrap);
+    margin:40px auto 0;
+    padding:0 20px;
+    font-family:var(--hools-sans);
+  }
+
+  /* ---------- CABECERA DE LA TIENDA MÁS ESTRECHA ----------
+     Solo afecta a las páginas del blog: este <style> se sirve con la sección,
+     que únicamente se renderiza aquí. Va con !important porque el tema
+     escribe el padding de la cabecera en un <style> propio a partir de los
+     ajustes del editor. */
+  .section-header .header,
+  .shopify-section-group-header-group .header{
+    padding-top:8px !important;
+    padding-bottom:8px !important;
+  }
+
+  .section-header .header__heading-logo{ max-height:38px; width:auto; }
+
+  /* ---------- RESPONSIVE ---------- */
+  @media (max-width:1100px){
+    .hools-cover{ grid-template-columns:minmax(0,1fr); }
+    .hools-cover__aside{
+      border-left:0;
+      padding-left:0;
+      border-top:1px solid var(--hools-line);
+      padding-top:24px;
+    }
+    .hools-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+  }
+
+  @media (max-width:749px){
+    .hools-hero{ padding:20px 16px; }
+    .hools-hero__band{ padding:16px 18px; }
+    .hools-catbar__inner{ padding:0 16px; }
+    .hools-cover{ padding:20px 16px 0; gap:24px; }
+    .hools-cover__pair{
+      grid-template-columns:minmax(0,1fr);
+      gap:24px;
+      margin-top:24px;
+      padding-top:20px;
+    }
+    .hools-more{ margin-top:40px; padding:0 16px; }
+    .hools-grid{ grid-template-columns:minmax(0,1fr); gap:28px; }
+    .hools-card--hero .hools-card__lead{ font-size:15px; }
+  }
+</style>
+
+{% schema %}
+{
+  "name": "Hools Blog Cover",
+  "settings": [
+    { "type": "header", "content": "Cabecera" },
+    { "type": "image_picker", "id": "hero_image", "label": "Imagen de fondo" },
+    { "type": "range", "id": "hero_height", "min": 200, "max": 560, "step": 20, "unit": "px", "label": "Altura de la cabecera", "default": 320, "info": "Cuanto más baja, antes se ve la noticia destacada." },
+    { "type": "text", "id": "hero_band_left", "label": "Kicker izquierda", "default": "terrace culture" },
+    { "type": "text", "id": "hero_band_right", "label": "Kicker derecha", "default": "RETURN TO THE ORIGINS" },
+    { "type": "text", "id": "title_line_1", "label": "Título línea 1", "default": "The Away" },
+    { "type": "text", "id": "title_line_2", "label": "Título línea 2", "default": "END" },
+    { "type": "text", "id": "hero_subtitle", "label": "Subtítulo", "default": "La historia que se escribe en el sector visitante." },
+    { "type": "text", "id": "hero_seo_title", "label": "Título SEO (H1 real, no visible)", "default": "Cultura terrace y fútbol casual: la historia que se escribe en el sector visitante" },
+
+    { "type": "header", "content": "Portada" },
+    { "type": "text", "id": "rail_title", "label": "Título de la columna lateral", "default": "También hoy" },
+    { "type": "text", "id": "grid_title", "label": "Título de la rejilla", "default": "Más historias" }
+  ],
+  "presets": [
+    { "name": "Hools Blog Cover" }
+  ]
+}
+{% endschema %}

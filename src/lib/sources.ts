@@ -90,6 +90,35 @@ export function buildBlogArticleUrl(handle: string, utmSource: string): string {
   return `${url}?utm_source=${utmSource}&utm_medium=social&utm_campaign=away-end`;
 }
 
+/**
+ * Colecciones que se turnan en el cierre comercial del articulo. Antes el
+ * destino lo decidia la categoria, pero en la practica casi todo lo que entra
+ * es AFICION, asi que Terrace se llevaba casi el 100% de los enlaces y SKA no
+ * aparecia nunca. Ahora se reparten (ver buildShopCtaHtml en article-html.ts).
+ *
+ * Cambia aqui los textos y el orden; el reparto se adapta solo al numero de
+ * entradas de la lista.
+ */
+export const SHOP_COLLECTIONS: Array<{ path: string; text: string }> = [
+  {
+    path: "/collections/terrace",
+    text: "Polos de cultura terrace, para los que viven la grada",
+  },
+  {
+    path: "/collections/ska",
+    text: "Polos Ska: dos tonos, rude boys y sound system",
+  },
+  {
+    path: "/collections/mod",
+    text: "Polos Mod: elegancia obrera desde los sesenta",
+  },
+];
+
+/**
+ * Reparto por categoria, ya solo usado por el cierre antiguo
+ * (buildCtaHtml) que rellena articulos publicados sin ninguna salida a la
+ * tienda. Los articulos maquetados usan SHOP_COLLECTIONS.
+ */
 export const CATEGORY_CTA: Record<Category, { path: string; text: string }> = {
   AFICION: {
     path: "/collections/terrace",

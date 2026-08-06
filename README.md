@@ -35,6 +35,43 @@ falta. Si `ANTHROPIC_API_KEY` no está configurada o falla la llamada, esa
 noticia en concreto se queda en su idioma original en vez de bloquear el
 resto del rastreo.
 
+## Cómo está maquetado un artículo
+
+Claude no devuelve un bloque de párrafos, sino el artículo **por piezas**
+(`src/lib/translate.ts`), y `src/lib/article-html.ts` las monta en el HTML que
+se publica:
+
+```
+p.hools-lead                 entradilla (es también el resumen de Shopify:
+                             la tarjeta del listado y la meta description)
+h2 + p                       cuerpo en 3-4 secciones con ladillo
+blockquote.hools-pullquote   cita destacada, tras la primera sección
+figure.hools-gallery         fotos extra repartidas por el texto
+aside.hools-facts            recuadro "la ficha" (club, estadio, competición…)
+p.hools-source               atribución a la fuente original
+aside.hools-shop-cta         cierre con enlace a la tienda
+```
+
+Esas clases son el contrato con la plantilla del tema (ver `theme/README.md`):
+si se renombran aquí, hay que renombrarlas allí. La ficha solo aparece cuando
+la noticia original da datos concretos — al modelo se le pide expresamente que
+devuelva la lista vacía antes que inventarse cifras o nombres.
+
+El cierre de tienda reparte los enlaces entre las colecciones de
+`SHOP_COLLECTIONS` (`src/lib/sources.ts`) en vez de elegirlas por la categoría
+de la noticia: como casi todo lo que entra es AFICION, por categoría el enlace
+acababa siendo Terrace prácticamente siempre. El reparto sale de un hash del
+`guid` del artículo, así que es estable (un artículo no cambia de colección al
+remaquetarlo) y reproducible. La banda verde sobre la foto se reparte igual,
+pero eso vive en el tema y se configura desde el editor.
+
+Los artículos publicados **antes** de esta maquetación se pueden reprocesar
+desde `/dashboard?status=PUBLISHED` con el botón **«Remaquetar publicados»**:
+descompone el HTML antiguo y le pide a Claude que lo agrupe en secciones sin
+reescribir el texto (si se pierde algún párrafo por el camino, descarta el
+resultado y maqueta solo lo que no necesita criterio). Va por tandas de 8 y es
+idempotente, así que hay que pulsarlo hasta que avise de que no queda ninguno.
+
 ## Puesta en marcha local
 
 Necesitas una base Postgres incluso en local (ver "Base de datos" abajo) —
@@ -201,11 +238,20 @@ cualquier hosting serverless) el disco no es persistente y SQLite perdería
 los datos en cada despliegue. Usa una base gestionada gratuita, p.ej.
 [Neon](https://neon.tech).
 
-El propio `npm run build` ejecuta `prisma migrate deploy` (crea/actualiza las
-tablas) y siembra el catálogo de fuentes (`prisma/seed.ts`, idempotente) antes
-de compilar — así que en Vercel no hace falta ejecutar nada a mano: basta con
+El propio `npm run build` aplica las migraciones (crea/actualiza las tablas) y
+siembra el catálogo de fuentes (`prisma/seed.ts`, idempotente) antes de
+compilar — así que en Vercel no hace falta ejecutar nada a mano: basta con
 tener `DATABASE_URL` configurada como variable de entorno antes del primer
 despliegue.
+
+Las migraciones no van por `prisma migrate deploy` a pelo, sino por
+`scripts/db-migrate.mjs`, que es lo mismo pero **reintentando si la base no
+contesta**. Neon apaga la base del plan gratuito cuando lleva unos minutos sin
+nadie conectado y tarda unos segundos en arrancar; Prisma se rinde a los cinco
+y aborta el despliegue entero con un `P1001` sin que haya nada roto. El script
+espera 2, 4, 8 y 16 segundos antes de darse por vencido. Un error que no sea de
+conexión —una migración mal, unas credenciales mal— sigue fallando a la
+primera, sin esperas inútiles.
 
 ## Despliegue recomendado (Vercel)
 

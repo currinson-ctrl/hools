@@ -1,0 +1,81 @@
+{% comment %}
+  HOOLS · Tarjeta de artículo (portada del blog)
+
+  Una sola tarjeta con cuatro variantes de tamaño, para que la portada tenga
+  jerarquía real (una noticia manda, el resto acompañan) en vez de la retahíla
+  de tarjetas iguales que había antes.
+
+  Parámetros:
+    article  (obligatorio) el artículo
+    variant  hero | secondary | aside | grid   (por defecto: grid)
+    show_lead   muestra la entradilla (resumen del artículo)
+    show_date   muestra la fecha
+
+  El antetítulo sale de la etiqueta de categoría que pone el agregador
+  (AFICION / VIAJES / MODA); las demás etiquetas son el nombre de la fuente y
+  aquí no se usan.
+{% endcomment %}
+
+{%- liquid
+  assign variant = variant | default: 'grid'
+
+  assign kicker = ''
+  for tag in article.tags
+    assign upper_tag = tag | upcase
+    case upper_tag
+      when 'AFICION'
+        assign kicker = 'Afición'
+      when 'VIAJES'
+        assign kicker = 'Desplazamientos'
+      when 'MODA'
+        assign kicker = 'Casual'
+    endcase
+  endfor
+
+  case variant
+    when 'hero'
+      assign img_width = 1600
+    when 'secondary'
+      assign img_width = 800
+    when 'aside'
+      assign img_width = 400
+    else
+      assign img_width = 700
+  endcase
+-%}
+
+<article class="hools-card hools-card--{{ variant }}">
+  <a class="hools-card__link" href="{{ article.url }}">
+    {%- if article.image -%}
+      <div class="hools-card__media">
+        <img
+          src="{{ article.image | image_url: width: img_width }}"
+          alt="{{ article.image.alt | default: article.title | escape }}"
+          width="{{ article.image.width }}"
+          height="{{ article.image.height }}"
+          loading="lazy"
+        >
+      </div>
+    {%- else -%}
+      <div class="hools-card__media hools-card__media--empty" aria-hidden="true"></div>
+    {%- endif -%}
+
+    <div class="hools-card__text">
+      {%- if kicker != blank -%}
+        <span class="hools-card__kicker">{{ kicker }}</span>
+      {%- endif -%}
+
+      <h3 class="hools-card__title">{{ article.title }}</h3>
+
+      {%- if show_lead and article.excerpt != blank -%}
+        <p class="hools-card__lead">{{ article.excerpt | strip_html | truncatewords: 34 }}</p>
+      {%- endif -%}
+
+      {%- if show_date -%}
+        <time class="hools-card__date" datetime="{{ article.published_at | date: '%Y-%m-%d' }}">
+          {{ article.published_at | date: '%-d %B %Y' }}
+        </time>
+      {%- endif -%}
+    </div>
+  </a>
+</article>

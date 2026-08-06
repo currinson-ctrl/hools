@@ -1,3 +1,5 @@
+import { extractLead } from "./article-html";
+
 interface ShopifyGraphQLResponse<T> {
   data?: T;
   errors?: Array<{ message: string }>;
@@ -162,17 +164,34 @@ export interface PublishArticleInput {
 /**
  * Shopify usa `summary` para mostrar el articulo en el listado del blog y
  * como meta description; sin el, el tema recorta el cuerpo a lo bruto. Se
- * deriva del primer parrafo para que siga cuadrando si el texto se edita.
+ * toma la entradilla, que es la frase escrita justo para eso, y solo se
+ * recae en el primer parrafo si el articulo no la trae (los publicados antes
+ * de maquetar el blog).
  */
 function buildSummary(bodyHtml: string): string {
-  const firstParagraph = /<p>([\s\S]*?)<\/p>/i.exec(bodyHtml)?.[1] ?? bodyHtml;
-  const text = firstParagraph.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  const source =
+    extractLead(bodyHtml) ??
+    /<p[^>]*>([\s\S]*?)<\/p>/i.exec(bodyHtml)?.[1] ??
+    bodyHtml;
+  const text = source.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
   return text.length <= 155 ? text : text.slice(0, 154).trimEnd() + "…";
 }
 
 export interface PublishArticleResult {
   shopifyArticleId: string;
   handle: string;
+}
+
+/**
+ * Sin sufijo de plantilla, Shopify renderiza el articulo con la plantilla de
+ * serie del tema (que recorta la imagen destacada a un banner) en vez de con
+ * la editorial de Hools. Es facil no darse cuenta porque el sufijo del blog no
+ * lo heredan sus articulos: hay que ponerlo articulo a articulo.
+ */
+function articleTemplateSuffix(): string | null {
+  const suffix = process.env.SHOPIFY_ARTICLE_TEMPLATE_SUFFIX;
+  if (suffix === undefined) return "hools-editorial";
+  return suffix.trim() || null;
 }
 
 async function createArticle(
@@ -191,6 +210,7 @@ async function createArticle(
         author: { name: "Hools" },
         tags: input.tags,
         isPublished: true,
+        templateSuffix: articleTemplateSuffix(),
         ...(includeImage && input.imageUrl
           ? { image: { url: input.imageUrl, altText: input.title } }
           : {}),
@@ -241,6 +261,10 @@ async function updateArticle(
   const data = await shopifyAdminRequest<ArticleUpdateResponse>(ARTICLE_UPDATE_MUTATION, {
     id: shopifyArticleId,
     article: {
+      // Se reenvia en cada actualizacion a proposito: asi los articulos que se
+      // publicaron sin sufijo (y salieron con la plantilla de serie) quedan
+      // reparados al pasar por el remaquetado o por una edicion.
+      templateSuffix: articleTemplateSuffix(),
       ...(input.title !== undefined ? { title: input.title } : {}),
       ...(input.bodyHtml !== undefined
         ? { body: input.bodyHtml, summary: buildSummary(input.bodyHtml) }
