@@ -238,11 +238,20 @@ cualquier hosting serverless) el disco no es persistente y SQLite perdería
 los datos en cada despliegue. Usa una base gestionada gratuita, p.ej.
 [Neon](https://neon.tech).
 
-El propio `npm run build` ejecuta `prisma migrate deploy` (crea/actualiza las
-tablas) y siembra el catálogo de fuentes (`prisma/seed.ts`, idempotente) antes
-de compilar — así que en Vercel no hace falta ejecutar nada a mano: basta con
+El propio `npm run build` aplica las migraciones (crea/actualiza las tablas) y
+siembra el catálogo de fuentes (`prisma/seed.ts`, idempotente) antes de
+compilar — así que en Vercel no hace falta ejecutar nada a mano: basta con
 tener `DATABASE_URL` configurada como variable de entorno antes del primer
 despliegue.
+
+Las migraciones no van por `prisma migrate deploy` a pelo, sino por
+`scripts/db-migrate.mjs`, que es lo mismo pero **reintentando si la base no
+contesta**. Neon apaga la base del plan gratuito cuando lleva unos minutos sin
+nadie conectado y tarda unos segundos en arrancar; Prisma se rinde a los cinco
+y aborta el despliegue entero con un `P1001` sin que haya nada roto. El script
+espera 2, 4, 8 y 16 segundos antes de darse por vencido. Un error que no sea de
+conexión —una migración mal, unas credenciales mal— sigue fallando a la
+primera, sin esperas inútiles.
 
 ## Despliegue recomendado (Vercel)
 
