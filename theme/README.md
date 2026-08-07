@@ -9,10 +9,19 @@ cambios en un diff.
 theme/
   sections/main-blog-hools-editorial.liquid     portada del blog
   sections/main-article-hools-editorial.liquid  plantilla de artículo
+  sections/hools-blog-strip.liquid              franja del blog en la home
+  sections/hools-hero.liquid                    hero de la portada de la tienda
   snippets/hools-article-card.liquid            tarjeta de artículo (4 variantes)
   templates/blog.hools-editorial.json           ajustes de la portada
   templates/article.hools-editorial.json        ajustes de la plantilla de artículo
 ```
+
+`hools-hero` sustituye al bloque de "Liquid personalizado" que había en la
+portada, donde el nombre del fichero de la foto estaba escrito a mano dos veces
+(una para móvil y otra para escritorio). Cambiar la imagen obligaba a editar
+texto; ahora es un `image_picker` y se cambia desde el editor. Su ajuste
+`image` vive en `templates/index.json`, que **no** está aquí: ese fichero lo
+mantiene el editor y contiene toda la portada de la tienda, no solo el hero.
 
 Los dos `templates/*.json` están aquí porque guardan ajustes que **el schema de
 la sección no puede reponer**: los `image_picker` y los `url` no admiten valor
