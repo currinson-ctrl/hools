@@ -133,6 +133,8 @@ export async function buildDraft(
   const translated = await translateToSpanish({
     originalTitle,
     snippet,
+    // Solo como respaldo: si el modelo devuelve una categoria que no
+    // reconocemos, se queda la de la fuente.
     category: source.category,
   });
   if (!translated) {
@@ -140,6 +142,17 @@ export async function buildDraft(
     return null;
   }
   const { title: esTitle, body: esBody } = translated;
+
+  // La categoria sale del contenido de la noticia, no de la fuente. La de la
+  // fuente sigue existiendo (organiza el catalogo y sirve de respaldo), pero
+  // una fuente generalista trae noticias de las tres, y heredar la suya metia
+  // los desplazamientos en la pestaña de aficion.
+  const category = translated.category;
+  if (category !== source.category) {
+    console.log(
+      `"${originalTitle}": la fuente es ${source.category} pero el contenido es ${category}`
+    );
+  }
 
   // Grupos de aficion mencionados en la noticia (curados a mano en
   // /dashboard/groups, nunca adivinados): se enlazan en el articulo y se
@@ -161,7 +174,7 @@ export async function buildDraft(
     decorate: (html) => linkMentionedGroups(html, mentionedGroups),
   });
 
-  const hashtags = CATEGORY_HASHTAGS[source.category].join(" ");
+  const hashtags = CATEGORY_HASHTAGS[category].join(" ");
   const mentions = mentionedGroups.map((g) => `@${g.handle}`).join(" ");
   const secondLine = [mentions, hashtags].filter(Boolean).join(" ");
   const tweetText = truncate(
@@ -171,7 +184,7 @@ export async function buildDraft(
 
   let imageUrl = extractImage(item);
   if (!imageUrl) {
-    const hint = CATEGORY_IMAGE_HINT[source.category];
+    const hint = CATEGORY_IMAGE_HINT[category];
     console.log(`Sin imagen propia para "${originalTitle}", buscando en Openverse...`);
     imageUrl =
       (await searchRelatedImage(`${originalTitle} ${hint}`)) ??
@@ -192,8 +205,8 @@ export async function buildDraft(
     tweetText,
     igCaption: translated.igCaption,
     imageUrl,
-    tags: [source.category, source.name].join(","),
-    category: source.category,
+    tags: [category, source.name].join(","),
+    category,
   };
 }
 
