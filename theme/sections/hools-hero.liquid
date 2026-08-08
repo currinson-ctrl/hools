@@ -1,15 +1,17 @@
 {% comment %}
   HOOLS · HERO DE LA PORTADA
 
-  Antes esto vivía dentro de un bloque "custom-liquid" de la plantilla, con el
-  nombre del fichero de la foto escrito a mano dos veces. Cambiar la imagen
-  obligaba a editar texto dentro de un ajuste, que es justo lo que no queríamos
-  tener que tocar cada vez.
+  Antes esto vivía dentro de un bloque "custom-liquid" de la plantilla, con la
+  misma foto escrita a mano dos veces: una en el <source> de móvil y otra en el
+  <img> de escritorio, el mismo fichero en los dos. Cambiar la imagen obligaba
+  a editar texto dentro de un ajuste, que es justo lo que no queríamos tener
+  que tocar cada vez.
 
   Aquí la foto es un ajuste normal del editor (selector de imagen), igual que
   en cualquier sección del tema: se cambia desde "Personalizar" sin tocar una
-  sola línea. Y admite una imagen distinta para móvil, porque la del escritorio
-  es muy panorámica (21:9) y en vertical se recorta muchísimo.
+  sola línea. Admite además, y sólo si quieres, una imagen distinta para móvil:
+  con una sola foto se comporta como el bloque antiguo, pero la panorámica se
+  recorta mucho en vertical y un recorte propio encuadra mejor.
 
   El texto va a la derecha sobre un degradado oscuro, así que la foto debe
   tener el sujeto al centro o a la izquierda.
@@ -23,8 +25,22 @@
 <section class="hero-hools">
 
   {%- if img_desktop != blank -%}
+    {%- comment -%}
+      El ancho que se pide para móvil no es el del móvil: es mucho mayor a
+      propósito. El hero recorta a lo bruto —una foto 21:9 dentro de una caja
+      de proporción ~0,6 sólo enseña la franja central, en torno al 26% del
+      ancho—, así que pedir 1000 px dejaba esa franja en unos 260 px reales
+      para una pantalla de ~1200: llegaba ampliada 4,6 veces y se veía como
+      papilla. No era la foto, era el ancho que se pedía.
+
+      El custom-liquid al que sustituyó esta sección servía el fichero entero
+      (`file_url`, 2800 px) y por eso aguantaba. Shopify nunca amplía, así que
+      2400 significa "dame todo lo que tengas": si el original mide menos,
+      sirve el original, y si un día se rellena "Foto (móvil)" con un recorte
+      vertical, se sirve ese recorte sin más.
+    {%- endcomment -%}
     <picture class="hero-media">
-      <source media="(max-width: 680px)" srcset="{{ img_mobile | image_url: width: 1000 }}">
+      <source media="(max-width: 680px)" srcset="{{ img_mobile | image_url: width: 2400 }}">
       <img
         src="{{ img_desktop | image_url: width: 2400 }}"
         alt="{{ img_desktop.alt | default: shop.name | escape }}"
