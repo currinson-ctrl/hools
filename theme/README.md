@@ -61,6 +61,17 @@ lado, hay que renombrarla en el otro**:
 | `p.hools-source`            | atribución a la fuente original         |
 | `aside.hools-shop-cta`      | cierre con enlace a la tienda           |
 
+El bloque «Síguenos» (`aside.hools-follow`, X y TikTok, al final del artículo)
+**no** sale de esta lista: lo pinta la propia sección, no el agregador. Se hizo
+así a propósito para que aparezca también en los artículos ya publicados sin
+tener que republicarlos ni remaquetarlos. La contrapartida es que solo existe
+dentro de la plantilla: un artículo leído fuera de ella (lector de RSS, vista
+previa) no lo lleva, al revés que el cierre de tienda, que sí viaja en el HTML.
+Las cuentas se configuran desde el editor (Artículo → Hools Editorial →
+«Síguenos en redes»); se guardan como `@handle`, no como URL, porque un ajuste
+`url` no admite valor por defecto y se quedaría en blanco hasta rellenarlo a
+mano.
+
 Los artículos publicados **antes** de la maquetación no traen `p.hools-lead`.
 Para que no se queden sin entradilla si no se remaquetan, la plantilla estila
 igual el primer párrafo del cuerpo (`.hools-content > p:first-child`). Como en
