@@ -69,14 +69,26 @@
         <div class="hero-kicker">{{ section.settings.kicker }}</div>
       {%- endif -%}
 
-      {%- if section.settings.heading != blank -%}
-        {%- comment -%}
-          El salto de línea se mete pulsando Enter en el ajuste, no con un
-          <br> escrito a mano: Shopify limpia el HTML de los campos de texto
-          al renderizarlos, así que un <br> desaparecía sin avisar y el
-          titular salía "DE LA CALLEA LA GRADA", con las dos líneas pegadas.
-        {%- endcomment -%}
-        <h1>{{ section.settings.heading | newline_to_br }}</h1>
+      {%- comment -%}
+        El titular va en dos ajustes, uno por línea, igual que en la portada
+        del blog (`title_line_1` / `title_line_2`).
+
+        Antes era un solo campo con un <br> escrito dentro. Shopify limpia el
+        HTML de los campos de texto, y no sólo al renderizar: al guardar desde
+        el editor también, así que el ajuste acabó valiendo literalmente
+        "DE LA CALLEA LA GRADA" y ya no había forma de saber dónde iba el
+        corte. Con un campo por línea el salto lo pone el CSS y no hay HTML
+        de por medio que se pueda perder.
+      {%- endcomment -%}
+      {%- if section.settings.heading_line_1 != blank or section.settings.heading_line_2 != blank -%}
+        <h1>
+          {%- if section.settings.heading_line_1 != blank -%}
+            <span>{{ section.settings.heading_line_1 }}</span>
+          {%- endif -%}
+          {%- if section.settings.heading_line_2 != blank -%}
+            <span>{{ section.settings.heading_line_2 }}</span>
+          {%- endif -%}
+        </h1>
       {%- endif -%}
 
       {%- if section.settings.subtitle != blank -%}
@@ -222,6 +234,9 @@
 
     text-shadow:0 4px 30px rgba(0,0,0,1), 0 0 14px rgba(0,0,0,.95), 0 1px 2px rgba(0,0,0,1);
   }
+
+  /* Una línea por ajuste: el salto lo da el bloque, no un <br>. */
+  .hero-hools h1 span{ display:block; }
 
   .hero-hools .hero-subtitle{
     font-family:'Muli', sans-serif;
@@ -436,7 +451,8 @@
 
     { "type": "header", "content": "Texto" },
     { "type": "text", "id": "kicker", "label": "Antetítulo", "default": "RETURN TO THE ORIGINS" },
-    { "type": "textarea", "id": "heading", "label": "Titular", "default": "DE LA CALLE\nA LA GRADA", "info": "Para partirlo en dos líneas, pulsa Enter. No escribas <br>: Shopify lo borra al renderizar y las dos líneas salen pegadas." },
+    { "type": "text", "id": "heading_line_1", "label": "Titular · línea 1", "default": "DE LA CALLE" },
+    { "type": "text", "id": "heading_line_2", "label": "Titular · línea 2", "default": "A LA GRADA", "info": "Déjala vacía si quieres el titular en una sola línea. No metas <br> en la línea 1: Shopify borra el HTML de estos campos al guardar." },
     { "type": "text", "id": "subtitle", "label": "Subtítulo", "default": "Para los que saben de donde vienen." },
 
     { "type": "header", "content": "Botones" },
