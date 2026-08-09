@@ -42,6 +42,35 @@ export interface RestructuredArticle {
 }
 
 /**
+ * Voz de los articulos. Vive aparte porque la comparten los dos prompts que
+ * escriben texto (el que redacta el articulo entero y el que le pone
+ * entradilla a los ya publicados), y porque asi se ajusta el tono en un solo
+ * sitio en vez de en dos redacciones que se van separando con el tiempo.
+ *
+ * Esta escrito como prohibiciones concretas y no como adjetivos ("se humano",
+ * "se cercano") a proposito: pedirle a un modelo que "escriba con empatia"
+ * devuelve justo la prosa de folleto que se intenta evitar. Lo que si mueve el
+ * resultado es la lista negra de muletillas y la orden de hablar de personas
+ * concretas en vez de colectivos abstractos.
+ */
+const VOICE_RULES = `VOZ (esto es lo que separa un articulo de Hools de un teletipo):
+
+- Escribes como alguien que ha estado en la grada, no como una agencia de noticias ni como una marca. Español de España, natural, el que usarias contandoselo a alguien en el bar despues del partido.
+- Habla de PERSONAS, no de abstracciones. No "la aficion mostro su descontento", sino quienes son, que hicieron y que les llevo a hacerlo. Detras de un tifo hay gente que ha puesto su dinero y ha pasado noches pintando lona; detras de un desplazamiento hay quien ha pedido el dia libre o ha hecho 900 km para volver de madrugada. Eso es lo que hay que contar.
+- Empatia es entender por que a alguien le importa tanto algo, y contarlo sin condescendencia y sin ponerte por encima. Ni paternalismo ("los sufridos aficionados"), ni glorificacion epica, ni sermon moral. Cuentas lo que pasa y por que le duele o le enorgullece a quien lo vive.
+- Cuando la noticia tenga un lado duro (sanciones, cierres de grada, prohibiciones, incidentes), cuentalo tal cual y desde como se vive dentro. Nunca justifiques ni celebres la violencia, pero tampoco des lecciones: ni apologia ni editorial de moralina.
+- Ritmo desigual: alterna frases largas con frases cortas. Alguna de tres palabras. Eso es lo que hace que se lea como escrito por una persona.
+- Voz activa. Un adjetivo por sustantivo como mucho. Puedes tutear al lector alguna vez ("si has hecho ese viaje, sabes de que va esto"), pero con moderacion: una o dos veces en todo el articulo, no en cada parrafo.
+
+PROHIBIDO (son las marcas de agua de un texto escrito por una maquina):
+- Formulas de relleno: "cabe destacar", "cabe señalar", "es importante mencionar", "en definitiva", "en resumen", "en conclusion", "por otro lado", "asimismo".
+- Aperturas de redaccion escolar: "En un mundo donde...", "En pleno siglo XXI...", "Desde tiempos inmemoriales...".
+- La antitesis facil: "no es solo X, es Y", "no es casualidad", "no es un hecho aislado", "mas que un club".
+- Topicos de periodico deportivo: "no dejo indiferente a nadie", "dio mucho que hablar", "un antes y un despues", "autentico espectaculo", "la aficion vibro", "los amantes del futbol", "puso la piel de gallina".
+- Tres adjetivos seguidos, y los superlativos vacios ("impresionante", "espectacular", "historico") cuando no los sostiene un dato.
+- Terminar el articulo con una moraleja o una reflexion generica sobre el futbol moderno. Acaba con algo concreto: un dato, una escena, una frase de alguien.`;
+
+/**
  * Vuelve a maquetar un articulo ya escrito y publicado: le saca entradilla,
  * ladillos, cita destacada y ficha SIN reescribir el texto. Es lo que usa el
  * reproceso de los articulos antiguos, que se generaron cuando el cuerpo era
@@ -75,7 +104,9 @@ Reglas estrictas:
 - CONSERVA los parrafos tal cual, palabra por palabra. No los reescribas, no los resumas, no los reordenes, no los fusiones ni los partas. Cada parrafo original debe aparecer una sola vez y entero en alguna seccion.
 - Lo unico que añades es: la entradilla, los ladillos, la cita destacada y la ficha.
 
-- "lead": entradilla de 1-2 frases (maximo 45 palabras). Esta si la escribes tu, resumiendo el articulo con gancho. No repitas literalmente el primer parrafo.
+- "lead": entradilla de 1-2 frases (maximo 45 palabras). Esta si la escribes tu, resumiendo el articulo con gancho. No repitas literalmente el primer parrafo. Escribela con esta voz (el resto del texto NO se toca, solo la entradilla):
+
+${VOICE_RULES}
 - "sections": agrupa los parrafos existentes en 3-4 secciones. La primera lleva "heading": null. Las demas, un ladillo corto de 3-6 palabras, concreto, nunca generico ("Contexto", "Conclusion" y similares estan prohibidos). En "paragraphs" van los parrafos ORIGINALES literales.
 - "pullQuote": una frase corta (10-25 palabras) copiada literalmente de alguno de los parrafos, que se sostenga sola. Si ninguna vale, null.
 - "facts": 2-4 pares etiqueta/valor con datos que aparezcan LITERALMENTE en el texto (club, estadio, competicion, ciudad, grupo...). Etiquetas de 1-2 palabras. NO INVENTES nada: si el texto no da datos concretos, devuelve lista vacia.
@@ -209,18 +240,21 @@ Fragmento original: "${input.snippet}"
 
 Si NO encaja, responde SOLO con este JSON, sin texto adicional: {"relevant": false}
 
-Si SI encaja, escribe un ARTICULO COMPLETO Y ORIGINAL en español de España, de entre 350 y 500 palabras. No traduzcas ni resumas el original: usalo solo como punto de partida, y desarrolla tu propio contenido con contexto, trasfondo y análisis. No copies frases del original. Tono periodístico natural, directo, como si lo hubieras escrito tú desde cero.
+Si SI encaja, escribe un ARTICULO COMPLETO Y ORIGINAL en español de España, de entre 350 y 500 palabras. No traduzcas ni resumas el original: usalo solo como punto de partida, y desarrolla tu propio contenido con contexto, trasfondo y análisis. No copies frases del original.
+
+${VOICE_RULES}
 
 El articulo va MAQUETADO, asi que devuelvelo por piezas:
 
-- "lead": entradilla de 1 o 2 frases (maximo 45 palabras) que resuma la noticia y enganche. Va destacada al principio y es tambien el resumen que se ve en el listado del blog y en Google. No empieces con "En este articulo" ni formulas de relleno.
+- "title": el titular. Entre 6 y 12 palabras, en español natural, como se lo contarias a alguien de viva voz. PROHIBIDO el formato de teletipo "Club: descripcion de lo que paso" (con dos puntos partiendo el titular). Prohibido tambien el clickbait, las preguntas retoricas y los superlativos. Concreto antes que resumido: si hay un detalle real que lo cuente mejor (una pancarta, una cifra, una hora de salida del autobus), ese detalle vale mas que la sintesis. Tiene que entenderse sin haber leido el articulo.
+- "lead": entradilla de 1 o 2 frases (maximo 45 palabras). Va destacada al principio y es tambien el resumen que se ve en el listado del blog y en Google. Que arranque con lo concreto de la noticia, no con contexto general. No empieces con "En este articulo" ni formulas de relleno.
 - "sections": entre 3 y 4 secciones. La PRIMERA lleva "heading": null (arranca directo, sin ladillo). Las siguientes llevan un ladillo corto de 3-6 palabras, concreto y con gancho, nunca generico ("Contexto", "Conclusion" y similares estan prohibidos). Cada seccion tiene 1-2 parrafos en "paragraphs".
-- "pullQuote": UNA frase corta (10-25 palabras) sacada del propio articulo o que lo resuma, para destacarla a gran tamaño entre parrafos. Debe sostenerse sola fuera de contexto. Si no hay ninguna que valga, null.
+- "pullQuote": UNA frase corta (10-25 palabras) sacada del propio articulo o que lo resuma, para destacarla a gran tamaño entre parrafos. Debe sostenerse sola fuera de contexto y decir algo con carne: una imagen concreta o una idea con filo, nunca una obviedad ni una frase de calendario motivacional. Si no hay ninguna que valga, null.
 - "facts": entre 2 y 4 datos concretos de la noticia en pares etiqueta/valor, para un recuadro tipo ficha (ej. {"label":"Club","value":"Levski Sofia"}, {"label":"Estadio","value":"Vasil Levski"}, {"label":"Competicion","value":"Europa League"}, {"label":"Grupo","value":"Ultras Levski"}). Etiquetas de 1-2 palabras. IMPORTANTISIMO: solo datos que aparezcan de verdad en el material original. NO INVENTES fechas, cifras, nombres ni aforos. Si el original no da datos fiables, devuelve una lista vacia: es preferible sin ficha que con datos falsos.
 - "igCaption": pie de foto para Instagram sobre la misma noticia. Reglas: 2-3 frases cortas con gancho directo (tono cultura terrace/ultra, sin sonar a marca corporativa) + una pregunta final a la audiencia para invitar a comentar. NUNCA uses @menciones. Cierra con una linea de 8-12 hashtags mezclando nicho y tema (ej. #terraceculture #awaydays #casuals #ultras #groundhopping mas los especificos de esta noticia). Sin enlaces.
 
 Responde SOLO con este JSON, sin texto adicional ni bloques de codigo:
-{"relevant": true, "title": "titular en español, breve", "lead": "entradilla", "sections": [{"heading": null, "paragraphs": ["parrafo", "parrafo"]}, {"heading": "ladillo corto", "paragraphs": ["parrafo"]}], "pullQuote": "frase destacada o null", "facts": [{"label": "Club", "value": "..."}], "igCaption": "pie de foto para Instagram\\n\\n#hashtags"}`,
+{"relevant": true, "title": "titular", "lead": "entradilla", "sections": [{"heading": null, "paragraphs": ["parrafo", "parrafo"]}, {"heading": "ladillo corto", "paragraphs": ["parrafo"]}], "pullQuote": "frase destacada o null", "facts": [{"label": "Club", "value": "..."}], "igCaption": "pie de foto para Instagram\\n\\n#hashtags"}`,
         },
       ],
     });
