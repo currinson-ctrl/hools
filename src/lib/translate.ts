@@ -71,6 +71,37 @@ PROHIBIDO (son las marcas de agua de un texto escrito por una maquina):
 - Terminar el articulo con una moraleja o una reflexion generica sobre el futbol moderno. Acaba con algo concreto: un dato, una escena, una frase de alguien.`;
 
 /**
+ * Reglas del titular, aparte del resto de la voz porque es la pieza que mas
+ * se resiste: el modelo tiende al titular de reportaje dominical (una idea
+ * principal, dos puntos, y un matiz ironico detras) aunque el cuerpo salga
+ * bien.
+ *
+ * Van con pares malo -> bueno y no solo con prohibiciones porque la primera
+ * version, que prohibia el patron "Club: descripcion", se esquivo sola
+ * moviendo los dos puntos de sitio ("La respuesta ingenua de la Lazio:
+ * cuando los ultras..."). Contra eso funciona el ejemplo, no la regla.
+ */
+const TITLE_RULES = `EL TITULAR (la pieza mas importante: es lo que se lee en el blog, en Google y en el tuit)
+
+Directo, corto y concreto. Una sola oracion: SUJETO + VERBO EN PRESENTE + QUE ha pasado. Nada mas.
+
+- Maximo 10 palabras. Si te salen 12, sobran 3.
+- Cuenta UN solo hecho, el principal. El matiz, la ironia y el contexto van en el cuerpo, nunca en el titular.
+- Verbo activo, en presente y concreto: burlan, se plantan, llenan, toman, pagan, prohiben, montan. Huye de "se produce", "tiene lugar", "protagonizan".
+
+PROHIBIDO en el titular, sin excepciones:
+- Los DOS PUNTOS. Ninguno, en ninguna posicion. Es la muleta que convierte un titular en un teletipo.
+- Las subordinadas y los arranques de reportaje: "cuando...", "lo que...", "por que...", "asi es como...", "el dia que...", "la historia de...".
+- Los adjetivos que opinan ("ingenua", "increible", "historica"): el titular cuenta, no valora.
+- Las comillas, los guiones largos y las preguntas.
+
+Ejemplos (malo -> bueno):
+- "La respuesta ingenua de la Lazio: cuando los ultras se burlan de las restricciones con una 'excursion cultural'" -> "Los ultras de la Lazio burlan la prohibicion de viajar"
+- "Sampdoria: la protesta ultra contra la directiva" -> "La grada de la Sampdoria se planta contra su directiva"
+- "La tercera division alemana: ejemplo de 'Against Modern Football'" -> "La tercera alemana llena estadios sin futbol moderno"
+- "Despliegue de la aficion del Hertha Berlin en la previa del derbi" -> "El Hertha toma Berlin la vispera del derbi"`;
+
+/**
  * Vuelve a maquetar un articulo ya escrito y publicado: le saca entradilla,
  * ladillos, cita destacada y ficha SIN reescribir el texto. Es lo que usa el
  * reproceso de los articulos antiguos, que se generaron cuando el cuerpo era
@@ -186,6 +217,26 @@ function normalizeFacts(facts: Array<{ label?: string; value?: string }> | undef
     .slice(0, 4);
 }
 
+/**
+ * Deja constancia en los logs del cron cuando un titular se salta las dos
+ * reglas que se pueden comprobar sin criterio (dos puntos y longitud).
+ *
+ * Solo avisa, no lo corrige: recortar por los dos puntos automaticamente da
+ * titulares peores que el original ("Lazio: cuando los ultras..." se
+ * quedaria en "cuando los ultras..."), y la noticia pasa igualmente por la
+ * cola de revision, donde el titular se edita a mano. Esto sirve para saber
+ * si el prompt esta cumpliendo sin tener que leerse la cola entera.
+ */
+function warnIfWeakTitle(title: string): void {
+  const words = title.trim().split(/\s+/).length;
+  const problems: string[] = [];
+  if (title.includes(":")) problems.push("lleva dos puntos");
+  if (words > 10) problems.push(`tiene ${words} palabras (maximo 10)`);
+  if (problems.length) {
+    console.warn(`Titular flojo — ${problems.join(" y ")}: "${title}"`);
+  }
+}
+
 function extractJson(raw: string): string {
   return raw
     .trim()
@@ -244,9 +295,11 @@ Si SI encaja, escribe un ARTICULO COMPLETO Y ORIGINAL en español de España, de
 
 ${VOICE_RULES}
 
+${TITLE_RULES}
+
 El articulo va MAQUETADO, asi que devuelvelo por piezas:
 
-- "title": el titular. Entre 6 y 12 palabras, en español natural, como se lo contarias a alguien de viva voz. PROHIBIDO el formato de teletipo "Club: descripcion de lo que paso" (con dos puntos partiendo el titular). Prohibido tambien el clickbait, las preguntas retoricas y los superlativos. Concreto antes que resumido: si hay un detalle real que lo cuente mejor (una pancarta, una cifra, una hora de salida del autobus), ese detalle vale mas que la sintesis. Tiene que entenderse sin haber leido el articulo.
+- "title": el titular, siguiendo al pie de la letra las reglas de arriba. Antes de darlo por bueno, comprueba: ¿lleva dos puntos? ¿pasa de 10 palabras? ¿empieza por "cuando", "lo que" o "asi es como"? Si alguna es que si, reescribelo.
 - "lead": entradilla de 1 o 2 frases (maximo 45 palabras). Va destacada al principio y es tambien el resumen que se ve en el listado del blog y en Google. Que arranque con lo concreto de la noticia, no con contexto general. No empieces con "En este articulo" ni formulas de relleno.
 - "sections": entre 3 y 4 secciones. La PRIMERA lleva "heading": null (arranca directo, sin ladillo). Las siguientes llevan un ladillo corto de 3-6 palabras, concreto y con gancho, nunca generico ("Contexto", "Conclusion" y similares estan prohibidos). Cada seccion tiene 1-2 parrafos en "paragraphs".
 - "pullQuote": UNA frase corta (10-25 palabras) sacada del propio articulo o que lo resuma, para destacarla a gran tamaño entre parrafos. Debe sostenerse sola fuera de contexto y decir algo con carne: una imagen concreta o una idea con filo, nunca una obviedad ni una frase de calendario motivacional. Si no hay ninguna que valga, null.
@@ -274,6 +327,7 @@ Responde SOLO con este JSON, sin texto adicional ni bloques de codigo:
 
     if (!parsed.relevant) return null;
     if (!parsed.title) throw new Error("Respuesta sin los campos esperados");
+    warnIfWeakTitle(parsed.title);
 
     const sections = normalizeSections(parsed.sections, parsed.body);
     if (!sections.length) throw new Error("Respuesta sin cuerpo de articulo");
