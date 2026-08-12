@@ -17,10 +17,10 @@ import {
 } from "@/lib/instagram";
 import { isFacebookConfigured, postToFacebook } from "@/lib/facebook";
 import {
-  isTitleTooLong,
+  improveSpanishTitle,
+  needsBetterTitle,
   normalizeTitle,
   restructureSpanishArticle,
-  shortenSpanishTitle,
   translateToSpanish,
 } from "@/lib/translate";
 import { searchRelatedImage } from "@/lib/image-search";
@@ -547,21 +547,23 @@ export async function restructurePublishedArticlesAction(formData: FormData) {
 // Cada titular puede costar una llamada a Claude (solo los que no arregla la
 // limpieza automatica), asi que tambien va por tandas: se pulsa hasta que no
 // queden.
-const SHORTEN_TITLES_BATCH_SIZE = 12;
+const FIX_TITLES_BATCH_SIZE = 12;
 
 /**
- * Acorta los titulares largos que ya estan guardados: los del "cuando" y los
- * que arrastran un subtitulo detras de dos puntos. Primero la limpieza
- * automatica y, si aun se pasa de largo, Claude.
+ * Repasa los titulares ya guardados que caen en el tic del "cuando" o se
+ * pasan de largo. Primero la limpieza automatica; si aun asi no cumplen, se
+ * reescriben con Claude pasandole el texto del articulo, que es de donde sale
+ * lo que al titular le falta (el "con Ranieri" del ejemplo).
  *
  * En los publicados el titular se cambia tambien en Shopify. El handle no se
  * toca, asi que los enlaces que ya esten por ahi siguen funcionando. El tuit
  * se reescribe solo si todavia no se ha publicado (X no deja editar un tuit
  * vivo, eso es decision del revisor).
  *
- * Idempotente: salta los que ya son cortos.
+ * Idempotente: salta los que ya cumplen. Lo que no puede detectar es el
+ * titular corto pero vago — para eso esta la edicion a mano.
  */
-export async function shortenTitlesAction(formData: FormData) {
+export async function fixTitlesAction(formData: FormData) {
   const status = String(formData.get("status") || "PUBLISHED") as ArticleStatus;
   const returnTo = String(formData.get("returnTo") || `/dashboard?status=${status}`);
 
@@ -570,8 +572,8 @@ export async function shortenTitlesAction(formData: FormData) {
     orderBy: { createdAt: "desc" },
   });
 
-  const pending = articles.filter((a) => isTitleTooLong(a.title));
-  const batch = pending.slice(0, SHORTEN_TITLES_BATCH_SIZE);
+  const pending = articles.filter((a) => needsBetterTitle(a.title));
+  const batch = pending.slice(0, FIX_TITLES_BATCH_SIZE);
 
   let updated = 0;
   let stubborn = 0;
@@ -579,17 +581,24 @@ export async function shortenTitlesAction(formData: FormData) {
 
   for (const article of batch) {
     let title = normalizeTitle(article.title);
-    if (isTitleTooLong(title)) {
-      title = (await shortenSpanishTitle({ title, context: article.title })) ?? title;
+    if (needsBetterTitle(title)) {
+      // El cuerpo es lo que permite concretar el titular, asi que se le pasa
+      // en plano y recortado: con la entradilla y el arranque basta.
+      const context = article.excerpt
+        .replace(/<[^>]+>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 900);
+      title = (await improveSpanishTitle({ title, context })) ?? title;
     }
     if (title === article.title) {
       stubborn += 1;
       continue;
     }
-    if (isTitleTooLong(title)) stubborn += 1;
+    if (needsBetterTitle(title)) stubborn += 1;
 
     // El tuit lleva el titular delante; mientras no este publicado, se
-    // actualiza para que no se quede con el largo.
+    // actualiza para que no se quede con el viejo.
     const tweetText =
       article.tweetId || !article.tweetText.startsWith(article.title)
         ? article.tweetText
@@ -613,13 +622,13 @@ export async function shortenTitlesAction(formData: FormData) {
   const left = pending.length - batch.length;
   const summary =
     (pending.length === 0
-      ? "No había titulares largos que acortar"
-      : `Titulares acortados: ${updated}`) +
-    (stubborn ? ` (${stubborn} siguen largos, revísalos a mano)` : "") +
+      ? "No había titulares que arreglar"
+      : `Titulares arreglados: ${updated}`) +
+    (stubborn ? ` (${stubborn} no han mejorado, revísalos a mano)` : "") +
     (left > 0 ? `, quedan ${left} por revisar: vuelve a pulsar` : "") +
     (failures.length ? `, fallaron ${failures.length}` : "");
   if (failures.length) {
-    console.error("Fallos al acortar titulares:", failures.join(" | "));
+    console.error("Fallos al arreglar titulares:", failures.join(" | "));
     withError(returnTo, `${summary}. Detalle en los logs.`);
   }
   const separator = returnTo.includes("?") ? "&" : "?";

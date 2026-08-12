@@ -9,8 +9,8 @@ import {
   backfillPublishedArticlesAction,
   cleanupOffTopicAction,
   rejectArticleAction,
+  fixTitlesAction,
   restructurePublishedArticlesAction,
-  shortenTitlesAction,
   unpublishArticleAction,
 } from "./actions";
 
@@ -60,14 +60,14 @@ export default async function DashboardPage({
             </form>
           )}
           {status !== "REJECTED" && (
-            <form action={shortenTitlesAction}>
+            <form action={fixTitlesAction}>
               <input type="hidden" name="status" value={status} />
               <input type="hidden" name="returnTo" value={returnTo} />
               <button
                 type="submit"
-                title="Acorta los titulares largos de esta pestaña: quita el 'cuando' y el subtítulo de después de los dos puntos, y si aún así son largos los reescribe. En los publicados también los cambia en Shopify (la URL no cambia). Va por tandas: púlsalo hasta que no queden"
+                title="Repasa los titulares de esta pestaña que caen en el 'cuando' o se pasan de largo: les quita el 'cuando' y, si aún así no cumplen, los reescribe con lo que cuenta el artículo. En los publicados también los cambia en Shopify (la URL no cambia). Va por tandas: púlsalo hasta que no queden"
               >
-                Acortar titulares
+                Arreglar titulares
               </button>
             </form>
           )}

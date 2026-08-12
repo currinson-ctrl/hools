@@ -74,23 +74,40 @@ idempotente, así que hay que pulsarlo hasta que avise de que no queda ninguno.
 
 ## Titulares
 
-Los titulares son **cortos y llanos**: máximo 9 palabras y 65 caracteres, una
-sola idea, sin subtítulo colgando de los dos puntos y sin la fórmula «X: cuando
-la afición…», que el modelo repetía hasta convertirla en un tic. Los límites y
-las reglas están en `src/lib/translate.ts` (`MAX_TITLE_WORDS`,
-`MAX_TITLE_CHARS`).
+Un titular tiene que **contar lo que pasa: quién y qué**. El modelo había
+cogido un tic —«X: cuando la afición reconoce el sacrificio de un ídolo»— que
+evoca mucho y no dice nada. El problema no era la longitud: recortar eso a «La
+Roma y su gesto de honor» lo deja corto y peor, porque ya no dice con quién. El
+titular bueno es «La Roma y su gesto de honor con Ranieri», y uno largo se
+justifica si cuenta algo («La Curva Nord de la Lazio convirtió el derby en una
+batalla de carteles»).
 
-No se confía solo en el prompt. Todo titular pasa por `normalizeTitle()`, que
-quita gratis el «cuando» y, si el titular se pasa de largo, poda el subtítulo;
-si aun así sigue siendo largo, `shortenSpanishTitle()` le pide a Claude que lo
-reescriba corto (una llamada barata, solo en los que hagan falta).
+Las reglas viven en `TITLE_RULES` (`src/lib/translate.ts`) y las comparten los
+dos prompts, el que escribe el artículo y el que repasa un titular ya guardado,
+para que no se contradigan. Las 14 palabras / 80 caracteres de
+`MAX_TITLE_WORDS` y `MAX_TITLE_CHARS` son un **techo, no un objetivo**.
 
-Los titulares que ya están guardados se arreglan desde el dashboard con el
-botón **«Acortar titulares»**, que actúa sobre la pestaña en la que estés. En
-los publicados cambia también el título en Shopify; el `handle` no se toca, así
-que las URLs que ya estén circulando siguen funcionando. El tuit se reescribe
-solo si todavía no se ha publicado (X no permite editar un tuit vivo). Va por
-tandas de 12 y es idempotente: se pulsa hasta que avise de que no queda ninguno.
+No se confía solo en el prompt:
+
+1. `normalizeTitle()` limpia sin gastar llamada lo que se puede limpiar sin
+   leer la noticia: comillas, punto final y el «cuando» (de apertura o colgado
+   de los dos puntos). Quitarlo no quita información y suele dejar el titular
+   ya bien. Lo que **no** hace es podar el subtítulo: eso acorta, pero se lleva
+   por delante lo que el titular contaba.
+2. Si aun así no cumple, `improveSpanishTitle()` se lo pasa a Claude **junto
+   con el texto del artículo**, que es de donde sale lo que al titular le falta
+   (el «con Ranieri» del ejemplo).
+
+Los titulares que ya están guardados se repasan desde el dashboard con el botón
+**«Arreglar titulares»**, que actúa sobre la pestaña en la que estés. En los
+publicados cambia también el título en Shopify; el `handle` no se toca, así que
+las URLs que ya estén circulando siguen funcionando. El tuit se reescribe solo
+si todavía no se ha publicado (X no permite editar un tuit vivo). Va por tandas
+de 12 y es idempotente: se pulsa hasta que avise de que no queda ninguno.
+
+Ojo con lo que ese botón **no** puede hacer: detecta el «cuando» y el exceso de
+largo, que se ven sin leer la noticia, pero no el titular corto y vago. Para
+esos, edición a mano desde la ficha del artículo.
 
 ## Puesta en marcha local
 
