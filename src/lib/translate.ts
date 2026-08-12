@@ -15,6 +15,12 @@ function getClient(): Anthropic {
 }
 
 export interface TranslatedArticle {
+  /**
+   * Categoria decidida por el contenido de la noticia, no por la fuente que
+   * la trajo. Es la que se publica como etiqueta y la que hace que el
+   * articulo aparezca en su pestaña del blog.
+   */
+  category: Category;
   title: string;
   /** Entradilla: 1-2 frases que abren el articulo y alimentan el resumen de Shopify. */
   lead: string;
@@ -322,14 +328,27 @@ const CATEGORY_FOCUS: Record<Category, string> = {
     "Moda casual y terrace fashion: marcas, prendas, estilo asociado a la cultura de las gradas (casuals). NO vale: moda generica sin relacion con el mundo del futbol/casual.",
 };
 
+const CATEGORY_VALUES: Category[] = ["AFICION", "VIAJES", "MODA"];
+
+function focusList(): string {
+  return CATEGORY_VALUES.map((c) => `- ${c}: ${CATEGORY_FOCUS[c]}`).join("\n\n");
+}
+
 /**
  * Filtra y, si encaja, genera un titular + articulo completo en español de
  * España a partir del original (normalmente en ingles). El blog es sobre
  * cultura ultra/casual y desplazamientos, no noticias de futbol genericas,
- * asi que primero se le pide a Claude que decida si el tema encaja de
- * verdad en la categoria; si no encaja, o si falla la llamada (red, limite
- * de uso, respuesta no valida), se descarta el item devolviendo null en vez
- * de publicar contenido fuera de tema.
+ * asi que primero se le pide a Claude que decida si el tema encaja de verdad
+ * en alguna de las tres categorias; si no encaja en ninguna, o si falla la
+ * llamada (red, limite de uso, respuesta no valida), se descarta el item
+ * devolviendo null en vez de publicar contenido fuera de tema.
+ *
+ * La categoria la decide el CONTENIDO, no la fuente. Antes se heredaba de la
+ * fuente que traia la noticia, y como casi todas estan dadas de alta como
+ * AFICION, un desplazamiento traído por una fuente generalista acababa
+ * etiquetado como aficion y no aparecia en su pestaña del blog. `category`
+ * sigue llegando aqui, pero solo como respaldo si el modelo devuelve una
+ * categoria que no reconocemos.
  */
 export async function translateToSpanish(input: {
   originalTitle: string;
@@ -347,7 +366,11 @@ export async function translateToSpanish(input: {
           role: "user",
           content: `Eres redactor de un blog español muy especializado en cultura ULTRA/casual del fútbol (marca Hools): ambiente de aficion, tifos, mosaicos, banderas, desplazamientos masivos de hinchas, fiestas de grada, moda casual. NO es un blog generico de noticias de futbol.
 
-Primero decide si la siguiente noticia encaja de verdad en esta categoria (${input.category}): ${CATEGORY_FOCUS[input.category]}
+Primero decide si la siguiente noticia encaja de verdad en ALGUNA de estas tres categorias, y en cual:
+
+${focusList()}
+
+Elige la categoria por lo que cuenta la noticia, no por el medio que la publica. Una misma fuente puede traer noticias de las tres. Si trata sobre todo del viaje o del desplazamiento de una aficion, es VIAJES aunque hable tambien del ambiente en la grada.
 
 Se estricto: ante la duda, descartala.
 
@@ -360,6 +383,7 @@ Si SI encaja, escribe un ARTICULO COMPLETO Y ORIGINAL en español de España, de
 
 El articulo va MAQUETADO, asi que devuelvelo por piezas:
 
+- "category": la categoria que le corresponde, exactamente una de estas tres palabras: AFICION, VIAJES o MODA.
 - "title": el titular, con estas reglas:
 ${TITLE_RULES}
 - "lead": entradilla de 1 o 2 frases (maximo 45 palabras) que resuma la noticia y enganche. Va destacada al principio y es tambien el resumen que se ve en el listado del blog y en Google. No empieces con "En este articulo" ni formulas de relleno.
@@ -369,7 +393,7 @@ ${TITLE_RULES}
 - "igCaption": pie de foto para Instagram sobre la misma noticia. Reglas: 2-3 frases cortas con gancho directo (tono cultura terrace/ultra, sin sonar a marca corporativa) + una pregunta final a la audiencia para invitar a comentar. NUNCA uses @menciones. Cierra con una linea de 8-12 hashtags mezclando nicho y tema (ej. #terraceculture #awaydays #casuals #ultras #groundhopping mas los especificos de esta noticia). Sin enlaces.
 
 Responde SOLO con este JSON, sin texto adicional ni bloques de codigo:
-{"relevant": true, "title": "titular en español", "lead": "entradilla", "sections": [{"heading": null, "paragraphs": ["parrafo", "parrafo"]}, {"heading": "ladillo corto", "paragraphs": ["parrafo"]}], "pullQuote": "frase destacada o null", "facts": [{"label": "Club", "value": "..."}], "igCaption": "pie de foto para Instagram\\n\\n#hashtags"}`,
+{"relevant": true, "category": "VIAJES", "title": "titular en español", "lead": "entradilla", "sections": [{"heading": null, "paragraphs": ["parrafo", "parrafo"]}, {"heading": "ladillo corto", "paragraphs": ["parrafo"]}], "pullQuote": "frase destacada o null", "facts": [{"label": "Club", "value": "..."}], "igCaption": "pie de foto para Instagram\\n\\n#hashtags"}`,
         },
       ],
     });
@@ -378,6 +402,7 @@ Responde SOLO con este JSON, sin texto adicional ni bloques de codigo:
     const raw = textBlock && textBlock.type === "text" ? textBlock.text : "";
     const parsed = JSON.parse(extractJson(raw)) as {
       relevant?: boolean;
+      category?: string;
       title?: string;
       lead?: string;
       sections?: Array<{ heading?: string | null; paragraphs?: string[] }>;
@@ -397,6 +422,14 @@ Responde SOLO con este JSON, sin texto adicional ni bloques de codigo:
     // publicar el articulo sin ella (el resumen del listado depende de esto).
     const lead = parsed.lead?.trim() || sections[0].paragraphs[0] || "";
 
+    // Si devuelve una categoria que no reconocemos, se usa la de la fuente:
+    // preferible etiquetar de menos que descartar un articulo ya escrito.
+    const claimed = (parsed.category ?? "").trim().toUpperCase() as Category;
+    const category = CATEGORY_VALUES.includes(claimed) ? claimed : input.category;
+    if (claimed && category !== claimed) {
+      console.error(`Categoria no reconocida "${parsed.category}", se usa ${input.category}`);
+    }
+
     // El titular no se publica tal cual: primero la limpieza automatica y,
     // si aun asi no cumple, una segunda pasada de Claude con la entradilla
     // delante. Es barata y evita que se cuele otro titular evocador por
@@ -407,6 +440,7 @@ Responde SOLO con este JSON, sin texto adicional ni bloques de codigo:
     }
 
     return {
+      category,
       title,
       lead,
       sections,

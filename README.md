@@ -36,6 +36,26 @@ falta. Si `ANTHROPIC_API_KEY` no está configurada o falla la llamada, esa
 noticia en concreto se queda en su idioma original en vez de bloquear el
 resto del rastreo.
 
+## Categorías (y las pestañas del blog)
+
+Las pestañas de la portada del blog —Afición / Desplazamientos / Casual— son un
+filtro por **etiqueta**: cada artículo se publica con `[categoría, nombre de la
+fuente]`, y la pestaña enseña los que llevan `AFICION`, `VIAJES` o `MODA`.
+
+La categoría la decide **el contenido de la noticia**, no la fuente que la
+trajo. En el mismo paso en que escribe el artículo, Claude elige una de las
+tres (o la descarta por no encajar en ninguna). La categoría configurada en
+`/dashboard/sources` sigue existiendo para organizar el catálogo y como
+respaldo si el modelo devuelve algo que no reconocemos, pero ya no es la que
+manda.
+
+Antes sí lo era, y por eso una fuente generalista dada de alta como AFICION
+metía en esa pestaña también sus desplazamientos: la clasificación no miraba el
+texto, solo quién lo publicaba.
+
+Cambiar la etiqueta de un artículo ya publicado desde Shopify **aguanta**: al
+actualizar, el agregador no reenvía las etiquetas.
+
 ## Cómo está maquetado un artículo
 
 Claude no devuelve un bloque de párrafos, sino el artículo **por piezas**
