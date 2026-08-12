@@ -72,6 +72,26 @@ reescribir el texto (si se pierde algún párrafo por el camino, descarta el
 resultado y maqueta solo lo que no necesita criterio). Va por tandas de 8 y es
 idempotente, así que hay que pulsarlo hasta que avise de que no queda ninguno.
 
+## Titulares
+
+Los titulares son **cortos y llanos**: máximo 9 palabras y 65 caracteres, una
+sola idea, sin subtítulo colgando de los dos puntos y sin la fórmula «X: cuando
+la afición…», que el modelo repetía hasta convertirla en un tic. Los límites y
+las reglas están en `src/lib/translate.ts` (`MAX_TITLE_WORDS`,
+`MAX_TITLE_CHARS`).
+
+No se confía solo en el prompt. Todo titular pasa por `normalizeTitle()`, que
+quita gratis el «cuando» y, si el titular se pasa de largo, poda el subtítulo;
+si aun así sigue siendo largo, `shortenSpanishTitle()` le pide a Claude que lo
+reescriba corto (una llamada barata, solo en los que hagan falta).
+
+Los titulares que ya están guardados se arreglan desde el dashboard con el
+botón **«Acortar titulares»**, que actúa sobre la pestaña en la que estés. En
+los publicados cambia también el título en Shopify; el `handle` no se toca, así
+que las URLs que ya estén circulando siguen funcionando. El tuit se reescribe
+solo si todavía no se ha publicado (X no permite editar un tuit vivo). Va por
+tandas de 12 y es idempotente: se pulsa hasta que avise de que no queda ninguno.
+
 ## Puesta en marcha local
 
 Necesitas una base Postgres incluso en local (ver "Base de datos" abajo) —

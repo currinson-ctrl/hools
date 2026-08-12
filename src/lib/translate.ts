@@ -34,6 +34,122 @@ export interface TranslatedArticle {
   body: string;
 }
 
+/**
+ * Limites del titular. El blog venia sacando titulares largos y literarios
+ * ("X: cuando la afición reconoce el sacrificio de un idolo"), que ademas se
+ * cortan en el listado, en Google y en el tuit. A partir de aqui: una sola
+ * idea, corta y en lenguaje llano.
+ */
+export const MAX_TITLE_WORDS = 9;
+export const MAX_TITLE_CHARS = 65;
+
+/** Separadores con los que el modelo cuelga un subtitulo del titular. */
+const TITLE_SEPARATOR = /\s*[:;–—]\s+|\s+[-|]\s+/;
+
+function countWords(text: string): number {
+  return text.split(/\s+/).filter(Boolean).length;
+}
+
+export function isTitleTooLong(title: string): boolean {
+  return countWords(title) > MAX_TITLE_WORDS || title.length > MAX_TITLE_CHARS;
+}
+
+/** "Cuando la Curva Nord tomó el derbi" -> "La Curva Nord tomó el derbi". */
+function dropCuando(text: string, capitalize: boolean): string {
+  const rest = text.replace(/^cuando\s+/i, "");
+  if (rest === text || !rest) return text;
+  return capitalize ? rest.charAt(0).toUpperCase() + rest.slice(1) : rest;
+}
+
+/** Parte el titular por el separador del que suele colgar el subtitulo. */
+function splitTitle(title: string): { head: string; tail: string } | null {
+  const match = title.match(TITLE_SEPARATOR);
+  if (!match || match.index === undefined) return null;
+  const head = title.slice(0, match.index).trim();
+  const tail = title.slice(match.index + match[0].length).trim();
+  return head && tail ? { head, tail } : null;
+}
+
+/**
+ * Arregla sin gastar una llamada los dos vicios del titular: el "cuando" (de
+ * apertura o colgado de los dos puntos) y el subtitulo. El "cuando" se quita
+ * siempre; el subtitulo solo se poda si el titular se pasa de largo, asi un
+ * "Roma: tifo histórico" corto se queda como esta.
+ */
+export function normalizeTitle(raw: string): string {
+  let title = raw
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/^["'«“”]+|["'«“”]+$/g, "")
+    .replace(/[.;,\s]+$/, "")
+    .trim();
+
+  title = dropCuando(title, true);
+
+  const parts = splitTitle(title);
+  if (parts) {
+    const tail = dropCuando(parts.tail, false);
+    if (tail !== parts.tail) title = `${parts.head}: ${tail}`;
+  }
+
+  if (!isTitleTooLong(title)) return title;
+
+  // Con una cabecera que ya dice algo por si sola ("La Roma y su gesto de
+  // honor"), el subtitulo sobra. Si la cabecera es solo un nombre ("Widzew
+  // Łódź"), no se puede podar a ciegas: de eso ya se encarga Claude.
+  const head = splitTitle(title)?.head;
+  if (head && countWords(head) >= 3 && !isTitleTooLong(head)) return head;
+  return title;
+}
+
+/**
+ * Ultimo recurso cuando el titular sigue siendo largo despues de la limpieza
+ * automatica: se le pide a Claude que lo reescriba corto y llano. Devuelve
+ * null si no hay clave, si falla la llamada o si lo que vuelve no mejora el
+ * titular de partida; quien llama se queda entonces con el que tenia.
+ */
+export async function shortenSpanishTitle(input: {
+  title: string;
+  context?: string;
+}): Promise<string | null> {
+  if (!process.env.ANTHROPIC_API_KEY) return null;
+
+  try {
+    const message = await getClient().messages.create({
+      model: MODEL,
+      max_tokens: 100,
+      messages: [
+        {
+          role: "user",
+          content: `Reescribe este titular de un blog español de cultura ultra/casual para que sea CORTO y SENCILLO.
+
+Titular actual: "${input.title}"${input.context ? `\nDe que va la noticia: "${input.context}"` : ""}
+
+Reglas:
+- Maximo ${MAX_TITLE_WORDS} palabras y ${MAX_TITLE_CHARS} caracteres.
+- Una sola idea y un solo bloque: sin dos puntos, sin guiones, sin subtitulo.
+- PROHIBIDO empezar por "Cuando" y la formula "X: cuando ...".
+- Lenguaje llano y directo, de periodico. Nada de literatura ni frases evocadoras ("el gesto de honor", "la noche magica", "el rugido de la grada").
+- Sujeto + verbo, o un sintagma nominal seco.
+- Conserva el hecho y los nombres propios del titular actual. NO INVENTES nada.
+- Sin comillas, sin punto final, sin emojis, sin hashtags.
+
+Responde SOLO con el titular, en una linea.`,
+        },
+      ],
+    });
+
+    const textBlock = message.content.find((block) => block.type === "text");
+    const raw = textBlock && textBlock.type === "text" ? textBlock.text : "";
+    const shortened = normalizeTitle(raw.split("\n")[0] ?? "");
+    if (!shortened || shortened.length >= input.title.length) return null;
+    return shortened;
+  } catch (err) {
+    console.error(`Fallo al acortar el titular "${input.title}":`, err);
+    return null;
+  }
+}
+
 export interface RestructuredArticle {
   lead: string;
   sections: ArticleSection[];
@@ -213,6 +329,7 @@ Si SI encaja, escribe un ARTICULO COMPLETO Y ORIGINAL en español de España, de
 
 El articulo va MAQUETADO, asi que devuelvelo por piezas:
 
+- "title": el titular. CORTO Y SENCILLO: maximo ${MAX_TITLE_WORDS} palabras y ${MAX_TITLE_CHARS} caracteres. Una sola idea, en un solo bloque: sin dos puntos, sin guiones y sin subtitulo colgando. PROHIBIDO empezar por "Cuando" y prohibida la formula "X: cuando ...". Lenguaje llano de periodico, nada de literatura ni de frases evocadoras ("el gesto de honor", "la noche magica"). Sujeto + verbo, o un sintagma nominal seco. Sin comillas, sin punto final. Asi SI: "La Roma homenajea a Pellegrini", "Tifo del Widzew en campo contrario", "Guerra de pancartas en el derbi romano". Asi NO: "La Roma y su gesto de honor: cuando la aficion reconoce el sacrificio de un idolo".
 - "lead": entradilla de 1 o 2 frases (maximo 45 palabras) que resuma la noticia y enganche. Va destacada al principio y es tambien el resumen que se ve en el listado del blog y en Google. No empieces con "En este articulo" ni formulas de relleno.
 - "sections": entre 3 y 4 secciones. La PRIMERA lleva "heading": null (arranca directo, sin ladillo). Las siguientes llevan un ladillo corto de 3-6 palabras, concreto y con gancho, nunca generico ("Contexto", "Conclusion" y similares estan prohibidos). Cada seccion tiene 1-2 parrafos en "paragraphs".
 - "pullQuote": UNA frase corta (10-25 palabras) sacada del propio articulo o que lo resuma, para destacarla a gran tamaño entre parrafos. Debe sostenerse sola fuera de contexto. Si no hay ninguna que valga, null.
@@ -220,7 +337,7 @@ El articulo va MAQUETADO, asi que devuelvelo por piezas:
 - "igCaption": pie de foto para Instagram sobre la misma noticia. Reglas: 2-3 frases cortas con gancho directo (tono cultura terrace/ultra, sin sonar a marca corporativa) + una pregunta final a la audiencia para invitar a comentar. NUNCA uses @menciones. Cierra con una linea de 8-12 hashtags mezclando nicho y tema (ej. #terraceculture #awaydays #casuals #ultras #groundhopping mas los especificos de esta noticia). Sin enlaces.
 
 Responde SOLO con este JSON, sin texto adicional ni bloques de codigo:
-{"relevant": true, "title": "titular en español, breve", "lead": "entradilla", "sections": [{"heading": null, "paragraphs": ["parrafo", "parrafo"]}, {"heading": "ladillo corto", "paragraphs": ["parrafo"]}], "pullQuote": "frase destacada o null", "facts": [{"label": "Club", "value": "..."}], "igCaption": "pie de foto para Instagram\\n\\n#hashtags"}`,
+{"relevant": true, "title": "titular corto en español", "lead": "entradilla", "sections": [{"heading": null, "paragraphs": ["parrafo", "parrafo"]}, {"heading": "ladillo corto", "paragraphs": ["parrafo"]}], "pullQuote": "frase destacada o null", "facts": [{"label": "Club", "value": "..."}], "igCaption": "pie de foto para Instagram\\n\\n#hashtags"}`,
         },
       ],
     });
@@ -248,8 +365,16 @@ Responde SOLO con este JSON, sin texto adicional ni bloques de codigo:
     // publicar el articulo sin ella (el resumen del listado depende de esto).
     const lead = parsed.lead?.trim() || sections[0].paragraphs[0] || "";
 
+    // El titular no se publica tal cual: primero la limpieza automatica y,
+    // si aun asi se pasa de largo, una segunda pasada de Claude. Es barata y
+    // evita que se cuele otro titular kilometrico por saltarse el prompt.
+    let title = normalizeTitle(parsed.title);
+    if (isTitleTooLong(title)) {
+      title = (await shortenSpanishTitle({ title, context: lead })) ?? title;
+    }
+
     return {
-      title: parsed.title,
+      title,
       lead,
       sections,
       pullQuote: parsed.pullQuote?.trim() || null,

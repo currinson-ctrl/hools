@@ -10,6 +10,7 @@ import {
   cleanupOffTopicAction,
   rejectArticleAction,
   restructurePublishedArticlesAction,
+  shortenTitlesAction,
   unpublishArticleAction,
 } from "./actions";
 
@@ -49,30 +50,44 @@ export default async function DashboardPage({
 
       <div className="row" style={{ justifyContent: "space-between", marginBottom: 16 }}>
         <h1 style={{ fontSize: 18, margin: 0 }}>{STATUS_LABEL[status]}</h1>
-        {status === "PENDING" && (
-          <form action={cleanupOffTopicAction}>
-            <input type="hidden" name="returnTo" value={returnTo} />
-            <button type="submit" title="Rechaza las pendientes que no sean de aficion/ultras/desplazamientos/moda casual">
-              Limpiar fuera de tema
-            </button>
-          </form>
-        )}
-        {status === "PUBLISHED" && (
-          <div className="row" style={{ gap: 8 }}>
-            <form action={restructurePublishedArticlesAction}>
+        <div className="row" style={{ gap: 8 }}>
+          {status === "PENDING" && (
+            <form action={cleanupOffTopicAction}>
               <input type="hidden" name="returnTo" value={returnTo} />
-              <button type="submit" title="Remaqueta los artículos ya publicados con la estructura nueva: entradilla, ladillos, cita destacada, galería y cierre de tienda. Va por tandas: púlsalo hasta que no queden">
-                Remaquetar publicados
+              <button type="submit" title="Rechaza las pendientes que no sean de aficion/ultras/desplazamientos/moda casual">
+                Limpiar fuera de tema
               </button>
             </form>
-            <form action={backfillPublishedArticlesAction}>
+          )}
+          {status !== "REJECTED" && (
+            <form action={shortenTitlesAction}>
+              <input type="hidden" name="status" value={status} />
               <input type="hidden" name="returnTo" value={returnTo} />
-              <button type="submit" title="Añade a los artículos ya publicados el cierre con enlace a la tienda, y rellena en Shopify el resumen y el texto alternativo de la imagen">
-                Añadir cierre de tienda a los publicados
+              <button
+                type="submit"
+                title="Acorta los titulares largos de esta pestaña: quita el 'cuando' y el subtítulo de después de los dos puntos, y si aún así son largos los reescribe. En los publicados también los cambia en Shopify (la URL no cambia). Va por tandas: púlsalo hasta que no queden"
+              >
+                Acortar titulares
               </button>
             </form>
-          </div>
-        )}
+          )}
+          {status === "PUBLISHED" && (
+            <>
+              <form action={restructurePublishedArticlesAction}>
+                <input type="hidden" name="returnTo" value={returnTo} />
+                <button type="submit" title="Remaqueta los artículos ya publicados con la estructura nueva: entradilla, ladillos, cita destacada, galería y cierre de tienda. Va por tandas: púlsalo hasta que no queden">
+                  Remaquetar publicados
+                </button>
+              </form>
+              <form action={backfillPublishedArticlesAction}>
+                <input type="hidden" name="returnTo" value={returnTo} />
+                <button type="submit" title="Añade a los artículos ya publicados el cierre con enlace a la tienda, y rellena en Shopify el resumen y el texto alternativo de la imagen">
+                  Añadir cierre de tienda a los publicados
+                </button>
+              </form>
+            </>
+          )}
+        </div>
       </div>
 
       {articles.length === 0 && (

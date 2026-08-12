@@ -16,7 +16,13 @@ import {
   postToInstagram,
 } from "@/lib/instagram";
 import { isFacebookConfigured, postToFacebook } from "@/lib/facebook";
-import { restructureSpanishArticle, translateToSpanish } from "@/lib/translate";
+import {
+  isTitleTooLong,
+  normalizeTitle,
+  restructureSpanishArticle,
+  shortenSpanishTitle,
+  translateToSpanish,
+} from "@/lib/translate";
 import { searchRelatedImage } from "@/lib/image-search";
 import { findMentionedGroups, linkMentionedGroups, parseAliases } from "@/lib/groups";
 import {
@@ -26,7 +32,7 @@ import {
   type ArticleSection,
 } from "@/lib/article-html";
 import { buildBlogArticleUrl, buildCtaHtml } from "@/lib/sources";
-import { Category, SourceType } from "@prisma/client";
+import { ArticleStatus, Category, SourceType } from "@prisma/client";
 
 function withError(basePath: string, message: string): never {
   const separator = basePath.includes("?") ? "&" : "?";
@@ -536,6 +542,88 @@ export async function restructurePublishedArticlesAction(formData: FormData) {
     withError(returnTo, `${summary}. Detalle en los logs.`);
   }
   redirect(`${returnTo}&notice=${encodeURIComponent(summary)}`);
+}
+
+// Cada titular puede costar una llamada a Claude (solo los que no arregla la
+// limpieza automatica), asi que tambien va por tandas: se pulsa hasta que no
+// queden.
+const SHORTEN_TITLES_BATCH_SIZE = 12;
+
+/**
+ * Acorta los titulares largos que ya estan guardados: los del "cuando" y los
+ * que arrastran un subtitulo detras de dos puntos. Primero la limpieza
+ * automatica y, si aun se pasa de largo, Claude.
+ *
+ * En los publicados el titular se cambia tambien en Shopify. El handle no se
+ * toca, asi que los enlaces que ya esten por ahi siguen funcionando. El tuit
+ * se reescribe solo si todavia no se ha publicado (X no deja editar un tuit
+ * vivo, eso es decision del revisor).
+ *
+ * Idempotente: salta los que ya son cortos.
+ */
+export async function shortenTitlesAction(formData: FormData) {
+  const status = String(formData.get("status") || "PUBLISHED") as ArticleStatus;
+  const returnTo = String(formData.get("returnTo") || `/dashboard?status=${status}`);
+
+  const articles = await prisma.article.findMany({
+    where: { status },
+    orderBy: { createdAt: "desc" },
+  });
+
+  const pending = articles.filter((a) => isTitleTooLong(a.title));
+  const batch = pending.slice(0, SHORTEN_TITLES_BATCH_SIZE);
+
+  let updated = 0;
+  let stubborn = 0;
+  const failures: string[] = [];
+
+  for (const article of batch) {
+    let title = normalizeTitle(article.title);
+    if (isTitleTooLong(title)) {
+      title = (await shortenSpanishTitle({ title, context: article.title })) ?? title;
+    }
+    if (title === article.title) {
+      stubborn += 1;
+      continue;
+    }
+    if (isTitleTooLong(title)) stubborn += 1;
+
+    // El tuit lleva el titular delante; mientras no este publicado, se
+    // actualiza para que no se quede con el largo.
+    const tweetText =
+      article.tweetId || !article.tweetText.startsWith(article.title)
+        ? article.tweetText
+        : title + article.tweetText.slice(article.title.length);
+
+    try {
+      if (article.status === "PUBLISHED" && article.shopifyArticleId) {
+        await updateArticleOnShopify(article.shopifyArticleId, { title });
+      }
+      await prisma.article.update({
+        where: { id: article.id },
+        data: { title, tweetText },
+      });
+      updated += 1;
+    } catch (err) {
+      failures.push(`${article.title}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  revalidatePath("/dashboard");
+  const left = pending.length - batch.length;
+  const summary =
+    (pending.length === 0
+      ? "No había titulares largos que acortar"
+      : `Titulares acortados: ${updated}`) +
+    (stubborn ? ` (${stubborn} siguen largos, revísalos a mano)` : "") +
+    (left > 0 ? `, quedan ${left} por revisar: vuelve a pulsar` : "") +
+    (failures.length ? `, fallaron ${failures.length}` : "");
+  if (failures.length) {
+    console.error("Fallos al acortar titulares:", failures.join(" | "));
+    withError(returnTo, `${summary}. Detalle en los logs.`);
+  }
+  const separator = returnTo.includes("?") ? "&" : "?";
+  redirect(`${returnTo}${separator}notice=${encodeURIComponent(summary)}`);
 }
 
 export async function cleanupOffTopicAction(formData: FormData) {
