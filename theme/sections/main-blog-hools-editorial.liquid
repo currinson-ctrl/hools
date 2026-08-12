@@ -71,6 +71,33 @@
       endunless
     endfor
     assign rest = rest_positions | split: ','
+
+    # ---- Relleno de la columna lateral ----
+    # La columna derecha es más corta que la izquierda (destacada + dos
+    # secundarias), así que con pocos titulares queda un hueco en blanco al
+    # final. Se rellena con más titulares y, al fondo, con un producto.
+    #
+    # El producto no es solo relleno: la portada del blog no tenía ni un enlace
+    # a la tienda, y este es el sitio natural para ponerlo.
+    assign rail_count = section.settings.rail_count
+    assign grid_offset = rail_count | plus: 2
+
+    assign promo_product = blank
+    if section.settings.promo_show
+      assign promo_collection = section.settings.promo_collection
+      if promo_collection == blank
+        assign promo_collection = collections['productos']
+      endif
+      assign promo_pool = promo_collection.products
+      if promo_pool.size > 0
+        # Rota por día del año, no al azar en cada visita: dentro del mismo día
+        # la página es siempre igual (si cambiara en cada recarga parecería un
+        # fallo y tumbaría el caché), pero mañana toca otro polo.
+        assign today = 'now' | date: '%j' | times: 1
+        assign promo_index = today | modulo: promo_pool.size
+        assign promo_product = promo_pool[promo_index]
+      endif
+    endif
   -%}
 
   <div class="hools-blog">
@@ -162,18 +189,40 @@
             {%- endif -%}
           </div>
 
-          {%- if rest.size > 2 -%}
+          {%- if rest.size > 2 or promo_product != blank -%}
             <aside class="hools-cover__aside">
-              <h2 class="hools-rail__title">{{ section.settings.rail_title }}</h2>
-              {%- for position in rest offset: 2 limit: 4 -%}
-                {%- assign at = position | plus: 0 -%}
-                {%- render 'hools-article-card',
-                  article: blog.articles[at],
-                  variant: 'aside',
-                  show_lead: false,
-                  show_date: false
-                -%}
-              {%- endfor -%}
+              {%- if rest.size > 2 -%}
+                <h2 class="hools-rail__title">{{ section.settings.rail_title }}</h2>
+                {%- for position in rest offset: 2 limit: rail_count -%}
+                  {%- assign at = position | plus: 0 -%}
+                  {%- render 'hools-article-card',
+                    article: blog.articles[at],
+                    variant: 'aside',
+                    show_lead: false,
+                    show_date: false
+                  -%}
+                {%- endfor -%}
+              {%- endif -%}
+
+              {%- if promo_product != blank -%}
+                <div class="hools-promo">
+                  <p class="hools-promo__kicker">{{ section.settings.promo_kicker }}</p>
+                  <a class="hools-promo__link" href="{{ promo_product.url }}?utm_source=blog&utm_medium=rail&utm_campaign=away-end">
+                    {%- if promo_product.featured_image -%}
+                      <span class="hools-promo__media">
+                        <img
+                          src="{{ promo_product.featured_image | image_url: width: 600 }}"
+                          alt="{{ promo_product.featured_image.alt | default: promo_product.title | escape }}"
+                          loading="lazy"
+                        >
+                      </span>
+                    {%- endif -%}
+                    <span class="hools-promo__title">{{ promo_product.title }}</span>
+                    <span class="hools-promo__price">{{ promo_product.price | money }}</span>
+                    <span class="hools-promo__cta">{{ section.settings.promo_cta }}</span>
+                  </a>
+                </div>
+              {%- endif -%}
             </aside>
           {%- endif -%}
 
@@ -187,10 +236,11 @@
       {% comment %} ---------- REJILLA ---------- {% endcomment %}
       {%- comment -%}
         En la portada la rejilla recoge lo que queda tras la destacada, las dos
-        secundarias y las cuatro del lateral (6 de `rest`). En el resto de
-        páginas no hay portada, así que van todas.
+        secundarias y las del lateral (grid_offset de `rest`, que se mueve solo
+        si cambias cuántas van en la columna). En el resto de páginas no hay
+        portada, así que van todas.
       {%- endcomment -%}
-      {%- if is_cover %}{% assign grid_size = rest.size | minus: 6 %}{% else %}{% assign grid_size = blog.articles.size %}{% endif -%}
+      {%- if is_cover %}{% assign grid_size = rest.size | minus: grid_offset %}{% else %}{% assign grid_size = blog.articles.size %}{% endif -%}
 
       {%- if grid_size > 0 -%}
         <section class="hools-more">
@@ -204,7 +254,7 @@
 
           <div class="hools-grid">
             {%- if is_cover -%}
-              {%- for position in rest offset: 6 -%}
+              {%- for position in rest offset: grid_offset -%}
                 {%- assign at = position | plus: 0 -%}
                 {%- render 'hools-article-card',
                   article: blog.articles[at],
@@ -411,6 +461,80 @@
     border-bottom:2px solid var(--hools-gold);
   }
 
+  /* ---------- PRODUCTO EN LA COLUMNA ----------
+     Cierra la columna derecha y es el único enlace a la tienda de la portada.
+     Va deliberadamente marcado como "de la tienda": no debe confundirse con
+     una noticia más. */
+  .hools-promo{
+    margin-top:28px;
+    padding-top:20px;
+    border-top:2px solid var(--hools-gold);
+  }
+
+  .hools-promo__kicker{
+    font-family:var(--hools-sans);
+    font-size:11px;
+    font-weight:800;
+    text-transform:uppercase;
+    letter-spacing:.14em;
+    color:var(--hools-green);
+    margin:0 0 14px;
+  }
+
+  .hools-promo__link{
+    display:block;
+    text-decoration:none;
+    color:inherit;
+  }
+
+  .hools-promo__media{
+    display:block;
+    overflow:hidden;
+    background:#f2f2f2;
+    aspect-ratio:1/1;
+  }
+
+  .hools-promo__media img{
+    display:block;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    transition:transform .4s ease;
+  }
+
+  .hools-promo__link:hover .hools-promo__media img{ transform:scale(1.03); }
+
+  .hools-promo__title{
+    display:block;
+    font-family:var(--hools-serif);
+    font-size:18px;
+    line-height:1.25;
+    margin-top:12px;
+  }
+
+  .hools-promo__price{
+    display:block;
+    font-family:var(--hools-sans);
+    font-size:14px;
+    color:rgba(21,21,21,.6);
+    margin-top:4px;
+  }
+
+  .hools-promo__cta{
+    display:inline-block;
+    font-family:var(--hools-sans);
+    font-size:12px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.1em;
+    color:var(--hools-black);
+    background:var(--hools-gold);
+    padding:11px 20px;
+    margin-top:14px;
+  }
+
+  .hools-promo__link:hover .hools-promo__cta{ background:#e0c433; }
+
   /* ---------- TARJETAS ---------- */
   .hools-card__link{
     display:block;
@@ -591,6 +715,13 @@
 
     { "type": "header", "content": "Portada" },
     { "type": "text", "id": "rail_title", "label": "Título de la columna lateral", "default": "También hoy" },
+    { "type": "range", "id": "rail_count", "min": 3, "max": 8, "step": 1, "label": "Titulares en la columna", "default": 5, "info": "Cinco titulares más el producto del final cuadran con la altura de la columna izquierda." },
+
+    { "type": "header", "content": "Producto en la columna" },
+    { "type": "checkbox", "id": "promo_show", "label": "Mostrar un producto al final de la columna", "default": true, "info": "Cierra el hueco y es la única salida a la tienda que tiene esta página. Cambia solo, un producto distinto cada día." },
+    { "type": "collection", "id": "promo_collection", "label": "De qué colección", "info": "Si lo dejas vacío, usa «productos»." },
+    { "type": "text", "id": "promo_kicker", "label": "Antetítulo", "default": "De la tienda" },
+    { "type": "text", "id": "promo_cta", "label": "Texto del botón", "default": "Ver producto" },
     { "type": "text", "id": "grid_title", "label": "Título de la rejilla", "default": "Más historias" }
   ],
   "presets": [

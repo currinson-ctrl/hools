@@ -1,0 +1,321 @@
+{% comment %}
+  HOOLS · ÚLTIMAS DEL BLOG (franja para la portada de la tienda)
+
+  La tienda no tenía ni una salida hacia el blog: todo el tráfico que entra a
+  comprar se iba sin enterarse de que existe. Esta franja es esa salida, y va
+  en la portada porque es donde cae casi todo el mundo.
+
+  Reutiliza `hools-article-card` con una variante propia ('strip'), así que el
+  antetítulo de categoría, la imagen y el titular salen exactamente igual que
+  en la portada del blog. El CSS de aquella vive dentro de su sección y no se
+  carga en la portada de la tienda, por eso esta trae el suyo.
+
+  La forma de la foto es un ajuste y no una decisión fija: las miniaturas que
+  llegan de X suelen ser verticales, y recortarlas a apaisado se come medio
+  encuadre. Por eso el valor por defecto es 4/5.
+{% endcomment %}
+
+{%- liquid
+  assign strip_blog = blogs[section.settings.blog]
+  if strip_blog == blank or strip_blog.articles_count == 0
+    assign strip_blog = blogs['the-away-end']
+  endif
+
+  assign wanted = section.settings.count
+  assign filter_tag = section.settings.filter_tag
+-%}
+
+{%- if strip_blog != blank and strip_blog.articles_count > 0 -%}
+
+  <section
+    class="hools-strip"
+    style="
+      --card-ratio:{{ section.settings.card_ratio }};
+      --card-bg:{{ section.settings.card_bg }};
+      --strip-bg:{{ section.settings.bg_color }};
+      --strip-pt:{{ section.settings.padding_top }}px;
+      --strip-pb:{{ section.settings.padding_bottom }}px;
+    "
+  >
+    <div class="hools-strip__inner">
+
+      <header class="hools-strip__head">
+        <div>
+          {%- if section.settings.kicker != blank -%}
+            <p class="hools-strip__kicker">{{ section.settings.kicker }}</p>
+          {%- endif -%}
+          {%- if section.settings.heading != blank -%}
+            <h2 class="hools-strip__title">{{ section.settings.heading }}</h2>
+          {%- endif -%}
+        </div>
+
+        {%- if section.settings.link_text != blank -%}
+          <a class="hools-strip__all" href="{{ strip_blog.url }}">
+            {{ section.settings.link_text }} <span aria-hidden="true">→</span>
+          </a>
+        {%- endif -%}
+      </header>
+
+      <div class="hools-strip__track">
+        {%- assign shown = 0 -%}
+        {%- for article in strip_blog.articles limit: 24 -%}
+          {%- if shown >= wanted -%}
+            {%- break -%}
+          {%- endif -%}
+
+          {%- if filter_tag != 'all' -%}
+            {%- unless article.tags contains filter_tag -%}
+              {%- continue -%}
+            {%- endunless -%}
+          {%- endif -%}
+
+          {%- render 'hools-article-card',
+            article: article,
+            variant: 'strip',
+            show_lead: false,
+            show_date: section.settings.show_date
+          -%}
+
+          {%- assign shown = shown | plus: 1 -%}
+        {%- endfor -%}
+      </div>
+
+    </div>
+  </section>
+
+  <style>
+    .hools-strip{
+      --hools-black:#151515;
+      --hools-green:#213B2E;
+      --hools-gold:#CCB229;
+      --hools-serif:"Source Serif 4", Georgia, serif;
+      --hools-sans:"Muli", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+
+      background:var(--strip-bg,#F8F8F8);
+      color:var(--hools-black);
+      padding:var(--strip-pt,48px) 0 var(--strip-pb,48px);
+    }
+
+    .hools-strip__inner{
+      max-width:1280px;
+      margin:0 auto;
+      padding:0 20px;
+    }
+
+    /* Cabecera: antetítulo y título a la izquierda, salida al blog a la
+       derecha, con la regla dorada cruzando por debajo de los dos. */
+    .hools-strip__head{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:24px;
+      padding-bottom:12px;
+      margin-bottom:28px;
+      border-bottom:2px solid var(--hools-gold);
+    }
+
+    .hools-strip__kicker{
+      font-family:var(--hools-sans);
+      font-size:11px;
+      font-weight:800;
+      text-transform:uppercase;
+      letter-spacing:.16em;
+      color:var(--hools-green);
+      margin:0 0 6px;
+    }
+
+    .hools-strip__title{
+      font-family:var(--hools-serif);
+      font-weight:400;
+      font-size:clamp(24px,3vw,34px);
+      line-height:1.1;
+      letter-spacing:-.01em;
+      margin:0;
+    }
+
+    .hools-strip__all{
+      flex:none;
+      font-family:var(--hools-sans);
+      font-size:12px;
+      font-weight:700;
+      text-transform:uppercase;
+      letter-spacing:.1em;
+      text-decoration:none;
+      color:var(--hools-green);
+      white-space:nowrap;
+      padding-bottom:2px;
+    }
+
+    .hools-strip__all:hover{
+      color:var(--hools-black);
+      text-decoration:underline;
+      text-decoration-color:var(--hools-gold);
+      text-underline-offset:4px;
+      text-decoration-thickness:2px;
+    }
+
+    .hools-strip__track{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:28px;
+    }
+
+    /* ---------- TARJETA ----------
+       Mismo componente que la portada del blog. Su CSS está en la sección de
+       aquella, que no se carga en esta página, así que se estila aquí dentro
+       del ámbito .hools-strip para no pisarse con nada. */
+    .hools-strip .hools-card__link{
+      display:block;
+      text-decoration:none;
+      color:inherit;
+    }
+
+    /* La tarjeta y sus envoltorios no pintan fondo: el único fondo es el de la
+       caja de la foto, y se controla desde el editor. Va con !important porque
+       algo del tema estaba pintando estas tarjetas de gris con las esquinas
+       redondeadas, y no viene de este fichero ni del CSS personalizado de la
+       plantilla; hasta dar con la regla, esto la desactiva sin depender de
+       encontrarla. */
+    .hools-strip .hools-card,
+    .hools-strip .hools-card__link,
+    .hools-strip .hools-card__text{
+      background:transparent !important;
+    }
+
+    .hools-strip .hools-card__media{
+      position:relative;
+      overflow:hidden;
+      background:var(--card-bg,#F6F6F6) !important;
+      aspect-ratio:var(--card-ratio,4/5);
+    }
+
+    .hools-strip .hools-card__media img{
+      display:block;
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      transition:transform .4s ease;
+    }
+
+    .hools-strip .hools-card__link:hover .hools-card__media img{
+      transform:scale(1.03);
+    }
+
+    .hools-strip .hools-card__text{ padding-top:14px; }
+
+    .hools-strip .hools-card__kicker{
+      display:inline-block;
+      font-family:var(--hools-sans);
+      font-size:11px;
+      font-weight:800;
+      text-transform:uppercase;
+      letter-spacing:.12em;
+      color:var(--hools-green);
+      margin-bottom:6px;
+    }
+
+    .hools-strip .hools-card__title{
+      font-family:var(--hools-serif);
+      font-weight:400;
+      font-size:20px;
+      line-height:1.2;
+      letter-spacing:-.01em;
+      margin:0;
+    }
+
+    .hools-strip .hools-card__link:hover .hools-card__title{
+      text-decoration:underline;
+      text-decoration-color:var(--hools-gold);
+      text-underline-offset:3px;
+      text-decoration-thickness:2px;
+    }
+
+    .hools-strip .hools-card__date{
+      display:block;
+      font-family:var(--hools-sans);
+      font-size:12px;
+      color:rgba(21,21,21,.5);
+      margin-top:8px;
+    }
+
+    /* ---------- RESPONSIVE ----------
+       En móvil no se apila: se desliza de lado. Tres noticias apiladas
+       empujan el resto de la portada media pantalla hacia abajo, y esta
+       franja es un complemento, no el contenido principal de la página. */
+    @media (max-width:989px){
+      .hools-strip__track{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+    }
+
+    @media (max-width:749px){
+      .hools-strip__inner{ padding:0 16px; }
+      .hools-strip__head{ margin-bottom:20px; }
+
+      .hools-strip__track{
+        display:flex;
+        gap:16px;
+        overflow-x:auto;
+        scroll-snap-type:x mandatory;
+        -webkit-overflow-scrolling:touch;
+        padding-bottom:6px;
+      }
+
+      .hools-strip__track > .hools-card{
+        flex:0 0 66%;
+        scroll-snap-align:start;
+      }
+
+      .hools-strip .hools-card__title{ font-size:18px; }
+    }
+  </style>
+
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Hools · Últimas del blog",
+  "tag": "section",
+  "settings": [
+    { "type": "blog", "id": "blog", "label": "Blog", "info": "Si se deja vacío, usa The Away End." },
+    { "type": "text", "id": "kicker", "label": "Antetítulo", "default": "The Away End" },
+    { "type": "text", "id": "heading", "label": "Título", "default": "Desde la grada" },
+    { "type": "text", "id": "link_text", "label": "Enlace al blog", "default": "Ver todas", "info": "Vacío para no mostrarlo." },
+
+    { "type": "header", "content": "Noticias" },
+    { "type": "range", "id": "count", "min": 2, "max": 6, "step": 1, "label": "Cuántas mostrar", "default": 3 },
+    {
+      "type": "select",
+      "id": "filter_tag",
+      "label": "Categoría",
+      "default": "all",
+      "options": [
+        { "value": "all", "label": "Todas" },
+        { "value": "AFICION", "label": "Afición" },
+        { "value": "VIAJES", "label": "Desplazamientos" },
+        { "value": "MODA", "label": "Casual" }
+      ]
+    },
+    {
+      "type": "select",
+      "id": "card_ratio",
+      "label": "Forma de la foto",
+      "default": "4/5",
+      "info": "Las fotos que llegan de X suelen ser verticales: en apaisado se recorta medio encuadre.",
+      "options": [
+        { "value": "4/5", "label": "Vertical (4/5)" },
+        { "value": "1/1", "label": "Cuadrada" },
+        { "value": "3/2", "label": "Apaisada (3/2)" }
+      ]
+    },
+    { "type": "checkbox", "id": "show_date", "label": "Mostrar la fecha", "default": true },
+
+    { "type": "header", "content": "Aspecto" },
+    { "type": "color", "id": "bg_color", "label": "Fondo de la franja", "default": "#F8F8F8" },
+    { "type": "color", "id": "card_bg", "label": "Fondo de las tarjetas", "default": "#F6F6F6", "info": "Solo se ve por detrás de la foto: si la foto llena la tarjeta, no se aprecia." },
+    { "type": "range", "id": "padding_top", "min": 0, "max": 100, "step": 4, "unit": "px", "label": "Espacio arriba", "default": 48 },
+    { "type": "range", "id": "padding_bottom", "min": 0, "max": 100, "step": 4, "unit": "px", "label": "Espacio abajo", "default": 48 }
+  ],
+  "presets": [
+    { "name": "Hools · Últimas del blog" }
+  ]
+}
+{% endschema %}
