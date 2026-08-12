@@ -7,14 +7,15 @@ aprobar una noticia la publica automáticamente:
 - como artículo en el blog de Shopify de **hoolsbrand.com** (blog "The Away End"), y
 - como tuit en **X** con el enlace al artículo publicado.
 
-La aprobación es manual a propósito (ver "¿Por qué revisión manual?" abajo).
-El rastreo de fuentes sí es automático, vía un cron de GitHub Actions.
+La aprobación es manual a propósito (ver "¿Por qué revisión manual?" abajo), y
+el rastreo también: se dispara con un botón, no con un horario (ver "Cuándo se
+rastrea" abajo).
 
 ## Cómo funciona
 
 ```
-GitHub Actions (cron cada 3h)
-        │  POST/GET /api/cron/fetch  (con CRON_SECRET)
+Botón "Buscar noticias ahora" (/dashboard?status=PENDING)
+        │  (o GET /api/cron/fetch con CRON_SECRET, para dispararlo desde fuera)
         ▼
 Lee todas las fuentes RSS activas → crea Article en estado PENDING
 (deduplicado por guid/link, no se repiten noticias)
@@ -92,6 +93,43 @@ reescribir el texto (si se pierde algún párrafo por el camino, descarta el
 resultado y maqueta solo lo que no necesita criterio). Va por tandas de 8 y es
 idempotente, así que hay que pulsarlo hasta que avise de que no queda ninguno.
 
+## Titulares
+
+Un titular tiene que **contar lo que pasa: quién y qué**. El modelo había
+cogido un tic —«X: cuando la afición reconoce el sacrificio de un ídolo»— que
+evoca mucho y no dice nada. El problema no era la longitud: recortar eso a «La
+Roma y su gesto de honor» lo deja corto y peor, porque ya no dice con quién. El
+titular bueno es «La Roma y su gesto de honor con Ranieri», y uno largo se
+justifica si cuenta algo («La Curva Nord de la Lazio convirtió el derby en una
+batalla de carteles»).
+
+Las reglas viven en `TITLE_RULES` (`src/lib/translate.ts`) y las comparten los
+dos prompts, el que escribe el artículo y el que repasa un titular ya guardado,
+para que no se contradigan. Las 14 palabras / 80 caracteres de
+`MAX_TITLE_WORDS` y `MAX_TITLE_CHARS` son un **techo, no un objetivo**.
+
+No se confía solo en el prompt:
+
+1. `normalizeTitle()` limpia sin gastar llamada lo que se puede limpiar sin
+   leer la noticia: comillas, punto final y el «cuando» (de apertura o colgado
+   de los dos puntos). Quitarlo no quita información y suele dejar el titular
+   ya bien. Lo que **no** hace es podar el subtítulo: eso acorta, pero se lleva
+   por delante lo que el titular contaba.
+2. Si aun así no cumple, `improveSpanishTitle()` se lo pasa a Claude **junto
+   con el texto del artículo**, que es de donde sale lo que al titular le falta
+   (el «con Ranieri» del ejemplo).
+
+Los titulares que ya están guardados se repasan desde el dashboard con el botón
+**«Arreglar titulares»**, que actúa sobre la pestaña en la que estés. En los
+publicados cambia también el título en Shopify; el `handle` no se toca, así que
+las URLs que ya estén circulando siguen funcionando. El tuit se reescribe solo
+si todavía no se ha publicado (X no permite editar un tuit vivo). Va por tandas
+de 12 y es idempotente: se pulsa hasta que avise de que no queda ninguno.
+
+Ojo con lo que ese botón **no** puede hacer: detecta el «cuando» y el exceso de
+largo, que se ven sin leer la noticia, pero no el titular corto y vago. Para
+esos, edición a mano desde la ficha del artículo.
+
 ## Puesta en marcha local
 
 Necesitas una base Postgres incluso en local (ver "Base de datos" abajo) —
@@ -109,11 +147,35 @@ npm run dev
 Abre `http://localhost:3000`, te redirige a `/login` (usa `DASHBOARD_PASSWORD`
 de tu `.env`).
 
-Para probar la agregación en local sin esperar al cron:
+La agregación se lanza desde el botón «Buscar noticias ahora» del dashboard, o
+por HTTP si prefieres verla en crudo:
 
 ```bash
 curl -H "Authorization: Bearer <CRON_SECRET>" http://localhost:3000/api/cron/fetch
 ```
+
+## Cuándo se rastrea
+
+**No hay horario automático: se rastrea cuando tú lo pides.** El botón
+**«Buscar noticias ahora»** de `/dashboard?status=PENDING` lee todas las
+fuentes activas y añade a la cola lo que no estuviera ya. Tarda un rato (hay
+que leer las fuentes y escribir con Claude cada noticia nueva), así que no te
+extrañe que la página se quede pensando; al terminar avisa de cuántas ha
+encontrado.
+
+Antes esto lo hacía un cron de GitHub Actions cada 3 horas, y se quitó a
+propósito: llenaba la cola hubiera o no alguien para revisarla, y en el caso de
+las fuentes de tipo «Cuenta de X» eso son lecturas de una API de pago ocho
+veces al día. Rastrear justo cuando vas a revisar es lo mismo con menos gasto.
+Como aviso, si dejas pasar mucho tiempo entre barridos puedes perderte noticias
+de feeds que solo mantienen los últimos N elementos.
+
+El workflow `.github/workflows/aggregate.yml` sigue existiendo como vía
+alternativa, pero ya solo corre cuando se pulsa **«Run workflow»** en la
+pestaña Actions del repo. Para recuperar el horario basta con devolverle el
+bloque `schedule` que quedó comentado en el propio fichero. Ojo: los cron de
+GitHub Actions se ejecutan con retraso (en este repo iban entre 1 y 2 horas
+tarde), así que «cada 3 horas» nunca fue una hora fija.
 
 ## Variables de entorno
 
@@ -281,13 +343,15 @@ primera, sin esperas inútiles.
    `.env.example` (como mínimo `DATABASE_URL`, `DASHBOARD_PASSWORD`,
    `SESSION_SECRET`, `CRON_SECRET`; Shopify/X se pueden añadir después).
 4. Despliega. La URL pública que te da Vercel (ej. `https://hools-blog.vercel.app`) es tu `APP_URL`.
-5. En el repositorio de GitHub, añade estos **secrets** (Settings → Secrets and
-   variables → Actions) para que el cron de agregación funcione:
+5. Con eso ya puedes rastrear desde el botón «Buscar noticias ahora» del
+   dashboard. Si además quieres poder lanzarlo desde GitHub, añade estos
+   **secrets** al repositorio (Settings → Secrets and variables → Actions):
    - `APP_URL`: la URL del paso anterior
    - `CRON_SECRET`: el mismo valor que pusiste en Vercel
-6. El workflow `.github/workflows/aggregate.yml` llama a
-   `/api/cron/fetch` cada 3 horas (ajustable) para rellenar la cola de
-   revisión. También se puede lanzar a mano desde la pestaña "Actions" del repo.
+
+   El workflow `.github/workflows/aggregate.yml` llama a `/api/cron/fetch`, y
+   solo corre cuando se pulsa «Run workflow» en la pestaña Actions (ver
+   "Cuándo se rastrea" arriba).
 
 ## Gestión de fuentes
 

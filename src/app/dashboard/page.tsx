@@ -8,13 +8,15 @@ import {
   approveArticleAction,
   backfillPublishedArticlesAction,
   cleanupOffTopicAction,
+  fetchNowAction,
+  fixTitlesAction,
   rejectArticleAction,
   restructurePublishedArticlesAction,
   unpublishArticleAction,
 } from "./actions";
 
 // Igual que /api/cron/fetch: si Fluid Compute lo permite, mejor tener
-// margen (la limpieza puede llamar a Claude varias veces).
+// margen (el rastreo y la limpieza llaman a Claude varias veces).
 export const maxDuration = 280;
 
 const STATUS_LABEL: Record<ArticleStatus, string> = {
@@ -49,30 +51,56 @@ export default async function DashboardPage({
 
       <div className="row" style={{ justifyContent: "space-between", marginBottom: 16 }}>
         <h1 style={{ fontSize: 18, margin: 0 }}>{STATUS_LABEL[status]}</h1>
-        {status === "PENDING" && (
-          <form action={cleanupOffTopicAction}>
-            <input type="hidden" name="returnTo" value={returnTo} />
-            <button type="submit" title="Rechaza las pendientes que no sean de aficion/ultras/desplazamientos/moda casual">
-              Limpiar fuera de tema
-            </button>
-          </form>
-        )}
-        {status === "PUBLISHED" && (
-          <div className="row" style={{ gap: 8 }}>
-            <form action={restructurePublishedArticlesAction}>
+        <div className="row" style={{ gap: 8 }}>
+          {status === "PENDING" && (
+            <>
+              <form action={fetchNowAction}>
+                <input type="hidden" name="returnTo" value={returnTo} />
+                <button
+                  className="primary"
+                  type="submit"
+                  title="Lee ahora mismo todas las fuentes activas y añade a esta cola las noticias que no estuvieran ya. Tarda un rato: hay que leer las fuentes y escribir cada noticia nueva"
+                >
+                  Buscar noticias ahora
+                </button>
+              </form>
+              <form action={cleanupOffTopicAction}>
+                <input type="hidden" name="returnTo" value={returnTo} />
+                <button type="submit" title="Rechaza las pendientes que no sean de aficion/ultras/desplazamientos/moda casual">
+                  Limpiar fuera de tema
+                </button>
+              </form>
+            </>
+          )}
+          {status !== "REJECTED" && (
+            <form action={fixTitlesAction}>
+              <input type="hidden" name="status" value={status} />
               <input type="hidden" name="returnTo" value={returnTo} />
-              <button type="submit" title="Remaqueta los artículos ya publicados con la estructura nueva: entradilla, ladillos, cita destacada, galería y cierre de tienda. Va por tandas: púlsalo hasta que no queden">
-                Remaquetar publicados
+              <button
+                type="submit"
+                title="Repasa los titulares de esta pestaña que caen en el 'cuando' o se pasan de largo: les quita el 'cuando' y, si aún así no cumplen, los reescribe con lo que cuenta el artículo. En los publicados también los cambia en Shopify (la URL no cambia). Va por tandas: púlsalo hasta que no queden"
+              >
+                Arreglar titulares
               </button>
             </form>
-            <form action={backfillPublishedArticlesAction}>
-              <input type="hidden" name="returnTo" value={returnTo} />
-              <button type="submit" title="Añade a los artículos ya publicados el cierre con enlace a la tienda, y rellena en Shopify el resumen y el texto alternativo de la imagen">
-                Añadir cierre de tienda a los publicados
-              </button>
-            </form>
-          </div>
-        )}
+          )}
+          {status === "PUBLISHED" && (
+            <>
+              <form action={restructurePublishedArticlesAction}>
+                <input type="hidden" name="returnTo" value={returnTo} />
+                <button type="submit" title="Remaqueta los artículos ya publicados con la estructura nueva: entradilla, ladillos, cita destacada, galería y cierre de tienda. Va por tandas: púlsalo hasta que no queden">
+                  Remaquetar publicados
+                </button>
+              </form>
+              <form action={backfillPublishedArticlesAction}>
+                <input type="hidden" name="returnTo" value={returnTo} />
+                <button type="submit" title="Añade a los artículos ya publicados el cierre con enlace a la tienda, y rellena en Shopify el resumen y el texto alternativo de la imagen">
+                  Añadir cierre de tienda a los publicados
+                </button>
+              </form>
+            </>
+          )}
+        </div>
       </div>
 
       {articles.length === 0 && (

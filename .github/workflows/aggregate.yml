@@ -4,9 +4,17 @@ on:
   push:
     branches: [claude/hoolsbrand-blog-aggregator-tlykwh]
     paths: [.github/workflows/aggregate.yml]
-  schedule:
-    # Cada 3 horas. Ajusta la cadencia según cuánto contenido publiquen tus fuentes.
-    - cron: "0 */3 * * *"
+  # Sin horario: el rastreo se dispara a mano. Lo normal es hacerlo desde el
+  # botón "Buscar noticias ahora" del dashboard, que es donde luego se revisa
+  # la cola; este workflow se queda como vía alternativa, ejecutándose solo
+  # cuando se pulsa "Run workflow" aquí en Actions.
+  #
+  # Antes corría cada 3 horas ("0 */3 * * *"), y llenaba la cola hubiera o no
+  # alguien para revisarla. Si algún día se quiere recuperar, basta con
+  # devolver el bloque schedule:
+  #
+  #   schedule:
+  #     - cron: "0 */3 * * *"
   workflow_dispatch: {}
 
 jobs:
