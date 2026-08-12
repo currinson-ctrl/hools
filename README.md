@@ -7,14 +7,15 @@ aprobar una noticia la publica automáticamente:
 - como artículo en el blog de Shopify de **hoolsbrand.com** (blog "The Away End"), y
 - como tuit en **X** con el enlace al artículo publicado.
 
-La aprobación es manual a propósito (ver "¿Por qué revisión manual?" abajo).
-El rastreo de fuentes sí es automático, vía un cron de GitHub Actions.
+La aprobación es manual a propósito (ver "¿Por qué revisión manual?" abajo), y
+el rastreo también: se dispara con un botón, no con un horario (ver "Cuándo se
+rastrea" abajo).
 
 ## Cómo funciona
 
 ```
-GitHub Actions (cron cada 3h)
-        │  POST/GET /api/cron/fetch  (con CRON_SECRET)
+Botón "Buscar noticias ahora" (/dashboard?status=PENDING)
+        │  (o GET /api/cron/fetch con CRON_SECRET, para dispararlo desde fuera)
         ▼
 Lee todas las fuentes RSS activas → crea Article en estado PENDING
 (deduplicado por guid/link, no se repiten noticias)
@@ -126,11 +127,35 @@ npm run dev
 Abre `http://localhost:3000`, te redirige a `/login` (usa `DASHBOARD_PASSWORD`
 de tu `.env`).
 
-Para probar la agregación en local sin esperar al cron:
+La agregación se lanza desde el botón «Buscar noticias ahora» del dashboard, o
+por HTTP si prefieres verla en crudo:
 
 ```bash
 curl -H "Authorization: Bearer <CRON_SECRET>" http://localhost:3000/api/cron/fetch
 ```
+
+## Cuándo se rastrea
+
+**No hay horario automático: se rastrea cuando tú lo pides.** El botón
+**«Buscar noticias ahora»** de `/dashboard?status=PENDING` lee todas las
+fuentes activas y añade a la cola lo que no estuviera ya. Tarda un rato (hay
+que leer las fuentes y escribir con Claude cada noticia nueva), así que no te
+extrañe que la página se quede pensando; al terminar avisa de cuántas ha
+encontrado.
+
+Antes esto lo hacía un cron de GitHub Actions cada 3 horas, y se quitó a
+propósito: llenaba la cola hubiera o no alguien para revisarla, y en el caso de
+las fuentes de tipo «Cuenta de X» eso son lecturas de una API de pago ocho
+veces al día. Rastrear justo cuando vas a revisar es lo mismo con menos gasto.
+Como aviso, si dejas pasar mucho tiempo entre barridos puedes perderte noticias
+de feeds que solo mantienen los últimos N elementos.
+
+El workflow `.github/workflows/aggregate.yml` sigue existiendo como vía
+alternativa, pero ya solo corre cuando se pulsa **«Run workflow»** en la
+pestaña Actions del repo. Para recuperar el horario basta con devolverle el
+bloque `schedule` que quedó comentado en el propio fichero. Ojo: los cron de
+GitHub Actions se ejecutan con retraso (en este repo iban entre 1 y 2 horas
+tarde), así que «cada 3 horas» nunca fue una hora fija.
 
 ## Variables de entorno
 
@@ -298,13 +323,15 @@ primera, sin esperas inútiles.
    `.env.example` (como mínimo `DATABASE_URL`, `DASHBOARD_PASSWORD`,
    `SESSION_SECRET`, `CRON_SECRET`; Shopify/X se pueden añadir después).
 4. Despliega. La URL pública que te da Vercel (ej. `https://hools-blog.vercel.app`) es tu `APP_URL`.
-5. En el repositorio de GitHub, añade estos **secrets** (Settings → Secrets and
-   variables → Actions) para que el cron de agregación funcione:
+5. Con eso ya puedes rastrear desde el botón «Buscar noticias ahora» del
+   dashboard. Si además quieres poder lanzarlo desde GitHub, añade estos
+   **secrets** al repositorio (Settings → Secrets and variables → Actions):
    - `APP_URL`: la URL del paso anterior
    - `CRON_SECRET`: el mismo valor que pusiste en Vercel
-6. El workflow `.github/workflows/aggregate.yml` llama a
-   `/api/cron/fetch` cada 3 horas (ajustable) para rellenar la cola de
-   revisión. También se puede lanzar a mano desde la pestaña "Actions" del repo.
+
+   El workflow `.github/workflows/aggregate.yml` llama a `/api/cron/fetch`, y
+   solo corre cuando se pulsa «Run workflow» en la pestaña Actions (ver
+   "Cuándo se rastrea" arriba).
 
 ## Gestión de fuentes
 

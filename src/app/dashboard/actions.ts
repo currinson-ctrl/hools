@@ -31,6 +31,7 @@ import {
   parseLegacyArticleHtml,
   type ArticleSection,
 } from "@/lib/article-html";
+import { runAggregation } from "@/lib/aggregate";
 import { buildBlogArticleUrl, buildCtaHtml } from "@/lib/sources";
 import { ArticleStatus, Category, SourceType } from "@prisma/client";
 
@@ -542,6 +543,43 @@ export async function restructurePublishedArticlesAction(formData: FormData) {
     withError(returnTo, `${summary}. Detalle en los logs.`);
   }
   redirect(`${returnTo}&notice=${encodeURIComponent(summary)}`);
+}
+
+/**
+ * Rastrea las fuentes al momento y deja lo nuevo en la cola de revision. Es
+ * el sustituto del cron: antes esto corria solo cada tres horas, llenando la
+ * cola tanto si habia alguien para revisarla como si no. Ahora se pide
+ * cuando se va a mirar, que es lo que de verdad ahorra (sobre todo si hay
+ * fuentes de tipo "Cuenta de X", que se leen por API de pago).
+ */
+export async function fetchNowAction(formData: FormData) {
+  const returnTo = String(formData.get("returnTo") || "/dashboard?status=PENDING");
+
+  let result;
+  try {
+    result = await runAggregation();
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("Fallo al rastrear las fuentes:", err);
+    withError(returnTo, `No se pudo completar el rastreo: ${message}`);
+  }
+
+  const failed = result.results.filter((r) => r.error);
+  const notice =
+    (result.createdTotal === 0
+      ? `Rastreo terminado: ninguna noticia nueva (${result.sourcesProcessed} fuentes)`
+      : `Rastreo terminado: ${result.createdTotal} noticia(s) nueva(s) de ${result.sourcesProcessed} fuentes`) +
+    (failed.length ? `, ${failed.length} fuente(s) fallaron (ver logs)` : "");
+  if (failed.length) {
+    console.error(
+      "Fuentes con error en el rastreo:",
+      failed.map((r) => `${r.source}: ${r.error}`).join(" | ")
+    );
+  }
+
+  revalidatePath("/dashboard");
+  const separator = returnTo.includes("?") ? "&" : "?";
+  redirect(`${returnTo}${separator}notice=${encodeURIComponent(notice)}`);
 }
 
 // Cada titular puede costar una llamada a Claude (solo los que no arregla la

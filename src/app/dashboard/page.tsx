@@ -8,14 +8,15 @@ import {
   approveArticleAction,
   backfillPublishedArticlesAction,
   cleanupOffTopicAction,
-  rejectArticleAction,
+  fetchNowAction,
   fixTitlesAction,
+  rejectArticleAction,
   restructurePublishedArticlesAction,
   unpublishArticleAction,
 } from "./actions";
 
 // Igual que /api/cron/fetch: si Fluid Compute lo permite, mejor tener
-// margen (la limpieza puede llamar a Claude varias veces).
+// margen (el rastreo y la limpieza llaman a Claude varias veces).
 export const maxDuration = 280;
 
 const STATUS_LABEL: Record<ArticleStatus, string> = {
@@ -52,12 +53,24 @@ export default async function DashboardPage({
         <h1 style={{ fontSize: 18, margin: 0 }}>{STATUS_LABEL[status]}</h1>
         <div className="row" style={{ gap: 8 }}>
           {status === "PENDING" && (
-            <form action={cleanupOffTopicAction}>
-              <input type="hidden" name="returnTo" value={returnTo} />
-              <button type="submit" title="Rechaza las pendientes que no sean de aficion/ultras/desplazamientos/moda casual">
-                Limpiar fuera de tema
-              </button>
-            </form>
+            <>
+              <form action={fetchNowAction}>
+                <input type="hidden" name="returnTo" value={returnTo} />
+                <button
+                  className="primary"
+                  type="submit"
+                  title="Lee ahora mismo todas las fuentes activas y añade a esta cola las noticias que no estuvieran ya. Tarda un rato: hay que leer las fuentes y escribir cada noticia nueva"
+                >
+                  Buscar noticias ahora
+                </button>
+              </form>
+              <form action={cleanupOffTopicAction}>
+                <input type="hidden" name="returnTo" value={returnTo} />
+                <button type="submit" title="Rechaza las pendientes que no sean de aficion/ultras/desplazamientos/moda casual">
+                  Limpiar fuera de tema
+                </button>
+              </form>
+            </>
           )}
           {status !== "REJECTED" && (
             <form action={fixTitlesAction}>
