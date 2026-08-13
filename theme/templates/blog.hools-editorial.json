@@ -19,8 +19,13 @@
         "title_line_2": "END",
         "hero_seo_title": "Cultura terrace y fútbol casual: la historia que se escribe en el sector visitante",
         "hero_subtitle": "La historia que se escribe en el sector visitante.",
-        "carousel_title": "Últimos artículos",
-        "carousel_count": 24
+        "rail_title": "También hoy",
+        "rail_count": 5,
+        "promo_show": true,
+        "promo_collection": "productos",
+        "promo_kicker": "De la tienda",
+        "promo_cta": "Ver producto",
+        "grid_title": "Más historias"
       }
     },
     "collection_list_UtWH6G": {

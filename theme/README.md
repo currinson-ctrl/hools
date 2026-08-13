@@ -37,10 +37,20 @@ quedan en blanco sin que nada avise.
 > comparación es semántica, no byte a byte. El JSON del artículo sí lo subimos
 > nosotros con formato, así que ese sí coincide.
 >
-> Ese mismo JSON arrastra dos ajustes muertos del carrusel anterior
-> (`carousel_title`, `carousel_count`) que el schema actual ya no declara. No
-> molestan — Shopify los ignora — y desaparecerán en cuanto el fichero se vuelva
-> a subir.
+> **Y por eso todos los ajustes de la portada se escriben aquí a mano, aunque
+> el schema ya traiga el mismo valor por defecto.** Cuando el editor guarda
+> este fichero, escribe el juego de ajustes que él conoce y **borra los que no
+> estaban cargados en esa sesión**: así se perdieron `rail_count` y
+> `promo_show` el 8 de agosto (el guardado se hizo con el schema anterior, del
+> que aún quedaban `carousel_title` y `carousel_count`). El Liquid sobrevivió
+> intacto, pero la columna volvió a quedarse corta y el producto del final
+> dejó de pintarse, que es justo el síntoma de un ajuste borrado: el bloque no
+> falla, sencillamente no se ejecuta.
+>
+> Con el valor escrito en el JSON, un guardado del editor lo conserva. Si
+> vuelve a desaparecer un trozo de la portada sin que nadie haya tocado el
+> `.liquid`, lo primero que hay que mirar es si su ajuste sigue en este
+> fichero.
 
 El blog `the-away-end` y sus artículos usan el sufijo de plantilla
 `hools-editorial`, que es lo que hace que se rendericen con estas secciones y
