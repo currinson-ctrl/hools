@@ -14,6 +14,10 @@
     aside.hools-facts            recuadro "la ficha"
     p.hools-source               atribución a la fuente original
     aside.hools-shop-cta         cierre con enlace a la tienda
+
+  El bloque de redes (aside.hools-follow) es la excepción: NO lo genera el
+  agregador, se pinta aquí. Así sale también en los artículos publicados antes
+  de existir el bloque, sin republicarlos ni remaquetarlos uno a uno.
 {% endcomment %}
 
 {%- liquid
@@ -79,6 +83,23 @@
     assign cta_text = section.settings.cta_text
     assign cta_link = section.settings.cta_link
   endif
+
+  # ---- Redes ----
+  # Los ajustes guardan el @handle, no la URL entera, por dos razones: un
+  # ajuste `url` no admite valor por defecto (se quedaría en blanco hasta que
+  # alguien lo rellenase a mano en el editor, ver theme/README.md), y con el
+  # handle suelto se puede pintar la @ en el botón sin repetirla en dos sitios.
+  assign x_handle = section.settings.social_x_handle | remove: '@' | strip
+  assign tiktok_handle = section.settings.social_tiktok_handle | remove: '@' | strip
+
+  # Liquid no tiene precedencia de operadores (encadenar `and`/`or` se evalúa
+  # de derecha a izquierda), así que la condición del bloque se resuelve aquí.
+  assign show_follow = false
+  if section.settings.social_show
+    if x_handle != blank or tiktok_handle != blank
+      assign show_follow = true
+    endif
+  endif
 -%}
 
 <article class="hools-article" itemscope itemtype="http://schema.org/Article">
@@ -141,6 +162,40 @@
       <div class="hools-content rte" itemprop="articleBody">
         {{ article.content }}
       </div>
+
+      {%- comment -%}
+        Seguir a la marca (tráfico cruzado del blog a las redes). Va después
+        del cuerpo, justo donde se acaba de leer la noticia, y antes de
+        «Compartir»: primero se pide seguir, y luego compartir.
+      {%- endcomment -%}
+      {%- if show_follow -%}
+        <aside class="hools-follow">
+          <p class="hools-follow__kicker">{{ section.settings.social_kicker }}</p>
+          <p class="hools-follow__text">{{ section.settings.social_text }}</p>
+
+          <div class="hools-follow__actions">
+            {%- if x_handle != blank -%}
+              <a class="hools-follow__btn" href="https://x.com/{{ x_handle }}" target="_blank" rel="noopener">
+                <svg class="hools-follow__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path fill="currentColor" d="M18.9 2.3h3.4l-7.4 8.4L23.6 22h-6.8l-5.3-7-6.1 7H2l7.9-9-8-10.7h7l4.8 6.4zm-1.2 17.6h1.9L7.4 4.3H5.4z"/>
+                </svg>
+                <span class="hools-follow__label">Síguenos en X</span>
+                <span class="hools-follow__handle">@{{ x_handle }}</span>
+              </a>
+            {%- endif -%}
+
+            {%- if tiktok_handle != blank -%}
+              <a class="hools-follow__btn" href="https://www.tiktok.com/@{{ tiktok_handle }}" target="_blank" rel="noopener">
+                <svg class="hools-follow__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path fill="currentColor" d="M16.6 2h-3.2v13.6a2.7 2.7 0 1 1-2.7-2.7c.2 0 .5 0 .7.1v-3.2a6 6 0 0 0-.7 0 5.9 5.9 0 1 0 5.9 5.9V9.2a7.2 7.2 0 0 0 4.2 1.3V7.3a4.1 4.1 0 0 1-4.2-3.9V2z"/>
+                </svg>
+                <span class="hools-follow__label">Síguenos en TikTok</span>
+                <span class="hools-follow__handle">@{{ tiktok_handle }}</span>
+              </a>
+            {%- endif -%}
+          </div>
+        </aside>
+      {%- endif -%}
 
       {% if section.settings.show_share_buttons %}
         <div class="hools-footer">
@@ -515,6 +570,83 @@
 
 .hools-content .hools-shop-cta__action a:hover{ background:#e0c433; }
 
+/* ================= SEGUIR EN REDES =================
+   En negro y no en verde: el cierre de tienda (.hools-shop-cta) va justo
+   encima y es verde, así que dos bloques seguidos del mismo color se leerían
+   como uno solo y el de redes se perdería dentro del anterior. */
+.hools-follow{
+  margin:28px 0 0;
+  padding:28px;
+  background:var(--hools-black);
+  color:#fff;
+}
+
+.hools-follow__kicker{
+  font-family:var(--hools-sans);
+  font-size:11px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.16em;
+  color:var(--hools-gold);
+  margin:0 0 8px;
+}
+
+.hools-follow__text{
+  font-family:var(--hools-serif);
+  font-size:clamp(20px,2.2vw,26px);
+  line-height:1.25;
+  margin:0 0 20px;
+}
+
+/* auto-fit y no dos columnas fijas: si se vacía uno de los dos handles, el
+   botón que queda ocupa el ancho entero en vez de dejar medio hueco. */
+.hools-follow__actions{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+  gap:12px;
+}
+
+.hools-follow__btn{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:14px 18px;
+  background:var(--hools-white);
+  color:var(--hools-black);
+  text-decoration:none;
+  font-family:var(--hools-sans);
+  font-size:12px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  transition:background .25s ease, color .25s ease;
+}
+
+/* El reclamo no parte nunca en dos líneas: «Síguenos en TikTok» cabía justo
+   en la columna y se rompía, dejando los dos botones de distinta altura. */
+.hools-follow__label{ white-space:nowrap; }
+
+.hools-follow__btn:hover{
+  background:var(--hools-gold);
+  color:var(--hools-black);
+}
+
+.hools-follow__icon{
+  width:20px;
+  height:20px;
+  flex:0 0 20px;
+}
+
+/* El @ pierde el peso de mayúsculas del botón: el reclamo es «Síguenos en X»,
+   la cuenta es el dato de apoyo. Se cae a la línea siguiente en móvil. */
+.hools-follow__handle{
+  margin-left:auto;
+  font-weight:600;
+  text-transform:none;
+  letter-spacing:0;
+  opacity:.6;
+}
+
 /* Compartir */
 .hools-divider{ height:1px; background:var(--hools-gold); margin:0 0 40px; }
 .hools-divider--small{ margin:50px 0 20px; }
@@ -627,6 +759,12 @@
     transform:none;
   }
   .hools-content .hools-facts__row{ grid-template-columns:minmax(0,1fr); gap:2px; }
+  .hools-follow{ padding:22px 18px; }
+  .hools-follow__actions{ grid-template-columns:minmax(0,1fr); }
+  .hools-follow__btn{ flex-wrap:wrap; }
+  /* El @ pasa a una segunda línea, alineado con el texto y no con el icono
+     (20px de icono + 10px de hueco). */
+  .hools-follow__handle{ margin-left:0; flex-basis:100%; padding-left:30px; }
   .hools-related__grid{ grid-template-columns:minmax(0,1fr); }
 }
 </style>
@@ -652,7 +790,14 @@
     { "type": "text", "id": "cta_text_2", "label": "Colección 2 · texto", "default": "COLECCIÓN SKA" },
     { "type": "url", "id": "cta_link_2", "label": "Colección 2 · enlace" },
     { "type": "text", "id": "cta_text_3", "label": "Colección 3 · texto", "default": "COLECCIÓN MOD" },
-    { "type": "url", "id": "cta_link_3", "label": "Colección 3 · enlace" }
+    { "type": "url", "id": "cta_link_3", "label": "Colección 3 · enlace" },
+
+    { "type": "header", "content": "Síguenos en redes" },
+    { "type": "checkbox", "id": "social_show", "label": "Mostrar bloque de redes al final del artículo", "default": true },
+    { "type": "text", "id": "social_kicker", "label": "Antetítulo", "default": "SÍGUENOS" },
+    { "type": "text", "id": "social_text", "label": "Reclamo", "default": "Lo que no cabe en el blog lo contamos ahí: fotos de grada, desplazamientos y la colección antes que nadie." },
+    { "type": "text", "id": "social_x_handle", "label": "Cuenta de X (sin la @)", "default": "hoolsbrand", "info": "Déjalo en blanco para ocultar solo ese botón." },
+    { "type": "text", "id": "social_tiktok_handle", "label": "Cuenta de TikTok (sin la @)", "default": "hoolsbrand", "info": "Déjalo en blanco para ocultar solo ese botón." }
   ]
 }
 {% endschema %}
