@@ -47,6 +47,21 @@ model Source {
 
   createdAt DateTime  @default(now())
   articles  Article[]
+  skipped   SkippedItem[]
+}
+
+// Items que el filtro de tema ha descartado (no llegan a ser Article). Solo
+// se guarda el guid, y sirve para no volver a pagarle a Claude por reescribir
+// el mismo tuit o la misma noticia en cada pasada: el rastreo vuelve a leer
+// lo ya visto a proposito (el cursor de las cuentas de X se queda atras
+// mientras quede atraso por procesar, ver twitter-source.ts), asi que sin
+// esta tabla cada pasada repetiria las llamadas de los descartes.
+model SkippedItem {
+  id        String   @id @default(cuid())
+  guid      String   @unique
+  sourceId  String
+  source    Source   @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
 }
 
 // Grupos de aficion (peñas/ultras) con su cuenta oficial de X verificada a

@@ -8,17 +8,25 @@ import { translateToSpanish } from "./translate";
 import { searchRelatedImage } from "./image-search";
 import { findMentionedGroups, linkMentionedGroups, type KnownGroup } from "./groups";
 
-// Cuantas traducciones lanzar en paralelo por fuente. Vercel (plan Hobby)
-// corta la funcion a los 60s, asi que preferimos varias llamadas a la vez
-// en vez de una por una.
-const TRANSLATE_CONCURRENCY = 6;
+// Cuantas noticias nuevas se quieren sacar de CADA fuente en cada pasada. El
+// objetivo es tener donde elegir en la cola de revision sin acabar con
+// cincuenta pendientes: con varias fuentes activas, 3 por fuente ya da
+// margen para descartar y quedarse con lo mejor.
+export const TARGET_ITEMS_PER_SOURCE = 3;
 
-// Tope de items nuevos a procesar por fuente en cada pasada. Los articulos
-// ahora son mas largos (mas tokens = mas tiempo de generacion), asi que hay
-// que acotar el peor caso para no superar el limite de 60s de Vercel; si
-// una fuente acumula mas noticias nuevas que esto, el resto se recogen en
-// la siguiente pasada del cron (no se pierden, solo se retrasan).
-export const MAX_ITEMS_PER_SOURCE = 4;
+// Cuantos candidatos se miran como mucho por fuente para llegar a ese
+// objetivo. Hace falta margen porque el filtro de tema descarta bastantes
+// (ver translateToSpanish: "ante la duda, descartala"), y cada descarte
+// cuesta igualmente una llamada a Claude.
+const MAX_CANDIDATES_PER_SOURCE = 9;
+
+// Presupuesto de tiempo por fuente. Los articulos son largos (mas tokens =
+// mas tiempo de generacion) y Vercel puede cortar la funcion a los 60s, asi
+// que si una fuente ya lleva mucho intentando llegar al objetivo, se corta y
+// lo que quede se recoge en la siguiente pasada (no se pierde, ver
+// aggregate.ts). Las fuentes corren en paralelo, o sea que esto acota el
+// reloj de pared del rastreo entero, no la suma de todas.
+const SOURCE_TIME_BUDGET_MS = 30_000;
 
 const parser = new Parser({
   timeout: 15_000,
@@ -210,25 +218,61 @@ export async function buildDraft(
   };
 }
 
-async function mapWithConcurrency<T, R>(
-  items: T[],
-  limit: number,
-  fn: (item: T) => Promise<R>
-): Promise<R[]> {
-  const results: R[] = new Array(items.length);
-  let nextIndex = 0;
+/** Lo que deja una fuente en una pasada del rastreo. */
+export interface DraftBatch {
+  /** Noticias ya escritas, listas para guardar (como mucho TARGET_ITEMS_PER_SOURCE). */
+  drafts: DraftArticle[];
+  /**
+   * Candidatos que el filtro de tema ha tumbado. Se apuntan en SkippedItem
+   * para no volver a pasarlos por Claude en cada pasada.
+   */
+  skippedGuids: string[];
+  /**
+   * Candidatos nuevos que ni se han llegado a mirar, porque ya se habia
+   * alcanzado el objetivo (o el tope de intentos/tiempo). No se pierden: se
+   * recogen en la siguiente pulsada de "Buscar noticias ahora".
+   */
+  pending: number;
+}
 
-  async function worker() {
-    while (nextIndex < items.length) {
-      const current = nextIndex++;
-      results[current] = await fn(items[current]);
-    }
+/**
+ * Genera noticias de una fuente hasta juntar TARGET_ITEMS_PER_SOURCE, en vez
+ * de procesar un numero fijo de candidatos y quedarse con lo que sobreviva.
+ * Es la diferencia entre "mira 4 y a ver" (que con el filtro de tema se
+ * quedaba muchas veces en 0-1 por fuente) y "traeme 3 buenas".
+ *
+ * Va por rondas del tamaño de lo que falta, todas las de una ronda en
+ * paralelo: si el filtro no descarta nada, es una sola ronda y tarda lo mismo
+ * que antes; solo se encadenan mas rondas cuando de verdad hacen falta.
+ */
+export async function buildUntilTarget<T>(
+  candidates: T[],
+  guidOf: (candidate: T) => string,
+  build: (candidate: T) => Promise<DraftArticle | null>
+): Promise<DraftBatch> {
+  const deadline = Date.now() + SOURCE_TIME_BUDGET_MS;
+  const limit = Math.min(candidates.length, MAX_CANDIDATES_PER_SOURCE);
+  const drafts: DraftArticle[] = [];
+  const skippedGuids: string[] = [];
+  let looked = 0;
+
+  while (looked < limit && drafts.length < TARGET_ITEMS_PER_SOURCE) {
+    // Solo se comprueba el reloj entre rondas: una ronda ya empezada se
+    // termina siempre, para no tirar articulos ya pagados a medio escribir.
+    if (looked > 0 && Date.now() >= deadline) break;
+
+    const missing = TARGET_ITEMS_PER_SOURCE - drafts.length;
+    const round = candidates.slice(looked, Math.min(looked + missing, limit));
+    looked += round.length;
+
+    const built = await Promise.all(round.map(build));
+    built.forEach((draft, i) => {
+      if (draft) drafts.push(draft);
+      else skippedGuids.push(guidOf(round[i]));
+    });
   }
 
-  await Promise.all(
-    Array.from({ length: Math.min(limit, items.length) }, () => worker())
-  );
-  return results;
+  return { drafts, skippedGuids, pending: candidates.length - looked };
 }
 
 export interface FeedCandidate {
@@ -267,23 +311,22 @@ export async function parseFeedCandidates(
 }
 
 /**
- * A partir de los candidatos ya parseados, descarta los que ya existen
- * (segun el set de guids conocidos, calculado una sola vez para todas las
- * fuentes) y traduce/genera como maximo MAX_ITEMS_PER_SOURCE de los nuevos.
+ * A partir de los candidatos ya parseados, descarta los que ya conocemos
+ * (segun el set de guids conocidos —articulos y descartes previos—, calculado
+ * una sola vez para todas las fuentes) y escribe noticias de los nuevos hasta
+ * llegar al objetivo por fuente.
  */
 export async function buildDraftsFromCandidates(
   candidates: FeedCandidate[],
   source: Pick<Source, "name" | "category">,
   existingGuids: Set<string>,
   knownGroups: KnownGroup[] = []
-): Promise<DraftArticle[]> {
-  const newCandidates = candidates
-    .filter((c) => !existingGuids.has(c.guid))
-    .slice(0, MAX_ITEMS_PER_SOURCE);
+): Promise<DraftBatch> {
+  const newCandidates = candidates.filter((c) => !existingGuids.has(c.guid));
 
-  const drafts = await mapWithConcurrency(newCandidates, TRANSLATE_CONCURRENCY, (c) =>
-    buildDraft(c.item, source, knownGroups)
+  return buildUntilTarget(
+    newCandidates,
+    (c) => c.guid,
+    (c) => buildDraft(c.item, source, knownGroups)
   );
-
-  return drafts.filter((d): d is DraftArticle => d !== null);
 }

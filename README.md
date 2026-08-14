@@ -163,6 +163,14 @@ que leer las fuentes y escribir con Claude cada noticia nueva), así que no te
 extrañe que la página se quede pensando; al terminar avisa de cuántas ha
 encontrado.
 
+Cada pasada trae **hasta 3 noticias por fuente** (`TARGET_ITEMS_PER_SOURCE` en
+`src/lib/rss.ts`), para que haya donde elegir sin dejar la cola con cincuenta
+pendientes. Y son 3 *escritas*, no 3 *intentadas*: el filtro de tema descarta
+bastante, así que el rastreo sigue mirando candidatos (hasta un tope de
+intentos y de tiempo, por el límite de duración de Vercel) hasta juntarlas.
+Lo que no dé tiempo a mirar no se pierde: el aviso final lo indica y basta con
+volver a pulsar el botón para seguir por donde iba.
+
 Antes esto lo hacía un cron de GitHub Actions cada 3 horas, y se quitó a
 propósito: llenaba la cola hubiera o no alguien para revisarla, y en el caso de
 las fuentes de tipo «Cuenta de X» eso son lecturas de una API de pago ocho
@@ -254,9 +262,18 @@ variable adicional:
 
 Ten en cuenta que leer líneas temporales de otras cuentas es una llamada de
 pago adicional (aparte de la de publicar tuits) en el modelo de pago-por-uso
-de X — el código minimiza las llamadas cacheando en cada fuente el id de
-usuario resuelto y un cursor `since_id` para no releer tuits ya vistos, pero
-aun así conviene vigilar el saldo en `console.x.com` si añades varias cuentas.
+de X — el código cachea en cada fuente el id de usuario resuelto y usa un
+cursor `since_id`, así que cada pasada es **una sola petición por cuenta**,
+pero aun así conviene vigilar el saldo en `console.x.com` si añades varias
+cuentas.
+
+El cursor solo avanza cuando la ventana leída se ha procesado entera. Si una
+cuenta ha publicado más de lo que cabe en una pasada, el cursor se queda
+donde estaba y la siguiente pulsación de "Buscar noticias ahora" vuelve a
+leer esos tuits para seguir por donde iba (los ya vistos se descartan al
+momento por `guid`, sin gastar ni una llamada a Claude). Es a propósito: si
+el cursor saltase siempre al tuit más reciente, todo lo que no diera tiempo a
+procesar quedaría por debajo y no se volvería a pedir nunca.
 Si `TWITTER_BEARER_TOKEN` no está configurada, esas fuentes simplemente no
 producen noticias nuevas (no rompen el resto del rastreo).
 

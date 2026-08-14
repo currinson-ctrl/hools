@@ -569,6 +569,12 @@ export async function fetchNowAction(formData: FormData) {
     (result.createdTotal === 0
       ? `Rastreo terminado: ninguna noticia nueva (${result.sourcesProcessed} fuentes)`
       : `Rastreo terminado: ${result.createdTotal} noticia(s) nueva(s) de ${result.sourcesProcessed} fuentes`) +
+    // Cada pasada trae como mucho unas pocas por fuente, a proposito, para no
+    // dejar la cola imposible de revisar. Si ha quedado material sin mirar se
+    // dice, porque la forma de sacarlo es volver a pulsar el boton.
+    (result.sourcesWithPending
+      ? `. Queda mas por rastrear en ${result.sourcesWithPending} fuente(s): pulsa otra vez para traerlo`
+      : "") +
     (failed.length ? `, ${failed.length} fuente(s) fallaron (ver logs)` : "");
   if (failed.length) {
     console.error(

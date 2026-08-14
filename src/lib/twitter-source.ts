@@ -1,16 +1,25 @@
 import { TwitterApi } from "twitter-api-v2";
 import type { Source } from "@prisma/client";
 import { prisma } from "./db";
-import { buildDraft, MAX_ITEMS_PER_SOURCE, type DraftArticle, type FeedItem } from "./rss";
+import {
+  buildDraft,
+  buildUntilTarget,
+  type DraftArticle,
+  type DraftBatch,
+  type FeedItem,
+} from "./rss";
 import type { KnownGroup } from "./groups";
 
 // Maximo de fotos que admite un tuit en la API de X.
 const MAX_TWEET_IMAGES = 4;
 
-// Minimo permitido por la API de X para el timeline de un usuario (no se
-// puede pedir menos). Mantenerlo bajo ademas ayuda a no gastar de mas del
-// saldo de pago-por-uso.
-const MAX_RESULTS = 5;
+// Cuantos tuits se piden del timeline de una cuenta en cada pasada (la API
+// admite de 5 a 100). Tiene que ser bastante mayor que el objetivo de
+// noticias por fuente: entre los que ya estan en la cola y los que tumba el
+// filtro de tema, con una ventana pequeña una cuenta activa se quedaba en
+// una o ninguna noticia por rastreo. Cada pasada es UNA llamada, asi que lo
+// que encarece subirlo es el numero de tuits leidos, no el de peticiones.
+const MAX_RESULTS = 20;
 
 function getBearerClient(): TwitterApi | null {
   const token = process.env.TWITTER_BEARER_TOKEN;
@@ -37,16 +46,31 @@ type SourceForAccount = Pick<Source, "id" | "feedUrl" | "externalId" | "lastFetc
 /**
  * Lee los tuits recientes (sin RT ni respuestas) de la cuenta de X guardada
  * en source.feedUrl (el @handle, sin arroba). Cachea en la propia fuente el
- * id numerico de usuario y el cursor since_id para no repetir llamadas de
- * pago innecesarias en cada pasada del cron.
+ * id numerico de usuario para no repetir la busqueda por username en cada
+ * pasada (es una llamada de pago).
+ *
+ * OJO con el cursor: aqui NO se toca. Se devuelve el newestId y es
+ * aggregate.ts quien decide si adelantarlo, porque solo es seguro hacerlo
+ * cuando se ha procesado todo lo que trae esta ventana (ver
+ * advanceAccountCursor).
  */
 export async function parseAccountCandidates(
   source: SourceForAccount
-): Promise<{ candidates: AccountCandidate[]; username: string; error: string | null }> {
+): Promise<{
+  candidates: AccountCandidate[];
+  username: string;
+  newestId: string | null;
+  error: string | null;
+}> {
   const username = source.feedUrl.replace(/^@/, "").trim();
   const client = getBearerClient();
   if (!client) {
-    return { candidates: [], username, error: "Falta configurar TWITTER_BEARER_TOKEN" };
+    return {
+      candidates: [],
+      username,
+      newestId: null,
+      error: "Falta configurar TWITTER_BEARER_TOKEN",
+    };
   }
 
   try {
@@ -54,7 +78,12 @@ export async function parseAccountCandidates(
     if (!userId) {
       const user = await client.v2.userByUsername(username);
       if (!user.data) {
-        return { candidates: [], username, error: `Cuenta de X no encontrada: @${username}` };
+        return {
+          candidates: [],
+          username,
+          newestId: null,
+          error: `Cuenta de X no encontrada: @${username}`,
+        };
       }
       userId = user.data.id;
       await prisma.source.update({ where: { id: source.id }, data: { externalId: userId } });
@@ -91,25 +120,52 @@ export async function parseAccountCandidates(
       };
     });
 
-    const newestId = timeline.meta.newest_id;
-    if (newestId && newestId !== source.lastFetchedId) {
-      await prisma.source.update({ where: { id: source.id }, data: { lastFetchedId: newestId } });
-    }
-
-    return { candidates, username, error: null };
+    return {
+      candidates,
+      username,
+      newestId: timeline.meta.newest_id ?? null,
+      error: null,
+    };
   } catch (err) {
     return {
       candidates: [],
       username,
+      newestId: null,
       error: err instanceof Error ? err.message : "Error desconocido al leer la cuenta de X",
     };
   }
 }
 
 /**
- * A partir de los candidatos ya leidos, descarta los que ya existen y genera
- * (traduce) como maximo MAX_ITEMS_PER_SOURCE de los nuevos, reutilizando el
- * mismo pipeline de traduccion/formato que las fuentes RSS.
+ * Adelanta el cursor since_id de una cuenta de X.
+ *
+ * Solo hay que llamarlo cuando NO ha quedado atraso en la ventana leida.
+ * El timeline viene del mas nuevo al mas viejo, asi que lo que se deja sin
+ * procesar es siempre lo mas antiguo de la tanda: si el cursor saltara al
+ * tuit mas nuevo, esos quedarian por debajo y no se volverian a pedir NUNCA
+ * (es exactamente lo que hacia antes, y por eso "Buscar noticias ahora" se
+ * saltaba dias enteros de publicaciones de una cuenta activa).
+ *
+ * Mientras quede atraso, el cursor se queda donde estaba y la siguiente
+ * pasada vuelve a leer la misma ventana: sale una peticion, y los tuits ya
+ * vistos se descartan al momento por guid (los publicados como Article, los
+ * fuera de tema como SkippedItem), sin gastar ni una llamada a Claude.
+ */
+export async function advanceAccountCursor(
+  source: Pick<Source, "id" | "lastFetchedId">,
+  newestId: string | null
+): Promise<void> {
+  if (!newestId || newestId === source.lastFetchedId) return;
+  await prisma.source.update({
+    where: { id: source.id },
+    data: { lastFetchedId: newestId },
+  });
+}
+
+/**
+ * A partir de los candidatos ya leidos, descarta los que ya conocemos y
+ * escribe noticias de los nuevos hasta llegar a TARGET_ITEMS_PER_SOURCE,
+ * reutilizando el mismo pipeline de redaccion/formato que las fuentes RSS.
  */
 export async function buildDraftsFromAccountCandidates(
   candidates: AccountCandidate[],
@@ -117,13 +173,13 @@ export async function buildDraftsFromAccountCandidates(
   source: Pick<Source, "name" | "category">,
   existingGuids: Set<string>,
   knownGroups: KnownGroup[] = []
-): Promise<DraftArticle[]> {
-  const newCandidates = candidates
-    .filter((c) => !existingGuids.has(c.guid))
-    .slice(0, MAX_ITEMS_PER_SOURCE);
+): Promise<DraftBatch> {
+  const newCandidates = candidates.filter((c) => !existingGuids.has(c.guid));
 
-  const drafts = await Promise.all(
-    newCandidates.map(async (c): Promise<DraftArticle | null> => {
+  return buildUntilTarget(
+    newCandidates,
+    (c) => c.guid,
+    async (c): Promise<DraftArticle | null> => {
       const [mainImage, ...extraImages] = c.imageUrls;
       const item: FeedItem = {
         link: `https://x.com/${username}/status/${c.tweetId}`,
@@ -140,8 +196,6 @@ export async function buildDraftsFromAccountCandidates(
         videoUrl: c.videoUrl,
         ...(extraImages.length ? { extraImageUrls: extraImages } : {}),
       };
-    })
+    }
   );
-
-  return drafts.filter((d): d is DraftArticle => d !== null);
 }
