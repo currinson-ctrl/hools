@@ -1,0 +1,412 @@
+{% comment %}
+=========================================================
+HOOLS · ARTICLE EDITORIAL (MAGAZINE HERO)
+Objetivo: Hero estilo "editorial/collage" con banda blanca + CTA negra
+- Fondo: imagen (destacada del artículo o fija)
+- Banda blanca: título editorial
+- Banda negra: CTA opcional
+=========================================================
+{% endcomment %}
+
+{%- liquid
+  assign hero_bg = blank
+
+  if section.settings.hero_use_featured_as_bg and article.image
+    assign hero_bg = article.image | image_url: width: 2400
+  elsif section.settings.hero_bg_image != blank
+    assign hero_bg = section.settings.hero_bg_image | image_url: width: 2400
+  endif
+-%}
+
+<article class="hools-article" itemscope itemtype="http://schema.org/Article">
+
+  <!-- ================= HERO MAGAZINE ================= -->
+  <header class="hools-mag-hero" {% if hero_bg != blank %}style="--hero-bg:url('{{ hero_bg }}');"{% endif %}>
+    <div class="hools-mag-hero__overlay" aria-hidden="true"></div>
+
+    <!-- Banda blanca (estilo editorial) -->
+    <div class="hools-mag-band">
+      <div class="hools-mag-band__inner">
+        <div class="hools-mag-band__kicker">
+          <span class="hools-mag-band__left">{{ section.settings.hero_band_text_left }}</span>
+          <span class="hools-mag-band__sep">|</span>
+          <span class="hools-mag-band__right">{{ section.settings.hero_band_text_right }}</span>
+        </div>
+
+        <h1 class="hools-mag-title" itemprop="headline">
+          {{ article.title }}
+        </h1>
+
+        {% if section.settings.show_date %}
+          <p class="hools-mag-meta">
+            <time datetime="{{ article.published_at | date: '%Y-%m-%d' }}" itemprop="datePublished">
+              {{ article.published_at | date: "%d %B %Y" }}
+            </time>
+          </p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Banda negra CTA (opcional) -->
+    {% if section.settings.cta_show %}
+      <a class="hools-mag-cta" href="{{ section.settings.cta_link }}">
+        <span class="hools-mag-cta__text">{{ section.settings.cta_text }}</span>
+      </a>
+    {% endif %}
+  </header>
+
+  <!-- ================= BODY ================= -->
+  <section class="hools-body">
+    <div class="hools-body__inner">
+
+      {% if article.excerpt != blank %}
+        <p class="hools-lead" itemprop="description">
+          {{ article.excerpt | strip_html }}
+        </p>
+        <div class="hools-divider" aria-hidden="true"></div>
+      {% endif %}
+
+      <div class="hools-content rte" itemprop="articleBody">
+        {{ article.content }}
+      </div>
+
+      {% if section.settings.show_share_buttons %}
+        <div class="hools-footer">
+          <div class="hools-divider hools-divider--small" aria-hidden="true"></div>
+          <p class="hools-footer__title">Compartir</p>
+
+          <div class="hools-share">
+            <a class="hools-share__btn" href="https://twitter.com/intent/tweet?url={{ canonical_url | url_encode }}&text={{ article.title | url_encode }}" target="_blank" rel="noopener">X</a>
+            <a class="hools-share__btn" href="https://www.facebook.com/sharer/sharer.php?u={{ canonical_url | url_encode }}" target="_blank" rel="noopener">Facebook</a>
+            <a class="hools-share__btn" href="https://wa.me/?text={{ article.title | url_encode }}%20{{ canonical_url | url_encode }}" target="_blank" rel="noopener">WhatsApp</a>
+          </div>
+        </div>
+      {% endif %}
+
+    </div>
+  </section>
+</article>
+
+<style>
+/* =========================================================
+   HOOLS · VARIABLES (cambia aquí lo importante)
+   ========================================================= */
+:root{
+  /* Colores marca */
+  --hools-black:#151515;
+  --hools-white:#FFFFFF;
+  --hools-off:#F8F8F8;
+  --hools-green:#213B2E;
+  --hools-gold:#CCB229;
+
+  /* Fuentes */
+  --hools-serif:"Source Serif 4", Georgia, serif; /* títulos */
+  --hools-sans:"Muli", system-ui, -apple-system, sans-serif; /* texto */
+
+  /* Layout */
+  --read-width: 860px;          /* ancho lectura */
+  --hero-height: 520px;         /* altura hero */
+  --band-padding-y: 26px;       /* padding vertical banda blanca */
+  --band-padding-x: 28px;       /* padding horizontal banda blanca */
+  --cta-height: 96px;           /* altura banda CTA */
+}
+
+/* =========================================================
+   CONTENEDOR
+   ========================================================= */
+.hools-article{
+  background:var(--hools-off);
+  color:var(--hools-black);
+}
+
+/* =========================================================
+   HERO MAGAZINE
+   - Fondo collage: --hero-bg
+   ========================================================= */
+.hools-mag-hero{
+  position: relative;
+  min-height: var(--hero-height);
+  width: 100%;
+  overflow: hidden;
+
+  /* Fondo collage */
+  background:
+    var(--hero-bg),
+    linear-gradient(135deg, #0f1f18, #213B2E); /* fallback */
+  background-size: cover;
+  background-position: center;
+}
+
+/* Oscurecer un poco el collage para que la banda destaque */
+.hools-mag-hero__overlay{
+  position:absolute; inset:0;
+  background: linear-gradient(
+    to bottom,
+    rgba(0,0,0,.35) 0%,
+    rgba(0,0,0,.15) 40%,
+    rgba(0,0,0,.35) 100%
+  );
+}
+
+/* =========================================================
+   BANDA BLANCA (estilo editorial)
+   ========================================================= */
+.hools-mag-band{
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  transform: translate(-50%, -50%);
+  width: min(1100px, calc(100% - 40px));
+  z-index: 2;
+  background: rgba(255,255,255,.96);
+  border-radius: 0; /* estilo magazine: recto */
+  box-shadow: 0 18px 60px rgba(0,0,0,.25);
+}
+
+.hools-mag-band__inner{
+  padding: var(--band-padding-y) var(--band-padding-x);
+}
+
+/* Línea superior "FOOTBALL CULTURE | AWAY FROM HERE" */
+.hools-mag-band__kicker{
+  font-family: var(--hools-sans);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  font-size: 12px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  color: rgba(21,21,21,.85);
+  margin-bottom: 14px;
+}
+
+.hools-mag-band__right{
+  font-style: italic; /* como el ejemplo */
+  font-weight: 700;
+}
+
+.hools-mag-title{
+  font-family: var(--hools-serif);
+  font-weight: 400;
+  letter-spacing: .2px;
+  line-height: 1.06;
+  font-size: clamp(34px, 4.2vw, 62px); /* tamaño del título */
+  margin: 0;
+}
+
+.hools-mag-meta{
+  font-family: var(--hools-sans);
+  font-size: 13px;
+  margin: 12px 0 0 0;
+  opacity: .8;
+}
+
+/* =========================================================
+   BANDA CTA VERDE HOOLS (más pequeña y elegante)
+   ========================================================= */
+.hools-mag-cta{
+  position:absolute;
+  left:50%;
+  bottom: 18px; /* un poco más cerca del borde */
+  transform: translateX(-50%);
+  width: min(900px, calc(100% - 60px)); /* más estrecha */
+  height: 72px; /* más pequeña que antes */
+  z-index: 3;
+
+  background: #213B2E; /* VERDE HOOLS */
+  color: #FFFFFF;
+  text-decoration:none;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  box-shadow: 0 14px 40px rgba(0,0,0,.25);
+  transition: all .3s ease;
+}
+
+.hools-mag-cta:hover{
+  background:#1a2f24; /* verde ligeramente más oscuro en hover */
+}
+
+.hools-mag-cta__text{
+  font-family: var(--hools-sans);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  font-weight: 600;
+  font-style: normal; /* quitamos cursiva para más sobriedad */
+  font-size: clamp(16px, 1.8vw, 22px); /* más pequeño */
+  padding: 0 16px;
+}
+
+
+/* =========================================================
+   BODY
+   ========================================================= */
+.hools-body{
+  padding: 90px 20px;
+}
+
+.hools-body__inner{
+  max-width: var(--read-width);
+  margin: 0 auto;
+}
+
+.hools-lead{
+  font-family: var(--hools-sans);
+  font-size: 20px;
+  line-height: 1.75;
+  margin: 0 0 24px 0;
+  max-width: 70ch;
+}
+
+.hools-divider{
+  height: 1px;
+  background: var(--hools-gold);
+  margin: 0 0 40px 0;
+}
+
+.hools-divider--small{
+  margin: 50px 0 20px 0;
+}
+
+.hools-content{
+  font-family: var(--hools-sans);
+  font-size: 17px;
+  line-height: 1.95;
+}
+
+.hools-content p{
+  margin: 0 0 22px 0;
+}
+
+.hools-content h2{
+  font-family: var(--hools-serif);
+  font-weight: 400;
+  font-size: clamp(26px, 2.6vw, 38px);
+  margin: 70px 0 18px 0;
+}
+
+.hools-content h3{
+  font-family: var(--hools-serif);
+  font-weight: 400;
+  font-size: 22px;
+  margin: 40px 0 12px 0;
+}
+
+.hools-content blockquote{
+  margin: 46px 0;
+  padding: 26px;
+  border-left: 4px solid var(--hools-gold);
+  background: var(--hools-white);
+  box-shadow: 0 12px 40px rgba(0,0,0,.08);
+}
+
+/* Share */
+.hools-footer__title{
+  font-family: var(--hools-sans);
+  font-size: 12px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  opacity: .7;
+  margin: 0 0 10px 0;
+}
+
+.hools-share{
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+}
+
+.hools-share__btn{
+  font-family: var(--hools-sans);
+  padding: 10px 16px;
+  border: 1px solid rgba(0,0,0,.16);
+  border-radius: 999px;
+  background: var(--hools-white);
+  color: var(--hools-black);
+  text-decoration:none;
+}
+
+.hools-share__btn:hover{
+  border-color: var(--hools-gold);
+}
+
+/* Responsive: baja un poco la banda en móvil */
+@media (max-width: 640px){
+  :root{
+    --hero-height: 520px;
+    --cta-height: 78px;
+    --band-padding-x: 18px;
+  }
+  .hools-mag-band{
+    top: 55%;
+  }
+}
+</style>
+
+{% schema %}
+{
+  "name": "Hools Editorial",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "show_date",
+      "label": "Mostrar fecha",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_share_buttons",
+      "label": "Mostrar botones compartir",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_featured_image",
+      "label": "Mostrar imagen destacada normal",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "hero_use_featured_as_bg",
+      "label": "Usar imagen destacada como fondo del hero",
+      "default": true
+    },
+    {
+      "type": "image_picker",
+      "id": "hero_bg_image",
+      "label": "Imagen de fondo del hero (si no usas destacada)"
+    },
+    {
+      "type": "text",
+      "id": "hero_band_text_left",
+      "label": "Texto banda blanca (izquierda)",
+      "default": "FOOTBALL CULTURE"
+    },
+    {
+      "type": "text",
+      "id": "hero_band_text_right",
+      "label": "Texto banda blanca (derecha)",
+      "default": "AWAY FROM HERE"
+    },
+    {
+      "type": "checkbox",
+      "id": "cta_show",
+      "label": "Mostrar banda CTA negra",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "cta_text",
+      "label": "Texto CTA",
+      "default": "SHOP TERRACE COLLECTION NOW"
+    },
+    {
+      "type": "url",
+      "id": "cta_link",
+      "label": "Enlace CTA"
+    }
+  ]
+}
+{% endschema %}

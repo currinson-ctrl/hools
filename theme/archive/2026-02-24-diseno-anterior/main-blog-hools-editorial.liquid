@@ -1,0 +1,312 @@
+{% comment %}
+HOOLS · BLOG COVER + CARRUSEL (the-away-end)
+- H1 SEO real oculto (optimizado)
+- Hero visual editorial
+- Subtítulo con carácter
+- Carrusel artículos
+{% endcomment %}
+
+<section class="hools-blog-cover">
+
+  <!-- ================= HERO ================= -->
+  <header class="hools-hero"
+    {% if section.settings.hero_image != blank %}
+      style="background-image:url('{{ section.settings.hero_image | image_url: width: 2400 }}');"
+    {% endif %}
+  >
+    <div class="hools-band">
+
+      <!-- H1 SEO REAL (NO VISIBLE) -->
+      <h1 class="hools-h1-seo">
+        {{ section.settings.hero_seo_title }}
+      </h1>
+
+      <!-- KICKER -->
+      <div class="hools-kicker">
+        <span>{{ section.settings.hero_band_left }}</span>
+        <span class="sep">|</span>
+        <span class="italic">{{ section.settings.hero_band_right }}</span>
+      </div>
+
+      <!-- TÍTULO VISUAL -->
+      <div class="hools-title">
+        <div class="line1">{{ section.settings.title_line_1 }}</div>
+        <div class="line2">{{ section.settings.title_line_2 }}</div>
+      </div>
+
+      <!-- SUBTÍTULO VISIBLE -->
+      <p class="hools-subtitle">
+        {{ section.settings.hero_subtitle }}
+      </p>
+
+    </div>
+  </header>
+
+  <!-- ================= CARRUSEL ================= -->
+  {%- assign target_blog = blogs['the-away-end'] -%}
+
+  <div class="hools-articles-wrap">
+
+    <div class="hools-articles-head">
+      <h2 class="hools-articles-title">
+        {{ section.settings.carousel_title }}
+      </h2>
+
+      <div class="hools-articles-arrows">
+        <button class="hools-arrow" type="button" data-dir="left">‹</button>
+        <button class="hools-arrow" type="button" data-dir="right">›</button>
+      </div>
+    </div>
+
+    {% if target_blog != blank and target_blog.articles_count > 0 %}
+
+      <div class="hools-articles-carousel" data-carousel>
+        {% for article in target_blog.articles limit: section.settings.carousel_count %}
+          <article class="hools-article-card">
+            <a href="{{ article.url }}" class="hools-article-link">
+
+              {% if article.image %}
+                <div class="hools-article-image">
+                  <img
+                    src="{{ article.image | image_url: width: 1200 }}"
+                    alt="{{ article.title | escape }}"
+                    loading="lazy"
+                  >
+                </div>
+              {% else %}
+                <div class="hools-article-image hools-article-image--placeholder"></div>
+              {% endif %}
+
+              <h3 class="hools-article-title">
+                {{ article.title }}
+              </h3>
+
+            </a>
+          </article>
+        {% endfor %}
+      </div>
+
+    {% else %}
+      <p class="hools-articles-empty">
+        No hay artículos publicados en “the-away-end”.
+      </p>
+    {% endif %}
+
+  </div>
+
+</section>
+
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+  const carousel = document.querySelector("[data-carousel]");
+  if(!carousel) return;
+
+  document.querySelectorAll(".hools-arrow").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const dir = btn.dataset.dir;
+      const card = carousel.querySelector(".hools-article-card");
+      const gap = 24;
+      const step = card ? (card.getBoundingClientRect().width + gap) : 300;
+
+      carousel.scrollBy({
+        left: dir === "left" ? -step*2 : step*2,
+        behavior: "smooth"
+      });
+    });
+  });
+});
+</script>
+
+<style>
+:root{
+  --serif:"Source Serif 4", Georgia, serif;
+  --sans:"Muli", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --wrap:1200px;
+}
+
+/* ================= HERO ================= */
+
+.hools-hero{
+  position:relative;
+  min-height:520px;
+  background-size:cover;
+  background-position:center;
+  background-repeat:no-repeat;
+}
+
+.hools-band{
+  position:absolute;
+  left:50%;
+  top:70px;
+  transform:translateX(-50%);
+  width:min(520px, calc(100% - 60px));
+  background:rgba(255,255,255,.96);
+  box-shadow:0 20px 60px rgba(0,0,0,.20);
+  padding:22px 28px;
+  text-align:center;
+}
+
+/* H1 SEO oculto */
+.hools-h1-seo{
+  position:absolute;
+  left:-9999px;
+}
+
+/* Kicker */
+.hools-kicker{
+  font-family:var(--sans);
+  text-transform:uppercase;
+  letter-spacing:.12em;
+  font-size:12px;
+  color:rgba(21,21,21,.85);
+  margin-bottom:14px;
+}
+
+.hools-kicker .italic{
+  font-style:italic;
+  font-weight:700;
+}
+
+/* Título visual */
+.hools-title{
+  line-height:1;
+}
+
+.hools-title .line1{
+  font-family:var(--serif);
+  font-size:52px;
+  font-weight:400;
+  margin:0 0 8px;
+  color:rgba(21,21,21,.78);
+}
+
+.hools-title .line2{
+  font-family:var(--serif);
+  font-size:110px;
+  font-weight:400;
+  margin:0;
+  color:rgba(21,21,21,.78);
+}
+
+/* Subtítulo visible */
+.hools-subtitle{
+  font-family:var(--sans);
+  font-size:16px;
+  color:#151515;
+  margin-top:18px;
+  max-width:36ch;
+  margin-left:auto;
+  margin-right:auto;
+  line-height:1.4;
+  font-weight:500;
+}
+
+/* ================= CARRUSEL ================= */
+
+.hools-articles-wrap{
+  max-width:var(--wrap);
+  margin:80px auto;
+  padding:0 20px;
+}
+
+.hools-articles-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:20px;
+}
+
+.hools-articles-title{
+  font-family:var(--serif);
+  font-size:28px;
+  font-weight:400;
+  margin:0;
+}
+
+.hools-articles-arrows{
+  display:flex;
+  gap:10px;
+}
+
+.hools-arrow{
+  width:40px;
+  height:40px;
+  border-radius:999px;
+  border:1px solid rgba(0,0,0,.15);
+  background:#fff;
+  cursor:pointer;
+  font-size:22px;
+}
+
+.hools-arrow:hover{
+  border-color:#CCB229;
+}
+
+.hools-articles-carousel{
+  display:flex;
+  gap:24px;
+  overflow-x:auto;
+  scroll-behavior:smooth;
+  padding-bottom:10px;
+}
+
+.hools-article-card{
+  flex:0 0 auto;
+  width:260px;
+}
+
+.hools-article-image{
+  width:100%;
+  height:340px;
+  overflow:hidden;
+  border:1px solid rgba(0,0,0,.1);
+  background:#f2f2f2;
+}
+
+.hools-article-image img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+.hools-article-title{
+  font-family:var(--sans);
+  font-size:18px;
+  margin-top:14px;
+  line-height:1.3;
+}
+
+@media(max-width:768px){
+  .hools-title .line1{ font-size:42px; }
+  .hools-title .line2{ font-size:90px; }
+  .hools-subtitle{ font-size:14px; }
+}
+
+@media(max-width:560px){
+  .hools-band{ top:40px; padding:16px 18px; }
+  .hools-title .line1{ font-size:32px; }
+  .hools-title .line2{ font-size:70px; }
+  .hools-subtitle{ font-size:13px; }
+}
+</style>
+
+{% schema %}
+{
+  "name": "Hools Blog Cover",
+  "settings": [
+    { "type": "image_picker", "id": "hero_image", "label": "Imagen Hero" },
+    { "type": "text", "id": "hero_band_left", "label": "Kicker izquierda", "default": "FOOTBALL CULTURE" },
+    { "type": "text", "id": "hero_band_right", "label": "Kicker derecha", "default": "RETURN TO THE ORIGINS" },
+    { "type": "text", "id": "title_line_1", "label": "Título línea 1", "default": "The Away" },
+    { "type": "text", "id": "title_line_2", "label": "Título línea 2", "default": "END" },
+    { "type": "text", "id": "hero_seo_title", "label": "Título SEO (H1 real)", "default": "Cultura terrace y fútbol casual: la historia que se escribe en el sector visitante" },
+    { "type": "text", "id": "hero_subtitle", "label": "Subtítulo visible", "default": "La historia que se escribe en el sector visitante." },
+    { "type": "text", "id": "carousel_title", "label": "Título carrusel", "default": "Últimos artículos" },
+    { "type": "range", "id": "carousel_count", "min": 4, "max": 24, "step": 1, "label": "Artículos en carrusel", "default": 12 }
+  ],
+  "presets": [
+    { "name": "Hools Cover" }
+  ]
+}
+{% endschema %}
+
