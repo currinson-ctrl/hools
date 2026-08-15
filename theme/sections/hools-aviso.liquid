@@ -1,0 +1,290 @@
+{% comment %}
+  HOOLS · AVÍSAME (lista de espera de un lanzamiento)
+
+  Recoge nombre y correo de quien quiere que le avisen cuando salga algo. Va
+  debajo del hero cuando el hero anuncia un lanzamiento, y el botón del hero
+  apunta aquí con el ancla `#avisame`.
+
+  NO usa ninguna app ni servicio externo: usa el formulario de cliente que trae
+  Shopify (`{% raw %}{% form 'customer' %}{% endraw %}`). Cada envío crea un
+  cliente en la tienda con la etiqueta que se configure abajo, así que la lista
+  se filtra desde Clientes y se exporta o se segmenta sin depender de nadie.
+
+  La casilla de consentimiento no es decorativa. El formulario de cliente marca
+  al que lo envía como que acepta email marketing, y en España eso solo vale si
+  te lo ha dicho él: la casilla es lo que lo convierte en un consentimiento y no
+  en una suscripción a la fuerza. Por eso es obligatoria y por eso enlaza a la
+  política de privacidad de la tienda. Si la quitas, quitas la cobertura legal,
+  no un adorno.
+
+  Tras enviar, Shopify recarga la página y vuelve al ancla del formulario, que
+  es donde se pinta el mensaje de gracias.
+{% endcomment %}
+
+{%- liquid
+  assign tag = section.settings.customer_tag | strip
+  if tag == blank
+    assign tag = 'aviso'
+  endif
+-%}
+
+<section class="hools-aviso" id="avisame">
+  <div class="hools-aviso__inner">
+
+    {%- if section.settings.kicker != blank -%}
+      <p class="hools-aviso__kicker">{{ section.settings.kicker }}</p>
+    {%- endif -%}
+
+    {%- if section.settings.heading != blank -%}
+      <h2 class="hools-aviso__title">{{ section.settings.heading }}</h2>
+    {%- endif -%}
+
+    {%- if section.settings.text != blank -%}
+      <p class="hools-aviso__text">{{ section.settings.text }}</p>
+    {%- endif -%}
+
+    {%- form 'customer', id: 'avisame', class: 'hools-aviso__form' -%}
+
+      {%- comment -%}
+        Éxito. Shopify vuelve aquí tras el envío, así que el formulario se
+        sustituye por el acuse: si se dejara puesto, parecería que no se ha
+        enviado y la gente lo mandaría dos veces.
+      {%- endcomment -%}
+      {%- if form.posted_successfully? -%}
+
+        <p class="hools-aviso__ok">{{ section.settings.success_text }}</p>
+
+      {%- else -%}
+
+        {%- if form.errors -%}
+          <p class="hools-aviso__error">
+            {{ form.errors | default_errors }}
+          </p>
+        {%- endif -%}
+
+        <input type="hidden" name="contact[tags]" value="{{ tag | escape }}">
+
+        <div class="hools-aviso__fields">
+          <label class="hools-aviso__label" for="avisame-nombre">Nombre</label>
+          <input
+            class="hools-aviso__input"
+            id="avisame-nombre"
+            type="text"
+            name="contact[first_name]"
+            autocomplete="given-name"
+            placeholder="Tu nombre"
+            required
+          >
+
+          <label class="hools-aviso__label" for="avisame-email">Correo</label>
+          <input
+            class="hools-aviso__input"
+            id="avisame-email"
+            type="email"
+            name="contact[email]"
+            autocomplete="email"
+            placeholder="tucorreo@ejemplo.com"
+            required
+          >
+        </div>
+
+        <label class="hools-aviso__consent" for="avisame-consent">
+          <input id="avisame-consent" type="checkbox" required>
+          <span>
+            {{ section.settings.consent_text }}
+            {%- if shop.privacy_policy != blank %}
+              <a href="{{ shop.privacy_policy.url }}" target="_blank" rel="noopener">Política de privacidad</a>.
+            {%- endif -%}
+          </span>
+        </label>
+
+        <button class="hools-aviso__btn" type="submit">
+          {{ section.settings.button_label }}
+        </button>
+
+      {%- endif -%}
+
+    {%- endform -%}
+
+  </div>
+</section>
+
+<style>
+  .hools-aviso{
+    --hools-black:#151515;
+    --hools-green:#213B2E;
+    --hools-gold:#CCB229;
+    --hools-off:#F8F8F8;
+    --hools-serif:"Source Serif 4", Georgia, serif;
+    --hools-sans:"Muli", system-ui, -apple-system, sans-serif;
+
+    background:{{ section.settings.bg_color }};
+    color:{{ section.settings.text_color }};
+    padding:{{ section.settings.padding_top }}px 20px {{ section.settings.padding_bottom }}px;
+    /* El hero manda aquí con #avisame; sin esto el ancla deja el título
+       pegado al borde superior y debajo de la cabecera fija. */
+    scroll-margin-top:80px;
+  }
+
+  .hools-aviso__inner{
+    max-width:560px;
+    margin:0 auto;
+    text-align:center;
+  }
+
+  .hools-aviso__kicker{
+    font-family:var(--hools-sans);
+    font-size:11px;
+    font-weight:800;
+    text-transform:uppercase;
+    letter-spacing:.16em;
+    color:var(--hools-gold);
+    margin:0 0 10px;
+  }
+
+  .hools-aviso__title{
+    font-family:var(--hools-serif);
+    font-weight:400;
+    font-size:clamp(28px,3.4vw,42px);
+    line-height:1.1;
+    margin:0 0 14px;
+  }
+
+  .hools-aviso__text{
+    font-family:var(--hools-sans);
+    font-size:16px;
+    line-height:1.6;
+    opacity:.85;
+    margin:0 0 28px;
+  }
+
+  .hools-aviso__fields{
+    display:grid;
+    gap:6px;
+    text-align:left;
+  }
+
+  .hools-aviso__label{
+    font-family:var(--hools-sans);
+    font-size:11px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.1em;
+    opacity:.75;
+  }
+
+  .hools-aviso__label + .hools-aviso__input{ margin-bottom:14px; }
+
+  .hools-aviso__input{
+    font-family:var(--hools-sans);
+    font-size:16px; /* 16px o menos hace que iOS haga zoom al enfocar */
+    padding:13px 14px;
+    border:1px solid rgba(255,255,255,.28);
+    background:rgba(255,255,255,.06);
+    color:inherit;
+    width:100%;
+    box-sizing:border-box;
+  }
+
+  .hools-aviso__input::placeholder{ color:currentColor; opacity:.45; }
+
+  .hools-aviso__input:focus{
+    outline:2px solid var(--hools-gold);
+    outline-offset:1px;
+  }
+
+  .hools-aviso__consent{
+    display:flex;
+    gap:10px;
+    align-items:flex-start;
+    text-align:left;
+    font-family:var(--hools-sans);
+    font-size:13px;
+    line-height:1.45;
+    opacity:.85;
+    margin:16px 0 22px;
+    cursor:pointer;
+  }
+
+  .hools-aviso__consent input{
+    flex:0 0 auto;
+    margin-top:3px;
+    accent-color:var(--hools-gold);
+  }
+
+  .hools-aviso__consent a{ color:inherit; }
+
+  .hools-aviso__btn{
+    font-family:var(--hools-sans);
+    font-size:12px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.12em;
+    color:var(--hools-black);
+    background:var(--hools-gold);
+    border:0;
+    padding:15px 28px;
+    width:100%;
+    cursor:pointer;
+    transition:background .2s ease;
+  }
+
+  .hools-aviso__btn:hover{ background:#e0c433; }
+
+  .hools-aviso__ok,
+  .hools-aviso__error{
+    font-family:var(--hools-sans);
+    font-size:16px;
+    line-height:1.6;
+    margin:0;
+    padding:18px 20px;
+  }
+
+  .hools-aviso__ok{
+    background:rgba(204,178,41,.16);
+    border-left:3px solid var(--hools-gold);
+    text-align:left;
+  }
+
+  .hools-aviso__error{
+    background:rgba(190,60,60,.18);
+    border-left:3px solid #be3c3c;
+    text-align:left;
+    margin-bottom:18px;
+  }
+
+  .hools-aviso__error ul{ margin:0; padding-left:18px; }
+
+  @media (max-width:640px){
+    .hools-aviso{ padding-left:16px; padding-right:16px; }
+  }
+</style>
+
+{% schema %}
+{
+  "name": "Hools · Avísame",
+  "tag": "section",
+  "settings": [
+    { "type": "text", "id": "kicker", "label": "Antetítulo", "default": "PRÓXIMAMENTE" },
+    { "type": "text", "id": "heading", "label": "Título", "default": "Sé el primero en saberlo" },
+    { "type": "text", "id": "text", "label": "Texto", "default": "Déjanos tu nombre y tu correo y te avisamos en cuanto salgan los tres modelos nuevos. Sin spam." },
+    { "type": "text", "id": "button_label", "label": "Texto del botón", "default": "AVÍSAME" },
+    { "type": "text", "id": "success_text", "label": "Mensaje al enviar", "default": "Hecho. Te escribimos en cuanto salgan, y no antes." },
+
+    { "type": "header", "content": "Consentimiento" },
+    { "type": "text", "id": "consent_text", "label": "Texto de la casilla", "default": "Acepto recibir el aviso por correo y he leído la", "info": "Detrás se añade el enlace a la política de privacidad de la tienda. La casilla es obligatoria: es lo que hace válido el consentimiento." },
+
+    { "type": "header", "content": "Dónde acaban los datos" },
+    { "type": "text", "id": "customer_tag", "label": "Etiqueta del cliente", "default": "aviso-nuevos-modelos", "info": "Cada envío crea un cliente con esta etiqueta. En Clientes, filtra por ella para ver la lista y exportarla. Cambia la etiqueta en cada lanzamiento para no mezclarlos." },
+
+    { "type": "header", "content": "Aspecto" },
+    { "type": "color", "id": "bg_color", "label": "Fondo", "default": "#213B2E" },
+    { "type": "color", "id": "text_color", "label": "Texto", "default": "#F8F8F8" },
+    { "type": "range", "id": "padding_top", "min": 20, "max": 120, "step": 4, "unit": "px", "label": "Espacio arriba", "default": 64 },
+    { "type": "range", "id": "padding_bottom", "min": 20, "max": 120, "step": 4, "unit": "px", "label": "Espacio abajo", "default": 72 }
+  ],
+  "presets": [
+    { "name": "Hools · Avísame" }
+  ]
+}
+{% endschema %}
