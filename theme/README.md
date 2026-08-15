@@ -20,8 +20,13 @@ theme/
 portada, donde el nombre del fichero de la foto estaba escrito a mano dos veces
 (una para móvil y otra para escritorio). Cambiar la imagen obligaba a editar
 texto; ahora es un `image_picker` y se cambia desde el editor. Su ajuste
-`image` vive en `templates/index.json`, que **no** está aquí: ese fichero lo
-mantiene el editor y contiene toda la portada de la tienda, no solo el hero.
+`image` vive en `templates/index.json`, que **sí** está aquí desde que el hero
+perdió su titular: ese fichero guardaba todavía `heading`, el campo de una sola
+línea que la sección dejó de leer, con las dos frases pegadas
+(«DE LA CALLEA LA GRADA») porque Shopify borra el `<br>` al guardar. Lo que se
+veía en la web salía de los valores por defecto del schema, no del fichero.
+Contiene toda la portada de la tienda y no solo el hero, así que al tocarlo hay
+que revisar la home entera, no solo la sección que has cambiado.
 
 Los dos `templates/*.json` están aquí porque guardan ajustes que **el schema de
 la sección no puede reponer**: los `image_picker` y los `url` no admiten valor

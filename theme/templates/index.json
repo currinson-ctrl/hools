@@ -1,0 +1,447 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
+{
+  "sections": {
+    "hero-slideshow": {
+      "type": "slideshow",
+      "disabled": true,
+      "settings": {
+        "layout": "full_bleed",
+        "slide_height": "large",
+        "slider_visual": "dots",
+        "auto_rotate": false,
+        "change_slides_speed": 5,
+        "image_behavior": "none",
+        "show_text_below": true,
+        "accessibility_info": "Presentación de diapositivas sobre tu marca"
+      }
+    },
+    "hools_hero": {
+      "type": "hools-hero",
+      "name": "Hero",
+      "settings": {
+        "image": "shopify://shop_images/hools_estanteria_grande_504ef339-70f9-41dd-ba18-fb088ab5ca89.jpg",
+        "image_mobile": "shopify://shop_images/hools_estanteria_grande_504ef339-70f9-41dd-ba18-fb088ab5ca89.jpg",
+        "kicker": "RETURN TO THE ORIGINS",
+        "heading_line_1": "PRÓXIMAMENTE",
+        "heading_line_2": "3 NUEVOS MODELOS",
+        "subtitle": "Para los que saben de donde vienen.",
+        "btn1_label": "AVÍSAME",
+        "btn1_link": "/#avisame",
+        "btn2_label": "CONOCE HOOLS",
+        "btn2_link": "shopify://pages/la-marca",
+        "height_desktop": 82,
+        "height_mobile": 78,
+        "brightness": 70,
+        "focus_desktop": "30% 35%",
+        "focus_mobile": "50% 24%",
+        "mobile_layout": "stacked",
+        "mobile_media_ratio": "16/9"
+      }
+    },
+    "hools_aviso": {
+      "type": "hools-aviso",
+      "name": "Hools · Avísame",
+      "settings": {
+        "kicker": "PRÓXIMAMENTE",
+        "heading": "Sé el primero en saberlo",
+        "text": "Déjanos tu nombre y tu correo y te avisamos en cuanto salgan los tres modelos nuevos. Sin spam.",
+        "button_label": "AVÍSAME",
+        "success_text": "Hecho. Te escribimos en cuanto salgan, y no antes.",
+        "consent_text": "Acepto recibir el aviso por correo y he leído la",
+        "customer_tag": "aviso-nuevos-modelos",
+        "bg_color": "#213B2E",
+        "text_color": "#F8F8F8",
+        "padding_top": 64,
+        "padding_bottom": 72
+      }
+    },
+    "hools_manual_carousel_axCy9w": {
+      "type": "hools-manual-carousel",
+      "blocks": {
+        "item_QYEUzP": {
+          "type": "item",
+          "settings": {
+            "product": "the-beat",
+            "custom_title": "",
+            "subtitle": "COMPRAR"
+          }
+        },
+        "item_UmJkbx": {
+          "type": "item",
+          "settings": {
+            "product": "the-corner",
+            "custom_title": "",
+            "subtitle": "COMPRAR"
+          }
+        },
+        "item_eHHUXe": {
+          "type": "item",
+          "settings": {
+            "product": "trasferta",
+            "custom_title": "",
+            "subtitle": "COMPRAR"
+          }
+        },
+        "item_nPLwnc": {
+          "type": "item",
+          "settings": {
+            "product": "the-streetlight",
+            "custom_title": "",
+            "subtitle": "Comprar"
+          }
+        },
+        "item_rLQ9XN": {
+          "type": "item",
+          "settings": {
+            "product": "the-classic",
+            "custom_title": "",
+            "subtitle": "COMPRAR"
+          }
+        },
+        "item_LX9Gx4": {
+          "type": "item",
+          "settings": {
+            "product": "away",
+            "custom_title": "",
+            "subtitle": "COMPRAR"
+          }
+        },
+        "item_iYkjjK": {
+          "type": "item",
+          "settings": {
+            "product": "tarjeta-regalo-hools-1",
+            "image": "shopify://shop_images/tarjeta-regalo-Hools.png",
+            "custom_title": "",
+            "subtitle": ""
+          }
+        }
+      },
+      "block_order": [
+        "item_QYEUzP",
+        "item_UmJkbx",
+        "item_eHHUXe",
+        "item_nPLwnc",
+        "item_rLQ9XN",
+        "item_LX9Gx4",
+        "item_iYkjjK"
+      ],
+      "name": "Hools · Carrusel",
+      "settings": {
+        "title": "",
+        "heading_size": "h1",
+        "show_price": true,
+        "full_width": true,
+        "bg_color": "#f8f8f8",
+        "text_color": "#151515",
+        "padding_top": 0,
+        "padding_bottom": 36
+      }
+    },
+    "custom_liquid_6fc6jc": {
+      "type": "custom-liquid",
+      "name": "banner",
+      "settings": {
+        "custom_liquid": "{%- comment -%}\nHOOLS — Thin Banner (Custom Liquid)\nTexto y botón desplazados hacia el centro\n{%- endcomment -%}\n\n<div class=\"hools-thin-banner\"\n  style=\"\n    --bg-url: url('https://cdn.shopify.com/s/files/1/0988/6364/5011/files/hools-banner-grada-retro-attitude.png?v=1770302489');\n    --h-desktop: 160px;\n    --h-mobile: 140px;\n    --overlay: 0.35;\n    --text: #F8F8F8;\n    --gold: #CCB229;\n    --black: #151515;\n  \"\n>\n  <div class=\"hools-thin-banner__bg\">\n    <div class=\"hools-thin-banner__content\">\n\n      <div class=\"hools-thin-banner__left\">\n        <div class=\"hools-thin-banner__title\">\n          not a fashion... it's an attitude\n        </div>\n      </div>\n\n      <div class=\"hools-thin-banner__right\">\n        <a class=\"hools-thin-banner__btn\" href=\"/collections/productos\">\n          Comprar ahora\n        </a>\n      </div>\n\n    </div>\n  </div>\n</div>\n\n<style>\n/* =========================\n   HOOLS — Thin Banner\n   ========================= */\n\n.hools-thin-banner{\n  width: 100%;\n  margin: 30px 0;\n}\n\n.hools-thin-banner__bg{\n  position: relative;\n  width: 100%;\n  height: var(--h-desktop);\n  background-image: var(--bg-url);\n  background-size: cover;\n  background-position: center;\n  background-repeat: no-repeat;\n  overflow: hidden;\n}\n\n.hools-thin-banner__bg::before{\n  content:\"\";\n  position:absolute;\n  inset:0;\n  background: rgba(0,0,0,var(--overlay));\n  z-index: 1;\n}\n\n/* CONTENIDO — aquí está la clave */\n.hools-thin-banner__content{\n  position: relative;\n  z-index: 2;\n  height: 100%;\n\n  max-width: 980px;        /* ⬅️ REDUCE el ancho para acercar al centro */\n  margin: 0 auto;\n  padding: 0 24px;\n\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 24px;\n}\n\n/* TEXTO */\n.hools-thin-banner__title{\n  font-family: 'Source Serif 4', Georgia, serif;\n  font-weight: 400;\n  letter-spacing: .3px;\n  color: var(--text);\n  font-size: 35px;\n  line-height: 1.1;\n  margin: 0;\n  text-align: left;\n}\n\n/* BOTÓN SÓLIDO */\n.hools-thin-banner__btn{\n  display: inline-block;\n  padding: 12px 26px;\n  background: var(--gold);\n  color: var(--black);\n  border: none;\n  text-decoration: none;\n  font-size: 14px;\n  letter-spacing: .6px;\n  transition: background .2s ease;\n  white-space: nowrap;\n}\n\n.hools-thin-banner__btn:hover{\n  background: #bfa51f;\n}\n\n/* =========================\n   RESPONSIVE\n   ========================= */\n@media (max-width: 768px){\n\n  .hools-thin-banner__bg{\n    height: var(--h-mobile);\n  }\n\n  .hools-thin-banner__content{\n    flex-direction: column;\n    justify-content: center;\n    text-align: center;\n  }\n\n  .hools-thin-banner__title{\n    font-size: 18px;\n    text-align: center;\n  }\n}\n</style>",
+        "color_scheme": "",
+        "padding_top": 20,
+        "padding_bottom": 20
+      }
+    },
+    "collection-list": {
+      "type": "collection-list",
+      "blocks": {
+        "featured_collection_MyXHgk": {
+          "type": "featured_collection",
+          "settings": {
+            "collection": "terrace"
+          }
+        },
+        "featured_collection_Marq7D": {
+          "type": "featured_collection",
+          "settings": {
+            "collection": "mod"
+          }
+        },
+        "featured_collection_zAEU9K": {
+          "type": "featured_collection",
+          "settings": {
+            "collection": "ska"
+          }
+        }
+      },
+      "block_order": [
+        "featured_collection_MyXHgk",
+        "featured_collection_Marq7D",
+        "featured_collection_zAEU9K"
+      ],
+      "name": "Comprar por colección",
+      "settings": {
+        "title": "Comprar por Colección",
+        "heading_size": "h1",
+        "image_ratio": "square",
+        "columns_desktop": 3,
+        "color_scheme": "",
+        "show_view_all": false,
+        "columns_mobile": "1",
+        "swipe_on_mobile": true,
+        "padding_top": 36,
+        "padding_bottom": 36
+      }
+    },
+    "custom_liquid_KmYbra": {
+      "type": "custom-liquid",
+      "name": "Cita",
+      "settings": {
+        "custom_liquid": "<section class=\"hools-quote-hero\">\n\n  <!-- TEXTO -->\n  <div class=\"hq-left\">\n    <p class=\"hq-quote\">\n      “El fútbol sin aficionados no es nada.”\n    </p>\n\n    <p class=\"hq-author\">\n      — Jock Stein\n    </p>\n  </div>\n\n  <!-- IMAGEN -->\n  <div class=\"hq-right\">\n    <img\n      src=\"{{ 'hools-terrace-culture-grada-frio-estadio-anos-80.jpg' | file_url }}\"\n      alt=\"Hools editorial\"\n      loading=\"lazy\">\n  </div>\n\n</section>\n\n<style>\n/* ======================================================\n   HOOLS · CITA + IMAGEN (altura controlada por imagen)\n   ====================================================== */\n\n.hools-quote-hero{\n  display:grid;\n  grid-template-columns: 1fr 1fr;\n  background:#F8F8F8;\n  align-items:stretch;\n}\n\n/* ================= TEXTO ================= */\n\n.hq-left{\n  display:flex;\n  flex-direction:column;\n  justify-content:center;\n  padding:40px 60px; /* CONTROL: aire lateral desktop */\n}\n\n/* CITA */\n.hq-quote{\n  font-family:'Source Serif 4', Georgia, serif;\n  font-size:clamp(22px, 2vw, 30px);\n  line-height:1.2;\n  margin:0 0 12px 0;\n  color:#151515;\n}\n\n/* AUTOR */\n.hq-author{\n  font-family:'Muli', sans-serif;\n  font-size:12px;\n  letter-spacing:1.5px;\n  text-transform:uppercase;\n  color:rgba(21,21,21,.65);\n}\n\n/* ================= IMAGEN ================= */\n\n.hq-right{\n  height:280px; /* 🔧 CONTROL: altura desktop */\n  overflow:hidden;\n}\n\n.hq-right img{\n  width:100%;\n  height:100%;\n  object-fit:cover;\n  display:block;\n}\n\n/* ======================================================\n   RESPONSIVE · MÓVIL\n   ====================================================== */\n\n@media (max-width:900px){\n\n  .hools-quote-hero{\n    grid-template-columns:1fr; /* imagen debajo */\n  }\n\n  .hq-left{\n    padding:35px 22px;   /* CONTROL: aire móvil */\n    align-items:center;  /* ✅ centra el bloque */\n    text-align:center;   /* ✅ centra texto */\n  }\n\n  .hq-right{\n    height:220px; /* 🔧 CONTROL: altura móvil */\n  }\n\n  .hq-quote{\n    font-size:20px;  /* CONTROL: tamaño cita móvil */\n    margin:0 0 10px 0;\n  }\n\n  .hq-author{\n    margin-top:8px;\n    font-size:11px; /* un poco más editorial */\n  }\n}\n</style>",
+        "color_scheme": "",
+        "padding_top": 24,
+        "padding_bottom": 52
+      }
+    },
+    "hools_blog_strip_QmXDiN": {
+      "type": "hools-blog-strip",
+      "name": "Hools · Últimas del blog",
+      "settings": {
+        "blog": "",
+        "kicker": "The Away End",
+        "heading": "Desde la grada",
+        "link_text": "Ver todas",
+        "count": 3,
+        "filter_tag": "all",
+        "card_ratio": "4/5",
+        "show_date": true,
+        "bg_color": "#f2f2f2",
+        "card_bg": "#f6f6f6",
+        "padding_top": 48,
+        "padding_bottom": 48
+      }
+    },
+    "collage_ntDVrq": {
+      "type": "collage",
+      "blocks": {
+        "image_gTUNDG": {
+          "type": "image",
+          "settings": {
+            "image": "shopify://shop_images/hools-polo-terrace-the-corner-azul-marino-detalle-cuello.png"
+          }
+        },
+        "product_htkxUP": {
+          "type": "product",
+          "settings": {
+            "product": "away",
+            "second_image": true
+          }
+        },
+        "collection_y8XqN9": {
+          "type": "collection",
+          "settings": {
+            "collection": "mod"
+          }
+        }
+      },
+      "block_order": [
+        "image_gTUNDG",
+        "product_htkxUP",
+        "collection_y8XqN9"
+      ],
+      "name": "Colección Destacada",
+      "settings": {
+        "heading": "Destacada",
+        "heading_size": "h1",
+        "desktop_layout": "left",
+        "mobile_layout": "collage",
+        "card_styles": "product-card-wrapper",
+        "color_scheme": "",
+        "padding_top": 36,
+        "padding_bottom": 36
+      }
+    },
+    "rich_text_XBfDdq": {
+      "type": "rich-text",
+      "blocks": {
+        "caption_TBnBKP": {
+          "type": "caption",
+          "settings": {
+            "caption": "RETURN TO THE ORIGINS",
+            "text_style": "caption-with-letter-spacing",
+            "text_size": "medium"
+          }
+        },
+        "heading_UqyrYW": {
+          "type": "heading",
+          "settings": {
+            "heading": "Aquí empieza todo",
+            "heading_size": "h1"
+          }
+        },
+        "text_E8LMJ3": {
+          "type": "text",
+          "settings": {
+            "text": "<p>Aquí el fútbol no se justifica ni se explica. Se vive como se ha vivido siempre: desde la calle, desde la grada, desde la memoria colectiva de quienes estuvieron antes. No hablamos de pasado ni de nostalgia, sino de identidad. De todo lo que no se perdió, solo fue empujado a un segundo plano. <em>Return to the origins </em>no es una mirada atrás, es una advertencia: lo auténtico sigue ahí, esperando a quien sepa reconocerlo.<br/><br/></p>"
+          }
+        },
+        "button_Ji6myg": {
+          "type": "button",
+          "settings": {
+            "button_label": "Saber más",
+            "button_link": "shopify://pages/la-marca",
+            "button_style_secondary": true,
+            "button_label_2": "",
+            "button_link_2": "",
+            "button_style_secondary_2": false
+          }
+        }
+      },
+      "block_order": [
+        "caption_TBnBKP",
+        "heading_UqyrYW",
+        "text_E8LMJ3",
+        "button_Ji6myg"
+      ],
+      "name": "Presentación Marca",
+      "settings": {
+        "desktop_content_position": "center",
+        "content_alignment": "center",
+        "color_scheme": "",
+        "full_width": true,
+        "padding_top": 28,
+        "padding_bottom": 52
+      }
+    },
+    "hools_testimonials_bg_36JKjE": {
+      "type": "hools-testimonials-bg",
+      "blocks": {
+        "review_WnFDVL": {
+          "type": "review",
+          "settings": {
+            "stars": 5,
+            "quote": "Gana puesto. Es original y está bien terminado.",
+            "name": "Pablo",
+            "meta": "Sevilla",
+            "product": "away",
+            "product_link": "shopify://products/away"
+          }
+        },
+        "review_mwEJaY": {
+          "type": "review",
+          "settings": {
+            "stars": 4,
+            "quote": "Una marca distinta para los aficionados al fútbol.",
+            "name": "Marcos R.",
+            "meta": "Valencia",
+            "product": "the-classic",
+            "product_link": "shopify://products/the-classic"
+          }
+        },
+        "review_pfrij8": {
+          "type": "review",
+          "settings": {
+            "stars": 5,
+            "quote": "Se nota que es de buena calidad",
+            "name": "Marta",
+            "meta": "Málaga",
+            "product": "the-corner",
+            "product_link": "shopify://products/the-corner"
+          }
+        },
+        "review_J4gmCt": {
+          "type": "review",
+          "settings": {
+            "stars": 4,
+            "quote": "No me lo quito el día de partido.",
+            "name": "Carlos",
+            "meta": "Madrid",
+            "product": "the-classic",
+            "product_link": "shopify://products/the-classic"
+          }
+        },
+        "review_3UneX3": {
+          "type": "review",
+          "settings": {
+            "stars": 5,
+            "quote": "Compré dos polos aprovechando la oferta y me han sorprendido.",
+            "name": "Pablo",
+            "meta": "Algeciras (Cádiz)",
+            "product": "the-beat",
+            "product_link": "shopify://products/the-beat"
+          }
+        }
+      },
+      "block_order": [
+        "review_WnFDVL",
+        "review_mwEJaY",
+        "review_pfrij8",
+        "review_J4gmCt",
+        "review_3UneX3"
+      ],
+      "name": "HOOLS · Testimonios",
+      "settings": {
+        "bg_image": "shopify://shop_images/hools-cultura-grada-estadio.jpg",
+        "overlay_opacity": 60,
+        "pad_top": 0,
+        "pad_bottom": 0,
+        "title_space_top": 60,
+        "track_pad_top": 66,
+        "track_pad_bottom": 66,
+        "title_color": "#ffffff",
+        "kicker_color": "#ffffff",
+        "head_align": "center",
+        "kicker": "TESTIMONIOS",
+        "title": "Desde la Grada"
+      }
+    },
+    "featured_collection_93FhTw": {
+      "type": "featured-collection",
+      "disabled": true,
+      "name": "t:sections.featured-collection.presets.name",
+      "settings": {
+        "collection": "productos",
+        "products_to_show": 4,
+        "hools_full_card_click": true,
+        "title": "Colección destacada",
+        "heading_size": "h1",
+        "description": "",
+        "show_description": false,
+        "description_style": "body",
+        "columns_desktop": 4,
+        "enable_desktop_slider": true,
+        "full_width": true,
+        "show_view_all": true,
+        "view_all_style": "solid",
+        "color_scheme": "scheme-1",
+        "image_ratio": "adapt",
+        "image_shape": "default",
+        "show_secondary_image": true,
+        "show_vendor": false,
+        "show_rating": false,
+        "quick_add": "none",
+        "columns_mobile": "2",
+        "swipe_on_mobile": false,
+        "padding_top": 36,
+        "padding_bottom": 36
+      }
+    }
+  },
+  "order": [
+    "hero-slideshow",
+    "hools_hero",
+    "hools_aviso",
+    "hools_manual_carousel_axCy9w",
+    "custom_liquid_6fc6jc",
+    "collection-list",
+    "custom_liquid_KmYbra",
+    "hools_blog_strip_QmXDiN",
+    "collage_ntDVrq",
+    "rich_text_XBfDdq",
+    "hools_testimonials_bg_36JKjE",
+    "featured_collection_93FhTw"
+  ]
+}
