@@ -59,8 +59,8 @@
         "customer_tag": "aviso-nuevos-modelos",
         "bg_color": "#213B2E",
         "text_color": "#F8F8F8",
-        "padding_top": 64,
-        "padding_bottom": 72
+        "padding_top": 40,
+        "padding_bottom": 40
       }
     },
     "hools_manual_carousel_axCy9w": {

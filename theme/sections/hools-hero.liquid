@@ -125,7 +125,10 @@
     --hero-mobile-ratio:{{ section.settings.mobile_media_ratio }};
 
     --hero-right-gutter:3%;
-    --hero-maxw:470px;
+    /* 470px daba para unos diez caracteres al cuerpo máximo del titular, así
+       que un reclamo como «3 NUEVOS MODELOS» partía en dos y el titular de dos
+       líneas salía en cuatro. El ancho manda tanto como el cuerpo. */
+    --hero-maxw:560px;
 
     --hero-mobile-content-up:-5px;
 
@@ -225,8 +228,8 @@
     font-family:'Source Serif 4', Georgia, serif;
     font-weight:500;
 
-    font-size:clamp(28px, 4vw, 46px);
-    line-height:.95;
+    font-size:clamp(26px, 3.2vw, 36px);
+    line-height:1;
 
     margin:0 0 18px 0;
 
@@ -235,8 +238,14 @@
     text-shadow:0 4px 30px rgba(0,0,0,1), 0 0 14px rgba(0,0,0,.95), 0 1px 2px rgba(0,0,0,1);
   }
 
-  /* Una línea por ajuste: el salto lo da el bloque, no un <br>. */
-  .hero-hools h1 span{ display:block; }
+  /* Una línea por ajuste: el salto lo da el bloque, no un <br>.
+     `nowrap` porque el titular son dos frases pensadas para leerse enteras: si
+     una no cabe, partirla por la mitad («PRÓXIMAMEN / TE») es peor que
+     cualquier otra salida. El cuerpo de arriba está calculado para que quepan
+     dieciséis caracteres en el ancho del panel, que es lo que ocupa el reclamo
+     más largo que se ha usado; si algún día pones uno más largo, baja el
+     cuerpo o ensancha `--hero-maxw` en vez de quitar esto. */
+  .hero-hools h1 span{ display:block; white-space:nowrap; }
 
   .hero-hools .hero-subtitle{
     font-family:'Muli', sans-serif;
@@ -352,8 +361,8 @@
     }
 
     .hero-hools h1{
-      font-size:clamp(28px, 8vw, 36px);
-      line-height:1.02;
+      font-size:clamp(22px, 6vw, 30px);
+      line-height:1.05;
       margin:0 0 14px 0;
     }
 
