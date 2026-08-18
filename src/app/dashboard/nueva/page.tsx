@@ -2,9 +2,11 @@ import { Category } from "@prisma/client";
 import { CATEGORY_LABEL } from "@/lib/sources";
 import { isShopifyConfigured } from "@/lib/shopify";
 import { createManualArticleAction } from "../actions";
+import { MediaUploader } from "../media-uploader";
 
-// Subir la foto a Shopify y maquetar el texto con Claude puede pasar de los
-// 60s por defecto; mismo margen que el resto del panel.
+// Maquetar el texto con Claude puede pasar de los 60s por defecto; mismo
+// margen que el resto del panel. (La foto y el vídeo ya no cuentan aquí: los
+// sube el navegador directamente a Shopify antes de enviar el formulario.)
 export const maxDuration = 280;
 
 export default async function NewArticlePage({
@@ -13,7 +15,7 @@ export default async function NewArticlePage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const query = await searchParams;
-  const canUploadPhoto = isShopifyConfigured();
+  const canUploadMedia = isShopifyConfigured();
 
   return (
     <div>
@@ -60,43 +62,44 @@ export default async function NewArticlePage({
             <option value={Category.MODA}>{CATEGORY_LABEL.MODA}</option>
           </select>
 
-          <label htmlFor="photo">Foto (desde tu ordenador)</label>
-          <input
-            type="file"
-            id="photo"
-            name="photo"
-            accept="image/*"
-            disabled={!canUploadPhoto}
-          />
-          <div className="meta" style={{ marginTop: 6 }}>
-            {canUploadPhoto ? (
-              <>
-                Máximo 4 MB (es el tope que deja Vercel para lo que se sube en
-                un formulario). Se guarda en los Archivos de tu tienda de
-                Shopify y se usa como imagen destacada del artículo. Si la foto
-                pesa más, redúcela o súbela a otro sitio y pega su URL aquí
-                debajo.
-              </>
-            ) : (
-              <>
-                Faltan las credenciales de Shopify (SHOPIFY_*), así que de momento
-                solo se puede indicar la foto por URL.
-              </>
-            )}
-          </div>
-
-          <label htmlFor="imageUrl">…o pega la URL de una foto</label>
-          <input
-            type="url"
-            id="imageUrl"
+          <MediaUploader
+            kind="image"
             name="imageUrl"
-            placeholder="https://…/foto.jpg"
+            label="Foto"
+            canUpload={canUploadMedia}
+            hint={
+              canUploadMedia ? (
+                <>
+                  JPG, PNG, WEBP o GIF, hasta 20 MB. Se sube directa a los Archivos
+                  de tu tienda de Shopify (no pasa por el panel, así que ya no la
+                  limita el tope de Vercel) y se usa como imagen destacada del
+                  artículo. También puedes pegar la URL de una foto ya alojada.
+                </>
+              ) : (
+                <>
+                  Faltan las credenciales de Shopify (SHOPIFY_*), así que de momento
+                  solo se puede indicar la foto por URL.
+                </>
+              )
+            }
           />
-          <div className="meta" style={{ marginTop: 6 }}>
-            Si subes un archivo y además pegas una URL, manda el archivo. Sin
-            ninguno de los dos, la noticia sale sin foto (puedes buscar una desde
-            el artículo con «Buscar otra foto»).
-          </div>
+
+          <MediaUploader
+            kind="video"
+            name="videoUrl"
+            previewName="videoPreviewUrl"
+            label="Vídeo (opcional)"
+            canUpload={canUploadMedia}
+            hint={
+              <>
+                MP4 o MOV, hasta 300 MB. Con vídeo, al aprobar podrás publicarlo
+                como <strong>Reel</strong> o <strong>Story</strong> en Instagram, y
+                se adjunta al tuit (X no admite más de 2:20, y no mezcla vídeo y
+                fotos en el mismo tuit). Si no pones foto, se usa de portada el
+                fotograma que saca Shopify.
+              </>
+            }
+          />
 
           <label htmlFor="sourceUrl">Enlace a la fuente (opcional)</label>
           <input

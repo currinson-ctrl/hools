@@ -5,10 +5,8 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import {
   deleteArticleFromShopify,
-  isShopifyConfigured,
   publishArticleToShopify,
   updateArticleOnShopify,
-  uploadImageToShopifyFiles,
 } from "@/lib/shopify";
 import { deleteTweet, isTwitterConfigured, postTweet } from "@/lib/twitter";
 import {
@@ -50,9 +48,18 @@ export async function updateArticleAction(formData: FormData) {
   const tweetText = String(formData.get("tweetText") || "").trim();
   const igCaption = String(formData.get("igCaption") || "").trim();
   const imageUrl = String(formData.get("imageUrl") || "").trim();
+  const videoUrl = String(formData.get("videoUrl") || "").trim();
 
   if (!id || !title || !excerpt) {
     withError(`/dashboard/articles/${id}`, "Título y contenido son obligatorios");
+  }
+  for (const [value, label] of [
+    [imageUrl, "La URL de la foto"],
+    [videoUrl, "La URL del vídeo"],
+  ] as const) {
+    if (value && !isHttpUrl(value)) {
+      withError(`/dashboard/articles/${id}`, `${label} tiene que ser una URL completa (https://...)`);
+    }
   }
 
   const article = await prisma.article.findUnique({ where: { id } });
@@ -73,7 +80,14 @@ export async function updateArticleAction(formData: FormData) {
 
   await prisma.article.update({
     where: { id },
-    data: { title, excerpt, tweetText, igCaption: igCaption || null, imageUrl: imageUrl || null },
+    data: {
+      title,
+      excerpt,
+      tweetText,
+      igCaption: igCaption || null,
+      imageUrl: imageUrl || null,
+      videoUrl: videoUrl || null,
+    },
   });
 
   // Guardar no toca el tuit vivo: X no permite editar un tuit ya publicado,
@@ -877,14 +891,6 @@ export async function toggleGroupAction(formData: FormData) {
   redirect("/dashboard/groups");
 }
 
-// Tope de la foto que se sube desde el formulario manual. Manda el limite de
-// Vercel: el cuerpo de una peticion a una funcion no puede pasar de 4,5 MB,
-// y ese corte lo hace la plataforma antes de que llegue nuestro codigo (el
-// usuario veria un 413 opaco). Asi que el tope real es algo por debajo, para
-// que quien avise sea nuestro mensaje. Va de la mano del bodySizeLimit de
-// las Server Actions en next.config.mjs.
-const MAX_MANUAL_IMAGE_BYTES = 4 * 1024 * 1024;
-
 const MANUAL_TWEET_CHARS = 280 - 24; // el mismo hueco para el enlace que deja el rastreo
 
 /**
@@ -925,7 +931,12 @@ export async function createManualArticleAction(formData: FormData) {
   const sourceUrl = String(formData.get("sourceUrl") || "").trim();
   const customTweet = String(formData.get("tweetText") || "").trim();
   const igCaption = String(formData.get("igCaption") || "").trim();
-  let imageUrl = String(formData.get("imageUrl") || "").trim();
+  // La foto y el video llegan ya subidos: el navegador los manda directos a
+  // los Archivos de Shopify (ver media-uploader.tsx y /api/uploads/*) y aqui
+  // solo entra su URL, asi que un video de 80 MB no toca este servidor.
+  const imageUrl = String(formData.get("imageUrl") || "").trim();
+  const videoUrl = String(formData.get("videoUrl") || "").trim();
+  const videoPreviewUrl = String(formData.get("videoPreviewUrl") || "").trim();
 
   if (!title || !body) {
     withError(returnTo, "El titular y el texto de la noticia son obligatorios");
@@ -933,63 +944,19 @@ export async function createManualArticleAction(formData: FormData) {
   if (!Object.values(Category).includes(category)) {
     withError(returnTo, "Elige una categoría válida");
   }
-  if (sourceUrl && !isHttpUrl(sourceUrl)) {
-    withError(returnTo, "El enlace a la fuente tiene que ser una URL completa (https://...)");
-  }
-  if (imageUrl && !isHttpUrl(imageUrl)) {
-    withError(returnTo, "La URL de la foto tiene que ser completa (https://...)");
+  for (const [value, label] of [
+    [sourceUrl, "El enlace a la fuente"],
+    [imageUrl, "La URL de la foto"],
+    [videoUrl, "La URL del vídeo"],
+  ] as const) {
+    if (value && !isHttpUrl(value)) {
+      withError(returnTo, `${label} tiene que ser una URL completa (https://...)`);
+    }
   }
 
   const paragraphs = splitManualParagraphs(body);
   if (!paragraphs.length) {
     withError(returnTo, "El texto de la noticia está vacío");
-  }
-
-  // La foto subida desde el ordenador manda sobre la URL: si se rellenan las
-  // dos, lo que se acaba de elegir en el disco es lo que se queria.
-  const photo = formData.get("photo");
-  if (photo instanceof File && photo.size > 0) {
-    if (!photo.type.startsWith("image/")) {
-      withError(returnTo, `"${photo.name}" no es una imagen`);
-    }
-    if (photo.size > MAX_MANUAL_IMAGE_BYTES) {
-      withError(
-        returnTo,
-        `La foto pesa ${(photo.size / 1024 / 1024).toFixed(1)} MB y el máximo son ${
-          MAX_MANUAL_IMAGE_BYTES / 1024 / 1024
-        } MB. Redúcela o pega su URL.`
-      );
-    }
-    if (!isShopifyConfigured()) {
-      withError(
-        returnTo,
-        "Para subir una foto desde el ordenador hacen falta las credenciales de Shopify (SHOPIFY_*). Mientras tanto, pega la URL de una foto."
-      );
-    }
-
-    // Se guarda en los Archivos de Shopify porque el panel corre en
-    // serverless (sin disco donde dejarla) y Shopify solo acepta la imagen
-    // del articulo por URL publica.
-    let uploaded: string | null;
-    try {
-      uploaded = await uploadImageToShopifyFiles({
-        bytes: await photo.arrayBuffer(),
-        filename: photo.name || "foto.jpg",
-        mimeType: photo.type,
-      });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error("Fallo al subir la foto de una noticia manual:", message);
-      withError(returnTo, `No se pudo subir la foto: ${message}`.slice(0, 400));
-    }
-
-    if (!uploaded) {
-      withError(
-        returnTo,
-        "Shopify aceptó la foto pero todavía la está procesando. Espera un momento y añádela desde el artículo."
-      );
-    }
-    imageUrl = uploaded;
   }
 
   const groups = await prisma.group.findMany({ where: { active: true } });
@@ -1048,7 +1015,10 @@ export async function createManualArticleAction(formData: FormData) {
       excerpt,
       tweetText,
       igCaption: igCaption || null,
-      imageUrl: imageUrl || null,
+      // Sin foto propia, la portada del video hace de imagen destacada: es lo
+      // que usan la ficha del blog, la story y la miniatura del tuit.
+      imageUrl: imageUrl || videoPreviewUrl || null,
+      videoUrl: videoUrl || null,
       tags: [category, "manual"].join(","),
     },
   });

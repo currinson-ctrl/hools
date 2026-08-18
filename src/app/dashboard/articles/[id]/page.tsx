@@ -12,6 +12,8 @@ import {
   updateArticleAction,
 } from "../../actions";
 import { isTwitterConfigured } from "@/lib/twitter";
+import { isShopifyConfigured } from "@/lib/shopify";
+import { MediaUploader } from "../../media-uploader";
 
 // Publicar (Shopify + X + Instagram; un video de story tarda en procesarse)
 // puede superar los 60s por defecto; mismo margen que /dashboard.
@@ -34,6 +36,7 @@ export default async function ArticleReviewPage({
   if (!article) notFound();
 
   const returnTo = `/dashboard/articles/${id}`;
+  const canUploadMedia = isShopifyConfigured();
 
   // El tuit vivo lleva el texto de tweetedText; si tweetText ya no coincide,
   // lo editado esta guardado pero todavia no se ve en X.
@@ -66,26 +69,41 @@ export default async function ArticleReviewPage({
         <label htmlFor="excerpt">Contenido (HTML) — resumen propio + cita + enlace a la fuente</label>
         <textarea id="excerpt" name="excerpt" defaultValue={article.excerpt} required />
 
-        <label htmlFor="imageUrl">Imagen (URL, opcional)</label>
-        <input type="url" id="imageUrl" name="imageUrl" defaultValue={article.imageUrl || ""} />
-        {article.imageUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={article.imageUrl}
-            alt=""
-            style={{ maxWidth: 240, borderRadius: 8, marginTop: 8, display: "block" }}
-          />
-        )}
+        <MediaUploader
+          kind="image"
+          name="imageUrl"
+          label="Foto (imagen destacada del artículo)"
+          defaultValue={article.imageUrl}
+          canUpload={canUploadMedia}
+          hint={
+            canUploadMedia ? (
+              <>
+                Sube otra desde el ordenador (va directa a los Archivos de tu tienda
+                de Shopify) o pega su URL. Si el artículo ya está publicado, al
+                guardar se actualiza también en Shopify.
+              </>
+            ) : (
+              <>Faltan las credenciales de Shopify (SHOPIFY_*): solo se puede pegar la URL.</>
+            )
+          }
+        />
 
-        {article.videoUrl && (
-          <div className="meta" style={{ marginTop: 8 }}>
-            🎬 El tuit de origen trae vídeo —{" "}
-            <a href={article.videoUrl} target="_blank" rel="noreferrer">
-              verlo
-            </a>{" "}
-            (se publicará en X, y en Instagram si eliges «Reel» o «Story»)
-          </div>
-        )}
+        <MediaUploader
+          kind="video"
+          name="videoUrl"
+          label="Vídeo (opcional)"
+          defaultValue={article.videoUrl}
+          defaultPreview={article.imageUrl}
+          canUpload={canUploadMedia}
+          hint={
+            <>
+              Con vídeo aparecen abajo las opciones de <strong>Reel</strong> y{" "}
+              <strong>Story</strong> de Instagram, y se adjunta al tuit (X no admite
+              más de 2:20). El vídeo no sale en el artículo del blog: es solo para
+              las redes.
+            </>
+          }
+        />
 
         {article.extraImageUrls && (
           <>
