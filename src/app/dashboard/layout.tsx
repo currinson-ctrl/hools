@@ -15,6 +15,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <Link className="tab" href="/dashboard?status=REJECTED">
             Rechazados
           </Link>
+          <Link className="tab" href="/dashboard/nueva">
+            Nueva noticia
+          </Link>
           <Link className="tab" href="/dashboard/sources">
             Fuentes
           </Link>

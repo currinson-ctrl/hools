@@ -152,6 +152,29 @@ textarea {
   font: inherit;
 }
 
+input[type="file"] {
+  width: 100%;
+  background: #0c0c0d;
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 13px;
+}
+
+input[type="file"]::file-selector-button {
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  margin-right: 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  padding: 5px 10px;
+}
+
 textarea {
   min-height: 120px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;

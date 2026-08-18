@@ -122,9 +122,11 @@ export default async function ArticleReviewPage({
           <button className="primary" type="submit">
             Guardar cambios
           </button>
-          <a className="btn" href={article.originalUrl} target="_blank" rel="noreferrer">
-            Ver noticia original
-          </a>
+          {article.originalUrl && (
+            <a className="btn" href={article.originalUrl} target="_blank" rel="noreferrer">
+              Ver noticia original
+            </a>
+          )}
         </div>
       </form>
 

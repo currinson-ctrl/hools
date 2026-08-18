@@ -5,8 +5,10 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import {
   deleteArticleFromShopify,
+  isShopifyConfigured,
   publishArticleToShopify,
   updateArticleOnShopify,
+  uploadImageToShopifyFiles,
 } from "@/lib/shopify";
 import { deleteTweet, isTwitterConfigured, postTweet } from "@/lib/twitter";
 import {
@@ -32,7 +34,8 @@ import {
   type ArticleSection,
 } from "@/lib/article-html";
 import { runAggregation } from "@/lib/aggregate";
-import { buildBlogArticleUrl, buildCtaHtml } from "@/lib/sources";
+import { getManualSource, MANUAL_GUID_PREFIX, MANUAL_SOURCE_NAME } from "@/lib/manual";
+import { buildBlogArticleUrl, buildCtaHtml, CATEGORY_HASHTAGS } from "@/lib/sources";
 import { ArticleStatus, Category, SourceType } from "@prisma/client";
 
 function withError(basePath: string, message: string): never {
@@ -676,8 +679,11 @@ export async function fixTitlesAction(formData: FormData) {
 export async function cleanupOffTopicAction(formData: FormData) {
   const returnTo = String(formData.get("returnTo") || "/dashboard?status=PENDING");
 
+  // Las noticias escritas a mano no pasan por el filtro de tema: si alguien
+  // se ha sentado a escribirla, ya ha decidido que encaja. El filtro esta
+  // para lo que llega solo de las fuentes.
   const pending = await prisma.article.findMany({
-    where: { status: "PENDING" },
+    where: { status: "PENDING", NOT: { guid: { startsWith: MANUAL_GUID_PREFIX } } },
     orderBy: { createdAt: "asc" },
     take: CLEANUP_BATCH_SIZE,
   });
@@ -869,4 +875,185 @@ export async function toggleGroupAction(formData: FormData) {
   });
   revalidatePath("/dashboard/groups");
   redirect("/dashboard/groups");
+}
+
+// Tope de la foto que se sube desde el formulario manual. Va de la mano del
+// bodySizeLimit de las Server Actions en next.config.mjs: si se sube aqui,
+// hay que subirlo alli tambien o Next corta la peticion antes de llegar.
+const MAX_MANUAL_IMAGE_BYTES = 8 * 1024 * 1024;
+
+const MANUAL_TWEET_CHARS = 280 - 24; // el mismo hueco para el enlace que deja el rastreo
+
+/**
+ * Parte el texto escrito a mano en parrafos. Se aceptan las dos formas de
+ * separarlos que sale natural teclear (linea en blanco o simple salto de
+ * linea) porque quien escribe no tiene por que saber cual espera el sistema.
+ */
+function splitManualParagraphs(body: string): string[] {
+  const byBlankLine = body
+    .split(/\n\s*\n/)
+    .map((p) => p.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+  if (byBlankLine.length > 1) return byBlankLine;
+
+  return body
+    .split(/\n/)
+    .map((p) => p.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+}
+
+/**
+ * Crea una noticia escrita a mano en el panel y la deja en la cola de
+ * revision (PENDING), igual que si la hubiera traido el rastreo: desde ahi se
+ * edita, se le busca otra foto y se aprueba con los mismos botones. No se
+ * publica de golpe a proposito, para que la noticia propia pase por la misma
+ * pantalla de repaso que las de fuera.
+ *
+ * El texto NO se reescribe: Claude solo lo maqueta (entradilla, ladillos,
+ * cita y ficha) conservando los parrafos palabra por palabra, y si no hay
+ * clave de API se maqueta en basico. Lo que se publica es lo que se escribio.
+ */
+export async function createManualArticleAction(formData: FormData) {
+  const returnTo = "/dashboard/nueva";
+
+  const title = String(formData.get("title") || "").trim();
+  const body = String(formData.get("body") || "").trim();
+  const category = String(formData.get("category") || "") as Category;
+  const sourceUrl = String(formData.get("sourceUrl") || "").trim();
+  const customTweet = String(formData.get("tweetText") || "").trim();
+  const igCaption = String(formData.get("igCaption") || "").trim();
+  let imageUrl = String(formData.get("imageUrl") || "").trim();
+
+  if (!title || !body) {
+    withError(returnTo, "El titular y el texto de la noticia son obligatorios");
+  }
+  if (!Object.values(Category).includes(category)) {
+    withError(returnTo, "Elige una categoría válida");
+  }
+  if (sourceUrl && !isHttpUrl(sourceUrl)) {
+    withError(returnTo, "El enlace a la fuente tiene que ser una URL completa (https://...)");
+  }
+  if (imageUrl && !isHttpUrl(imageUrl)) {
+    withError(returnTo, "La URL de la foto tiene que ser completa (https://...)");
+  }
+
+  const paragraphs = splitManualParagraphs(body);
+  if (!paragraphs.length) {
+    withError(returnTo, "El texto de la noticia está vacío");
+  }
+
+  // La foto subida desde el ordenador manda sobre la URL: si se rellenan las
+  // dos, lo que se acaba de elegir en el disco es lo que se queria.
+  const photo = formData.get("photo");
+  if (photo instanceof File && photo.size > 0) {
+    if (!photo.type.startsWith("image/")) {
+      withError(returnTo, `"${photo.name}" no es una imagen`);
+    }
+    if (photo.size > MAX_MANUAL_IMAGE_BYTES) {
+      withError(
+        returnTo,
+        `La foto pesa ${(photo.size / 1024 / 1024).toFixed(1)} MB y el máximo son ${
+          MAX_MANUAL_IMAGE_BYTES / 1024 / 1024
+        } MB. Redúcela o pega su URL.`
+      );
+    }
+    if (!isShopifyConfigured()) {
+      withError(
+        returnTo,
+        "Para subir una foto desde el ordenador hacen falta las credenciales de Shopify (SHOPIFY_*). Mientras tanto, pega la URL de una foto."
+      );
+    }
+
+    // Se guarda en los Archivos de Shopify porque el panel corre en
+    // serverless (sin disco donde dejarla) y Shopify solo acepta la imagen
+    // del articulo por URL publica.
+    let uploaded: string | null;
+    try {
+      uploaded = await uploadImageToShopifyFiles({
+        bytes: await photo.arrayBuffer(),
+        filename: photo.name || "foto.jpg",
+        mimeType: photo.type,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("Fallo al subir la foto de una noticia manual:", message);
+      withError(returnTo, `No se pudo subir la foto: ${message}`.slice(0, 400));
+    }
+
+    if (!uploaded) {
+      withError(
+        returnTo,
+        "Shopify aceptó la foto pero todavía la está procesando. Espera un momento y añádela desde el artículo."
+      );
+    }
+    imageUrl = uploaded;
+  }
+
+  const groups = await prisma.group.findMany({ where: { active: true } });
+  const knownGroups = groups.map((g) => ({
+    name: g.name,
+    handle: g.handle,
+    aliases: parseAliases(g.aliases),
+  }));
+  const mentionedGroups = findMentionedGroups(`${title} ${paragraphs.join(" ")}`, knownGroups);
+
+  const restructured = await restructureSpanishArticle({ title, paragraphs });
+  let lead: string;
+  let sections: ArticleSection[];
+  if (restructured) {
+    ({ lead, sections } = restructured);
+  } else {
+    const [first, ...rest] = paragraphs;
+    lead = first;
+    sections = rest.length ? [{ heading: null, paragraphs: rest }] : [];
+  }
+
+  const source = await getManualSource();
+  const guid = `${MANUAL_GUID_PREFIX}${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+  const excerpt = buildArticleHtml({
+    lead,
+    sections,
+    pullQuote: restructured?.pullQuote ?? null,
+    facts: restructured?.facts ?? [],
+    sourceName: sourceUrl ? new URL(sourceUrl).hostname.replace(/^www\./, "") : MANUAL_SOURCE_NAME,
+    // Sin enlace de origen no se pinta la linea "Fuente:": la noticia es
+    // nuestra, no hay a quien enlazar.
+    sourceUrl: sourceUrl || null,
+    rotationKey: guid,
+    decorate: (html) => linkMentionedGroups(html, mentionedGroups),
+  });
+
+  const mentions = mentionedGroups.map((g) => `@${g.handle}`).join(" ");
+  const secondLine = [mentions, CATEGORY_HASHTAGS[category].join(" ")].filter(Boolean).join(" ");
+  const rawTweet = customTweet || `${title}\n\n${secondLine}`;
+  const tweetText =
+    rawTweet.length > MANUAL_TWEET_CHARS
+      ? rawTweet.slice(0, MANUAL_TWEET_CHARS - 1).trimEnd() + "…"
+      : rawTweet;
+
+  const article = await prisma.article.create({
+    data: {
+      sourceId: source.id,
+      category,
+      guid,
+      // Vacio cuando la noticia es propia: las pantallas de revision solo
+      // enseñan el boton "Fuente original" si hay algo a lo que ir.
+      originalUrl: sourceUrl,
+      originalTitle: title,
+      title,
+      excerpt,
+      tweetText,
+      igCaption: igCaption || null,
+      imageUrl: imageUrl || null,
+      tags: [category, "manual"].join(","),
+    },
+  });
+
+  revalidatePath("/dashboard");
+  redirect(
+    `/dashboard/articles/${article.id}?notice=${encodeURIComponent(
+      "Noticia creada y guardada en pendientes. Repásala y pulsa «Aprobar y publicar»."
+    )}`
+  );
 }

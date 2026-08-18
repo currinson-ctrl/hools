@@ -370,3 +370,197 @@ export async function fetchActiveProducts(): Promise<
       blurb: p.description.length > 160 ? p.description.slice(0, 159).trimEnd() + "…" : p.description,
     }));
 }
+
+// ---------------------------------------------------------------------------
+// Subida de fotos a los Archivos de Shopify
+//
+// Las noticias escritas a mano en el panel traen la foto desde el ordenador,
+// no desde una URL de un feed. Shopify solo acepta imagenes por URL publica
+// (tanto en articleCreate como en articleUpdate), y el panel corre en
+// serverless (sin disco persistente donde guardarlas), asi que el fichero se
+// sube a los Archivos de la propia tienda y se usa la URL de su CDN. Requiere
+// el scope write_files en la app.
+// ---------------------------------------------------------------------------
+
+const STAGED_UPLOADS_MUTATION = /* GraphQL */ `
+  mutation StageUpload($input: [StagedUploadInput!]!) {
+    stagedUploadsCreate(input: $input) {
+      stagedTargets {
+        url
+        resourceUrl
+        parameters {
+          name
+          value
+        }
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
+const FILE_CREATE_MUTATION = /* GraphQL */ `
+  mutation CreateFile($files: [FileCreateInput!]!) {
+    fileCreate(files: $files) {
+      files {
+        id
+        fileStatus
+        ... on MediaImage {
+          image {
+            url
+          }
+        }
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
+const FILE_STATUS_QUERY = /* GraphQL */ `
+  query FileStatus($id: ID!) {
+    node(id: $id) {
+      ... on MediaImage {
+        id
+        fileStatus
+        fileErrors {
+          message
+        }
+        image {
+          url
+        }
+      }
+    }
+  }
+`;
+
+interface StagedUploadsResponse {
+  stagedUploadsCreate: {
+    stagedTargets: Array<{
+      url: string;
+      resourceUrl: string;
+      parameters: Array<{ name: string; value: string }>;
+    }>;
+    userErrors: Array<{ field: string[] | null; message: string }>;
+  };
+}
+
+interface FileCreateResponse {
+  fileCreate: {
+    files: Array<{ id: string; fileStatus: string; image?: { url: string } | null }> | null;
+    userErrors: Array<{ field: string[] | null; message: string }>;
+  };
+}
+
+interface FileStatusResponse {
+  node: {
+    id: string;
+    fileStatus: string;
+    fileErrors: Array<{ message: string }>;
+    image: { url: string } | null;
+  } | null;
+}
+
+export function isShopifyConfigured(): boolean {
+  return Boolean(
+    process.env.SHOPIFY_STORE_DOMAIN &&
+      process.env.SHOPIFY_CLIENT_ID &&
+      process.env.SHOPIFY_CLIENT_SECRET
+  );
+}
+
+/**
+ * Sube una imagen a los Archivos de Shopify y devuelve su URL publica de CDN,
+ * lista para usarse como imagen destacada del articulo.
+ *
+ * Shopify procesa la imagen en segundo plano: recien creada esta en estado
+ * UPLOADED y todavia no tiene URL, asi que hay que preguntar por ella hasta
+ * que pase a READY. El sondeo es corto a proposito (unos segundos): si la
+ * tienda tarda mas, se devuelve null y quien llama guarda la noticia sin
+ * foto en vez de bloquear el formulario.
+ */
+export async function uploadImageToShopifyFiles(file: {
+  bytes: ArrayBuffer;
+  filename: string;
+  mimeType: string;
+}): Promise<string | null> {
+  const staged = await shopifyAdminRequest<StagedUploadsResponse>(STAGED_UPLOADS_MUTATION, {
+    input: [
+      {
+        filename: file.filename,
+        mimeType: file.mimeType,
+        resource: "FILE",
+        httpMethod: "POST",
+        fileSize: String(file.bytes.byteLength),
+      },
+    ],
+  });
+
+  if (staged.stagedUploadsCreate.userErrors.length) {
+    throw new Error(
+      `Shopify stagedUploadsCreate: ${staged.stagedUploadsCreate.userErrors
+        .map((e) => e.message)
+        .join("; ")}`
+    );
+  }
+
+  const target = staged.stagedUploadsCreate.stagedTargets[0];
+  if (!target) throw new Error("Shopify stagedUploadsCreate no devolvio destino de subida");
+
+  // El orden importa: los parametros firmados van antes del fichero.
+  const form = new FormData();
+  for (const param of target.parameters) form.append(param.name, param.value);
+  form.append("file", new Blob([file.bytes], { type: file.mimeType }), file.filename);
+
+  const uploadRes = await fetch(target.url, { method: "POST", body: form });
+  if (!uploadRes.ok) {
+    throw new Error(
+      `La subida de la imagen a Shopify respondio ${uploadRes.status}: ${(
+        await uploadRes.text()
+      ).slice(0, 300)}`
+    );
+  }
+
+  const created = await shopifyAdminRequest<FileCreateResponse>(FILE_CREATE_MUTATION, {
+    files: [
+      {
+        originalSource: target.resourceUrl,
+        contentType: "IMAGE",
+        alt: file.filename,
+      },
+    ],
+  });
+
+  if (created.fileCreate.userErrors.length) {
+    throw new Error(
+      `Shopify fileCreate: ${created.fileCreate.userErrors.map((e) => e.message).join("; ")}`
+    );
+  }
+
+  const createdFile = created.fileCreate.files?.[0];
+  if (!createdFile) throw new Error("Shopify fileCreate no devolvio el archivo creado");
+  if (createdFile.image?.url) return createdFile.image.url;
+
+  for (let attempt = 0; attempt < 10; attempt++) {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const status = await shopifyAdminRequest<FileStatusResponse>(FILE_STATUS_QUERY, {
+      id: createdFile.id,
+    });
+    const node = status.node;
+    if (!node) continue;
+    if (node.fileStatus === "FAILED") {
+      throw new Error(
+        `Shopify no pudo procesar la imagen: ${
+          node.fileErrors.map((e) => e.message).join("; ") || "sin detalle"
+        }`
+      );
+    }
+    if (node.image?.url) return node.image.url;
+  }
+
+  return null;
+}

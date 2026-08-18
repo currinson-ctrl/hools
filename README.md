@@ -36,6 +36,40 @@ falta. Si `ANTHROPIC_API_KEY` no está configurada o falla la llamada, esa
 noticia en concreto se queda en su idioma original en vez de bloquear el
 resto del rastreo.
 
+## Escribir una noticia a mano
+
+Además de lo que llega de las fuentes, el panel tiene su propia caja para
+publicar noticias propias: **`/dashboard/nueva`** (pestaña "Nueva noticia",
+o el botón "Escribir noticia" de la cola de pendientes).
+
+Se rellena titular, texto, categoría y foto — subiéndola desde el ordenador
+(máx. 8 MB) o pegando su URL. Opcionalmente: enlace a la fuente, texto del
+tuit y pie de Instagram; si se dejan vacíos, el tuit sale del titular más los
+hashtags de la categoría, y el pie de Instagram del texto del tuit.
+
+La noticia entra en la **misma cola de pendientes** que las rastreadas, así
+que se repasa y se publica con el mismo botón "Aprobar y publicar" (Shopify +
+X + Instagram + Facebook). Dos diferencias con las noticias de fuera:
+
+- **El texto no se reescribe.** Claude solo lo *maqueta* — entradilla,
+  ladillos, cita destacada y ficha — conservando los párrafos palabra por
+  palabra (es el mismo maquetado que usa "Remaquetar publicados"). Sin
+  `ANTHROPIC_API_KEY` se maqueta en básico, no se pierde la noticia.
+- **No pasan por "Limpiar fuera de tema".** Si te has sentado a escribirla,
+  ya has decidido que encaja.
+
+Sin enlace a la fuente, el artículo no lleva la línea "Fuente: ..." (la
+noticia es propia, no hay a quién enlazar). La foto subida se guarda en los
+**Archivos de tu tienda de Shopify** y se usa desde su CDN: el panel corre en
+serverless (sin disco donde guardarla) y Shopify solo acepta la imagen del
+artículo por URL pública. Por eso la app necesita el scope `write_files`
+(ver "Variables de entorno → Shopify"); sin él, la subida de archivo falla y
+queda la opción de pegar la URL de una foto.
+
+Las noticias manuales cuelgan de una fuente interna ("Redacción Hools") que
+se crea sola, nace pausada para que el rastreo la ignore y no aparece en
+`/dashboard/sources`: no hay nada que configurar en ella.
+
 ## Categorías (y las pestañas del blog)
 
 Las pestañas de la portada del blog —Afición / Desplazamientos / Casual— son un
@@ -196,7 +230,10 @@ en producción salvo tener las credenciales puestas).
 
 1. Shopify Admin → **Configuración → Apps y canales de venta → Desarrollar apps → Desarrollar apps en Dev Dashboard**.
 2. Crea una app (ej. "Blog Aggregator"), opción **"Empezar desde Dev Dashboard"**.
-3. En **"Alcances"** (Access → Scopes) añade: `read_content,write_content,read_online_store_pages,write_online_store_pages`.
+3. En **"Alcances"** (Access → Scopes) añade: `read_content,write_content,read_online_store_pages,write_online_store_pages,write_files`
+   (`write_files` es el que permite subir la foto de una noticia escrita a
+   mano a los Archivos de la tienda; sin él todo lo demás sigue funcionando,
+   pero esa subida falla y hay que dar la foto por URL).
 4. Marca **"Usar flujo de instalación heredado"** y publica la versión.
 5. Instala la app en la tienda Hools (botón "Instalar app" en la vista general).
 6. Ve a la pestaña **"Configuración"** de la app → **"Credenciales"** y copia

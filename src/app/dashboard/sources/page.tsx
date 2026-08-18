@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { Category, SourceType } from "@prisma/client";
 import { CATEGORY_LABEL } from "@/lib/sources";
+import { isManualSource } from "@/lib/manual";
 import { addSourceAction, switchSourceTypeAction, toggleSourceAction } from "../actions";
 
 export default async function SourcesPage({
@@ -9,7 +10,12 @@ export default async function SourcesPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const query = await searchParams;
-  const sources = await prisma.source.findMany({ orderBy: { name: "asc" } });
+  // La fuente de las noticias escritas a mano no es un feed y no se
+  // configura: aparecer aqui solo invitaria a activarla o a "arreglar" su
+  // URL. Se crea y se usa sola desde /dashboard/nueva.
+  const sources = (await prisma.source.findMany({ orderBy: { name: "asc" } })).filter(
+    (source) => !isManualSource(source)
+  );
 
   return (
     <div>
