@@ -71,8 +71,11 @@ export default async function NewArticlePage({
           <div className="meta" style={{ marginTop: 6 }}>
             {canUploadPhoto ? (
               <>
-                Máximo 8 MB. Se guarda en los Archivos de tu tienda de Shopify y se
-                usa como imagen destacada del artículo.
+                Máximo 4 MB (es el tope que deja Vercel para lo que se sube en
+                un formulario). Se guarda en los Archivos de tu tienda de
+                Shopify y se usa como imagen destacada del artículo. Si la foto
+                pesa más, redúcela o súbela a otro sitio y pega su URL aquí
+                debajo.
               </>
             ) : (
               <>

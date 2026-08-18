@@ -43,7 +43,8 @@ publicar noticias propias: **`/dashboard/nueva`** (pestaña "Nueva noticia",
 o el botón "Escribir noticia" de la cola de pendientes).
 
 Se rellena titular, texto, categoría y foto — subiéndola desde el ordenador
-(máx. 8 MB) o pegando su URL. Opcionalmente: enlace a la fuente, texto del
+(máx. 4 MB: es el tope de Vercel para el cuerpo de una petición) o pegando su
+URL. Opcionalmente: enlace a la fuente, texto del
 tuit y pie de Instagram; si se dejan vacíos, el tuit sale del titular más los
 hashtags de la categoría, y el pie de Instagram del texto del tuit.
 

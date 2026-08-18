@@ -877,10 +877,13 @@ export async function toggleGroupAction(formData: FormData) {
   redirect("/dashboard/groups");
 }
 
-// Tope de la foto que se sube desde el formulario manual. Va de la mano del
-// bodySizeLimit de las Server Actions en next.config.mjs: si se sube aqui,
-// hay que subirlo alli tambien o Next corta la peticion antes de llegar.
-const MAX_MANUAL_IMAGE_BYTES = 8 * 1024 * 1024;
+// Tope de la foto que se sube desde el formulario manual. Manda el limite de
+// Vercel: el cuerpo de una peticion a una funcion no puede pasar de 4,5 MB,
+// y ese corte lo hace la plataforma antes de que llegue nuestro codigo (el
+// usuario veria un 413 opaco). Asi que el tope real es algo por debajo, para
+// que quien avise sea nuestro mensaje. Va de la mano del bodySizeLimit de
+// las Server Actions en next.config.mjs.
+const MAX_MANUAL_IMAGE_BYTES = 4 * 1024 * 1024;
 
 const MANUAL_TWEET_CHARS = 280 - 24; // el mismo hueco para el enlace que deja el rastreo
 
