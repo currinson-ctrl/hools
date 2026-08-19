@@ -32,6 +32,7 @@ import {
   type ArticleSection,
 } from "@/lib/article-html";
 import { runAggregation } from "@/lib/aggregate";
+import { MAX_RESULTS } from "@/lib/twitter-source";
 import { buildBlogArticleUrl, buildCtaHtml } from "@/lib/sources";
 import { ArticleStatus, Category, SourceType } from "@prisma/client";
 
@@ -581,13 +582,15 @@ export async function fetchNowAction(formData: FormData) {
   if (result.leftTotal > 0) {
     detail.push(`${result.leftTotal} sin mirar todavia, vuelve a pulsar`);
   }
-  // Aviso propio de las cuentas de X: se leen 5 tuits por pasada, y como el
-  // cursor avanza, lo que quede por detras no vuelve. Si la tanda ha venido
-  // llena, conviene rastrear mas a menudo (o subir el tope, que cuesta).
+  // Aviso propio de las cuentas de X: se lee un numero fijo de tuits por
+  // pasada, y como el cursor avanza, lo que quede por detras no vuelve. Si la
+  // tanda ha venido llena, conviene rastrear mas a menudo (o subir el tope,
+  // que cuesta saldo de la API de X).
   if (result.sourcesMaybeMissingTweets.length > 0) {
     detail.push(
       `ojo con ${result.sourcesMaybeMissingTweets.join(", ")}: ` +
-        "publican mas rapido de lo que se leen (5 tuits por pasada), rastrea mas a menudo"
+        `publican mas rapido de lo que se leen (${MAX_RESULTS} tuits por pasada), ` +
+        "rastrea mas a menudo"
     );
   }
 
