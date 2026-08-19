@@ -292,6 +292,25 @@ aun así conviene vigilar el saldo en `console.x.com` si añades varias cuentas.
 Si `TWITTER_BEARER_TOKEN` no está configurada, esas fuentes simplemente no
 producen noticias nuevas (no rompen el resto del rastreo).
 
+### Hasta dónde lee cada cuenta de X
+
+El rastreo **no busca por fechas** en X: no pide «lo de hoy» ni «lo de las
+últimas 24 horas». Pide *los tuits posteriores al último que ya leyó*, con un
+tope de **8 por cuenta y pasada** (`MAX_RESULTS` en `src/lib/twitter-source.ts`;
+el mínimo que admite la API es 5).
+
+La consecuencia importante: el cursor solo avanza. Si una cuenta publica más de
+8 tuits entre dos pasadas, la API devuelve los más nuevos y **el resto queda por
+detrás del cursor de forma permanente**. Cuando una tanda viene llena, el
+resumen del rastreo nombra la cuenta: es la señal de que hay que rastrear más a
+menudo, o de que ese tope se queda corto.
+
+Para volver atrás está el botón **«Volver a leer sus últimos tuits»** de cada
+cuenta en `/dashboard/sources`: borra el cursor y la siguiente pasada relee sus
+tuits recientes (no duplica nada, la deduplicación va por `guid`). La ficha de
+la fuente muestra por dónde va el cursor en cada momento.
+
+
 ### 4. Instagram (opcional)
 
 Al aprobar un artículo, si hay imagen y está configurado, también se publica

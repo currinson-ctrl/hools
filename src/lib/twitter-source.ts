@@ -14,10 +14,21 @@ import type { KnownGroup } from "./groups";
 // Maximo de fotos que admite un tuit en la API de X.
 const MAX_TWEET_IMAGES = 4;
 
-// Minimo permitido por la API de X para el timeline de un usuario (no se
-// puede pedir menos). Mantenerlo bajo ademas ayuda a no gastar de mas del
-// saldo de pago-por-uso.
-const MAX_RESULTS = 5;
+/**
+ * Cuantos tuits se leen de cada cuenta en cada pasada.
+ *
+ * Es el numero que decide hasta donde llega el rastreo en X: no hay ventana
+ * de fechas, se piden los tuits POSTERIORES al ultimo leido con este tope. Si
+ * una cuenta publica mas que esto entre dos pasadas, la API devuelve los mas
+ * nuevos y el resto se queda por detras del cursor para siempre.
+ *
+ * El minimo que admite la API es 5, y cada tuit leido consume saldo de
+ * pago-por-uso, asi que no conviene inflarlo: 8 cubre una cuenta que publique
+ * varias veces al dia sin disparar el gasto. Cuando una tanda viene llena se
+ * avisa en el resumen del rastreo, que es la señal de que hay que rastrear
+ * mas a menudo (o subir esto).
+ */
+export const MAX_RESULTS = 8;
 
 function getBearerClient(): TwitterApi | null {
   const token = process.env.TWITTER_BEARER_TOKEN;
