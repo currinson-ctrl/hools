@@ -33,7 +33,8 @@ import {
 } from "@/lib/article-html";
 import { runAggregation } from "@/lib/aggregate";
 import { MAX_RESULTS } from "@/lib/twitter-source";
-import { buildBlogArticleUrl, buildCtaHtml } from "@/lib/sources";
+import { getManualSource, MANUAL_GUID_PREFIX, MANUAL_SOURCE_NAME } from "@/lib/manual";
+import { buildBlogArticleUrl, buildCtaHtml, CATEGORY_HASHTAGS } from "@/lib/sources";
 import { ArticleStatus, Category, SourceType } from "@prisma/client";
 
 function withError(basePath: string, message: string): never {
@@ -48,9 +49,18 @@ export async function updateArticleAction(formData: FormData) {
   const tweetText = String(formData.get("tweetText") || "").trim();
   const igCaption = String(formData.get("igCaption") || "").trim();
   const imageUrl = String(formData.get("imageUrl") || "").trim();
+  const videoUrl = String(formData.get("videoUrl") || "").trim();
 
   if (!id || !title || !excerpt) {
     withError(`/dashboard/articles/${id}`, "Título y contenido son obligatorios");
+  }
+  for (const [value, label] of [
+    [imageUrl, "La URL de la foto"],
+    [videoUrl, "La URL del vídeo"],
+  ] as const) {
+    if (value && !isHttpUrl(value)) {
+      withError(`/dashboard/articles/${id}`, `${label} tiene que ser una URL completa (https://...)`);
+    }
   }
 
   const article = await prisma.article.findUnique({ where: { id } });
@@ -71,7 +81,14 @@ export async function updateArticleAction(formData: FormData) {
 
   await prisma.article.update({
     where: { id },
-    data: { title, excerpt, tweetText, igCaption: igCaption || null, imageUrl: imageUrl || null },
+    data: {
+      title,
+      excerpt,
+      tweetText,
+      igCaption: igCaption || null,
+      imageUrl: imageUrl || null,
+      videoUrl: videoUrl || null,
+    },
   });
 
   // Guardar no toca el tuit vivo: X no permite editar un tuit ya publicado,
@@ -781,8 +798,11 @@ export async function fixTitlesAction(formData: FormData) {
 export async function cleanupOffTopicAction(formData: FormData) {
   const returnTo = String(formData.get("returnTo") || "/dashboard?status=PENDING");
 
+  // Las noticias escritas a mano no pasan por el filtro de tema: si alguien
+  // se ha sentado a escribirla, ya ha decidido que encaja. El filtro esta
+  // para lo que llega solo de las fuentes.
   const pending = await prisma.article.findMany({
-    where: { status: "PENDING" },
+    where: { status: "PENDING", NOT: { guid: { startsWith: MANUAL_GUID_PREFIX } } },
     orderBy: { createdAt: "asc" },
     take: CLEANUP_BATCH_SIZE,
   });
@@ -1028,4 +1048,144 @@ export async function toggleGroupAction(formData: FormData) {
   });
   revalidatePath("/dashboard/groups");
   redirect("/dashboard/groups");
+}
+
+const MANUAL_TWEET_CHARS = 280 - 24; // el mismo hueco para el enlace que deja el rastreo
+
+/**
+ * Parte el texto escrito a mano en parrafos. Se aceptan las dos formas de
+ * separarlos que sale natural teclear (linea en blanco o simple salto de
+ * linea) porque quien escribe no tiene por que saber cual espera el sistema.
+ */
+function splitManualParagraphs(body: string): string[] {
+  const byBlankLine = body
+    .split(/\n\s*\n/)
+    .map((p) => p.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+  if (byBlankLine.length > 1) return byBlankLine;
+
+  return body
+    .split(/\n/)
+    .map((p) => p.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+}
+
+/**
+ * Crea una noticia escrita a mano en el panel y la deja en la cola de
+ * revision (PENDING), igual que si la hubiera traido el rastreo: desde ahi se
+ * edita, se le busca otra foto y se aprueba con los mismos botones. No se
+ * publica de golpe a proposito, para que la noticia propia pase por la misma
+ * pantalla de repaso que las de fuera.
+ *
+ * El texto NO se reescribe: Claude solo lo maqueta (entradilla, ladillos,
+ * cita y ficha) conservando los parrafos palabra por palabra, y si no hay
+ * clave de API se maqueta en basico. Lo que se publica es lo que se escribio.
+ */
+export async function createManualArticleAction(formData: FormData) {
+  const returnTo = "/dashboard/nueva";
+
+  const title = String(formData.get("title") || "").trim();
+  const body = String(formData.get("body") || "").trim();
+  const category = String(formData.get("category") || "") as Category;
+  const sourceUrl = String(formData.get("sourceUrl") || "").trim();
+  const customTweet = String(formData.get("tweetText") || "").trim();
+  const igCaption = String(formData.get("igCaption") || "").trim();
+  // La foto y el video llegan ya subidos: el navegador los manda directos a
+  // los Archivos de Shopify (ver media-uploader.tsx y /api/uploads/*) y aqui
+  // solo entra su URL, asi que un video de 80 MB no toca este servidor.
+  const imageUrl = String(formData.get("imageUrl") || "").trim();
+  const videoUrl = String(formData.get("videoUrl") || "").trim();
+  const videoPreviewUrl = String(formData.get("videoPreviewUrl") || "").trim();
+
+  if (!title || !body) {
+    withError(returnTo, "El titular y el texto de la noticia son obligatorios");
+  }
+  if (!Object.values(Category).includes(category)) {
+    withError(returnTo, "Elige una categoría válida");
+  }
+  for (const [value, label] of [
+    [sourceUrl, "El enlace a la fuente"],
+    [imageUrl, "La URL de la foto"],
+    [videoUrl, "La URL del vídeo"],
+  ] as const) {
+    if (value && !isHttpUrl(value)) {
+      withError(returnTo, `${label} tiene que ser una URL completa (https://...)`);
+    }
+  }
+
+  const paragraphs = splitManualParagraphs(body);
+  if (!paragraphs.length) {
+    withError(returnTo, "El texto de la noticia está vacío");
+  }
+
+  const groups = await prisma.group.findMany({ where: { active: true } });
+  const knownGroups = groups.map((g) => ({
+    name: g.name,
+    handle: g.handle,
+    aliases: parseAliases(g.aliases),
+  }));
+  const mentionedGroups = findMentionedGroups(`${title} ${paragraphs.join(" ")}`, knownGroups);
+
+  const restructured = await restructureSpanishArticle({ title, paragraphs });
+  let lead: string;
+  let sections: ArticleSection[];
+  if (restructured) {
+    ({ lead, sections } = restructured);
+  } else {
+    const [first, ...rest] = paragraphs;
+    lead = first;
+    sections = rest.length ? [{ heading: null, paragraphs: rest }] : [];
+  }
+
+  const source = await getManualSource();
+  const guid = `${MANUAL_GUID_PREFIX}${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+  const excerpt = buildArticleHtml({
+    lead,
+    sections,
+    pullQuote: restructured?.pullQuote ?? null,
+    facts: restructured?.facts ?? [],
+    sourceName: sourceUrl ? new URL(sourceUrl).hostname.replace(/^www\./, "") : MANUAL_SOURCE_NAME,
+    // Sin enlace de origen no se pinta la linea "Fuente:": la noticia es
+    // nuestra, no hay a quien enlazar.
+    sourceUrl: sourceUrl || null,
+    rotationKey: guid,
+    decorate: (html) => linkMentionedGroups(html, mentionedGroups),
+  });
+
+  const mentions = mentionedGroups.map((g) => `@${g.handle}`).join(" ");
+  const secondLine = [mentions, CATEGORY_HASHTAGS[category].join(" ")].filter(Boolean).join(" ");
+  const rawTweet = customTweet || `${title}\n\n${secondLine}`;
+  const tweetText =
+    rawTweet.length > MANUAL_TWEET_CHARS
+      ? rawTweet.slice(0, MANUAL_TWEET_CHARS - 1).trimEnd() + "…"
+      : rawTweet;
+
+  const article = await prisma.article.create({
+    data: {
+      sourceId: source.id,
+      category,
+      guid,
+      // Vacio cuando la noticia es propia: las pantallas de revision solo
+      // enseñan el boton "Fuente original" si hay algo a lo que ir.
+      originalUrl: sourceUrl,
+      originalTitle: title,
+      title,
+      excerpt,
+      tweetText,
+      igCaption: igCaption || null,
+      // Sin foto propia, la portada del video hace de imagen destacada: es lo
+      // que usan la ficha del blog, la story y la miniatura del tuit.
+      imageUrl: imageUrl || videoPreviewUrl || null,
+      videoUrl: videoUrl || null,
+      tags: [category, "manual"].join(","),
+    },
+  });
+
+  revalidatePath("/dashboard");
+  redirect(
+    `/dashboard/articles/${article.id}?notice=${encodeURIComponent(
+      "Noticia creada y guardada en pendientes. Repásala y pulsa «Aprobar y publicar»."
+    )}`
+  );
 }

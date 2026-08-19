@@ -370,3 +370,262 @@ export async function fetchActiveProducts(): Promise<
       blurb: p.description.length > 160 ? p.description.slice(0, 159).trimEnd() + "…" : p.description,
     }));
 }
+
+// ---------------------------------------------------------------------------
+// Subida de fotos y videos a los Archivos de Shopify
+//
+// Las noticias escritas a mano traen el material desde el ordenador, no desde
+// una URL de un feed. Todo lo que publica el sistema consume la foto y el
+// video como URL publica (Shopify descarga la imagen del articulo; X se baja
+// el mp4 para adjuntarlo; Instagram le pide a Meta que lo descargue), y el
+// panel corre en serverless, sin disco donde guardarlos. Asi que el archivo
+// se sube a los Archivos de la propia tienda y se usa la URL de su CDN.
+//
+// El archivo NO pasa por el servidor del panel: este modulo solo firma el
+// destino de subida (createStagedUpload), y el navegador sube ahi
+// directamente. Es lo que permite subir un video de 80 MB desde una funcion
+// de Vercel, que corta cualquier peticion de mas de 4,5 MB.
+//
+// Requiere el scope write_files en la app de Shopify.
+// ---------------------------------------------------------------------------
+
+const STAGED_UPLOADS_MUTATION = /* GraphQL */ `
+  mutation StageUpload($input: [StagedUploadInput!]!) {
+    stagedUploadsCreate(input: $input) {
+      stagedTargets {
+        url
+        resourceUrl
+        parameters {
+          name
+          value
+        }
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
+const FILE_CREATE_MUTATION = /* GraphQL */ `
+  mutation CreateFile($files: [FileCreateInput!]!) {
+    fileCreate(files: $files) {
+      files {
+        id
+        fileStatus
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
+const FILE_STATUS_QUERY = /* GraphQL */ `
+  query FileStatus($id: ID!) {
+    node(id: $id) {
+      ... on MediaImage {
+        fileStatus
+        fileErrors {
+          message
+        }
+        image {
+          url
+        }
+      }
+      ... on Video {
+        fileStatus
+        fileErrors {
+          message
+        }
+        preview {
+          image {
+            url
+          }
+        }
+        sources {
+          url
+          mimeType
+          format
+          height
+        }
+      }
+    }
+  }
+`;
+
+interface StagedUploadsResponse {
+  stagedUploadsCreate: {
+    stagedTargets: Array<{
+      url: string;
+      resourceUrl: string;
+      parameters: Array<{ name: string; value: string }>;
+    }>;
+    userErrors: Array<{ field: string[] | null; message: string }>;
+  };
+}
+
+interface FileCreateResponse {
+  fileCreate: {
+    files: Array<{ id: string; fileStatus: string }> | null;
+    userErrors: Array<{ field: string[] | null; message: string }>;
+  };
+}
+
+interface FileStatusResponse {
+  node: {
+    fileStatus: string;
+    fileErrors: Array<{ message: string }>;
+    image?: { url: string } | null;
+    preview?: { image: { url: string } | null } | null;
+    sources?: Array<{ url: string; mimeType: string; format: string; height: number }> | null;
+  } | null;
+}
+
+export function isShopifyConfigured(): boolean {
+  return Boolean(
+    process.env.SHOPIFY_STORE_DOMAIN &&
+      process.env.SHOPIFY_CLIENT_ID &&
+      process.env.SHOPIFY_CLIENT_SECRET
+  );
+}
+
+export type UploadKind = "image" | "video";
+
+export interface StagedUploadTarget {
+  /** URL a la que el navegador sube el archivo (un POST multipart). */
+  url: string;
+  /** Referencia del archivo ya subido, con la que se registra en la tienda. */
+  resourceUrl: string;
+  /** Campos firmados que deben ir ANTES del archivo en el formulario. */
+  parameters: Array<{ name: string; value: string }>;
+}
+
+/**
+ * Pide a Shopify un destino de subida firmado. Lo consume el navegador, que
+ * es quien sube el archivo: aqui solo viaja el nombre, el tipo y el tamaño.
+ */
+export async function createStagedUpload(input: {
+  filename: string;
+  mimeType: string;
+  fileSize: number;
+  kind: UploadKind;
+}): Promise<StagedUploadTarget> {
+  const data = await shopifyAdminRequest<StagedUploadsResponse>(STAGED_UPLOADS_MUTATION, {
+    input: [
+      {
+        filename: input.filename,
+        mimeType: input.mimeType,
+        // Los videos van por su propio canal de subida (se transcodifican
+        // despues); las fotos entran como archivo suelto de la tienda.
+        resource: input.kind === "video" ? "VIDEO" : "FILE",
+        httpMethod: "POST",
+        fileSize: String(input.fileSize),
+      },
+    ],
+  });
+
+  const { stagedTargets, userErrors } = data.stagedUploadsCreate;
+  if (userErrors.length) {
+    throw new Error(
+      `Shopify stagedUploadsCreate: ${userErrors.map((e) => e.message).join("; ")}`
+    );
+  }
+  const target = stagedTargets[0];
+  if (!target) throw new Error("Shopify stagedUploadsCreate no devolvio destino de subida");
+  return target;
+}
+
+/**
+ * Registra en los Archivos de la tienda un archivo ya subido al destino
+ * firmado. Devuelve su id: Shopify lo procesa en segundo plano (una foto
+ * tarda segundos, un video puede tardar minutos), asi que la URL definitiva
+ * se pregunta despues con getUploadedFile.
+ */
+export async function createShopifyFile(input: {
+  resourceUrl: string;
+  filename: string;
+  kind: UploadKind;
+}): Promise<string> {
+  const data = await shopifyAdminRequest<FileCreateResponse>(FILE_CREATE_MUTATION, {
+    files: [
+      {
+        originalSource: input.resourceUrl,
+        contentType: input.kind === "video" ? "VIDEO" : "IMAGE",
+        alt: input.filename,
+      },
+    ],
+  });
+
+  const { files, userErrors } = data.fileCreate;
+  if (userErrors.length) {
+    throw new Error(`Shopify fileCreate: ${userErrors.map((e) => e.message).join("; ")}`);
+  }
+  const file = files?.[0];
+  if (!file) throw new Error("Shopify fileCreate no devolvio el archivo creado");
+  return file.id;
+}
+
+export interface UploadedFile {
+  ready: boolean;
+  /** URL publica de la foto, o del mp4 del video. Solo cuando ready. */
+  url: string | null;
+  /** Miniatura del video (Shopify la saca de un fotograma). Solo videos. */
+  previewUrl: string | null;
+}
+
+/**
+ * Estado de un archivo subido. Mientras Shopify lo procesa devuelve
+ * `ready: false` y quien llama vuelve a preguntar; si el procesado falla,
+ * lanza con el motivo que da Shopify.
+ */
+export async function getUploadedFile(fileId: string): Promise<UploadedFile> {
+  const data = await shopifyAdminRequest<FileStatusResponse>(FILE_STATUS_QUERY, { id: fileId });
+  const node = data.node;
+  if (!node) return { ready: false, url: null, previewUrl: null };
+
+  if (node.fileStatus === "FAILED") {
+    throw new Error(
+      `Shopify no pudo procesar el archivo: ${
+        node.fileErrors.map((e) => e.message).join("; ") || "sin detalle"
+      }`
+    );
+  }
+
+  if (node.image?.url) {
+    return { ready: true, url: node.image.url, previewUrl: null };
+  }
+
+  const source = pickVideoSource(node.sources ?? []);
+  if (source) {
+    return {
+      ready: true,
+      url: source.url,
+      previewUrl: node.preview?.image?.url ?? null,
+    };
+  }
+
+  return { ready: false, url: null, previewUrl: null };
+}
+
+/**
+ * De las versiones que genera Shopify al transcodificar un video se elige el
+ * mp4 mas grande hasta 1080p: es el formato que aceptan tanto X como
+ * Instagram, y por encima de 1080 solo se gana peso (X corta a 512 MB) sin
+ * que se note en un movil.
+ */
+function pickVideoSource(
+  sources: Array<{ url: string; mimeType: string; format: string; height: number }>
+): { url: string } | null {
+  const mp4s = sources.filter(
+    (s) => s.mimeType === "video/mp4" || s.format?.toLowerCase() === "mp4"
+  );
+  const candidates = mp4s.length ? mp4s : sources;
+  if (!candidates.length) return null;
+
+  const upTo1080 = candidates.filter((s) => (s.height ?? 0) <= 1080);
+  const pool = upTo1080.length ? upTo1080 : candidates;
+  return pool.reduce((best, s) => ((s.height ?? 0) > (best.height ?? 0) ? s : best));
+}
