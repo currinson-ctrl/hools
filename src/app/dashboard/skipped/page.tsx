@@ -78,9 +78,15 @@ export default async function SkippedPage({
           </div>
           <h3>{item.originalTitle}</h3>
           <div className="excerpt">
-            <a href={item.originalUrl} target="_blank" rel="noreferrer">
-              {item.originalUrl}
-            </a>
+            {/* Las descartadas que dejo una version anterior del rastreo solo
+                guardaban el guid: no hay enlace que enseñar. */}
+            {item.originalUrl ? (
+              <a href={item.originalUrl} target="_blank" rel="noreferrer">
+                {item.originalUrl}
+              </a>
+            ) : (
+              <em>Sin enlace guardado (se descartó con una versión anterior)</em>
+            )}
           </div>
           <div className="row">
             <form action={retrySkippedItemAction}>
