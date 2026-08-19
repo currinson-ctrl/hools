@@ -47,6 +47,7 @@ model Source {
 
   createdAt DateTime  @default(now())
   articles  Article[]
+  skipped   SkippedItem[]
 }
 
 // Grupos de aficion (peñas/ultras) con su cuenta oficial de X verificada a
@@ -111,4 +112,34 @@ model Article {
   updatedAt   DateTime  @updatedAt
 
   @@index([status])
+}
+
+/// Items de una fuente que el filtro de tema ha descartado.
+///
+/// Existe para arreglar el fallo por el que el rastreo decia "0 noticias
+/// nuevas" aunque en las fuentes hubiera publicaciones recientes: los
+/// descartes no se guardaban en ningun sitio, asi que en cada pasada se
+/// volvian a examinar los mismos items de cabecera del feed, se volvian a
+/// descartar, y las noticias que venian detras nunca se llegaban a mirar. Un
+/// feed con cuatro items fuera de tema arriba quedaba bloqueado para siempre.
+///
+/// Solo entran aqui los descartes POR TEMA (Claude ha respondido que la
+/// noticia no encaja en el blog). Los fallos —falta de clave, limite de uso,
+/// respuesta invalida, red— no se guardan nunca: esos hay que reintentarlos
+/// en la siguiente pasada, no darlos por vistos.
+model SkippedItem {
+  id       String  @id @default(cuid())
+  sourceId String?
+  source   Source? @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+
+  guid          String @unique
+  originalUrl   String
+  originalTitle String
+  /// De momento siempre OFF_TOPIC. Se guarda como texto para poder anadir
+  /// motivos nuevos sin migrar la base.
+  reason        String
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }
