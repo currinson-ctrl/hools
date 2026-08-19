@@ -30,6 +30,11 @@ export interface AggregationSourceResult {
   itemError: string | null;
   /** Fallo de la fuente entera (feed caido, token de X, etc.). */
   error: string | null;
+  /**
+   * Solo cuentas de X: la lectura ha venido llena, asi que la cuenta publica
+   * mas rapido de lo que se lee y puede haber tuits que no lleguen nunca.
+   */
+  mayBeMissingTweets: boolean;
 }
 
 export interface AggregationResult {
@@ -45,6 +50,8 @@ export interface AggregationResult {
   freshTotal: number;
   /** Fuentes que no se han podido leer siquiera. */
   sourcesWithError: number;
+  /** Cuentas de X que publican mas rapido de lo que se leen. */
+  sourcesMaybeMissingTweets: string[];
   results: AggregationSourceResult[];
 }
 
@@ -80,8 +87,9 @@ export async function runAggregation(): Promise<AggregationResult> {
   const parsed = await Promise.all(
     sources.map(async (source) => {
       if (source.type === "X_ACCOUNT") {
-        const { candidates, username, newestId, error } = await parseAccountCandidates(source);
-        return { source, candidates, username, newestId, error };
+        const { candidates, username, newestId, pageFull, error } =
+          await parseAccountCandidates(source);
+        return { source, candidates, username, newestId, pageFull, error };
       }
       const { candidates, error } = await parseFeedCandidates(source);
       return {
@@ -89,6 +97,7 @@ export async function runAggregation(): Promise<AggregationResult> {
         candidates,
         username: null as string | null,
         newestId: null as string | null,
+        pageFull: false,
         error,
       };
     })
@@ -112,10 +121,11 @@ export async function runAggregation(): Promise<AggregationResult> {
   // 3. Examinar los items nuevos de cada fuente, todas en paralelo y dentro
   // del presupuesto de tiempo comun.
   const perSource = await Promise.all(
-    parsed.map(async ({ source, candidates, username, newestId, error }) => ({
+    parsed.map(async ({ source, candidates, username, newestId, pageFull, error }) => ({
       source,
       error,
       newestId,
+      pageFull,
       harvest: error
         ? null
         : source.type === "X_ACCOUNT"
@@ -139,7 +149,7 @@ export async function runAggregation(): Promise<AggregationResult> {
 
   const results: AggregationSourceResult[] = [];
 
-  for (const { source, harvest, error, newestId } of perSource) {
+  for (const { source, harvest, error, newestId, pageFull } of perSource) {
     let created = 0;
     let offTopic = 0;
     let failed = 0;
@@ -217,6 +227,7 @@ export async function runAggregation(): Promise<AggregationResult> {
       left: harvest?.left ?? 0,
       itemError,
       error,
+      mayBeMissingTweets: source.type === "X_ACCOUNT" && pageFull,
     });
   }
 
@@ -231,6 +242,7 @@ export async function runAggregation(): Promise<AggregationResult> {
     leftTotal: sum((r) => r.left),
     freshTotal: sum((r) => r.fresh),
     sourcesWithError: results.filter((r) => r.error).length,
+    sourcesMaybeMissingTweets: results.filter((r) => r.mayBeMissingTweets).map((r) => r.source),
     results,
   };
 }
