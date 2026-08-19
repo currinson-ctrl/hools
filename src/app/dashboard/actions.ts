@@ -581,6 +581,15 @@ export async function fetchNowAction(formData: FormData) {
   if (result.leftTotal > 0) {
     detail.push(`${result.leftTotal} sin mirar todavia, vuelve a pulsar`);
   }
+  // Aviso propio de las cuentas de X: se leen 5 tuits por pasada, y como el
+  // cursor avanza, lo que quede por detras no vuelve. Si la tanda ha venido
+  // llena, conviene rastrear mas a menudo (o subir el tope, que cuesta).
+  if (result.sourcesMaybeMissingTweets.length > 0) {
+    detail.push(
+      `ojo con ${result.sourcesMaybeMissingTweets.join(", ")}: ` +
+        "publican mas rapido de lo que se leen (5 tuits por pasada), rastrea mas a menudo"
+    );
+  }
 
   const notice =
     `Rastreo terminado (${result.sourcesProcessed} fuentes): ` +
@@ -891,6 +900,38 @@ export async function toggleSourceAction(formData: FormData) {
   });
   revalidatePath("/dashboard/sources");
   redirect("/dashboard/sources");
+}
+
+/**
+ * Borra el cursor since_id de una cuenta de X para que el proximo rastreo
+ * vuelva a leer sus tuits mas recientes desde cero.
+ *
+ * Hace falta porque el cursor es de un solo sentido: solo avanza. Mientras el
+ * rastreo estuvo dando fallos (la version anterior lo adelantaba nada mas leer
+ * el timeline, hubiera procesado los tuits o no), el cursor se fue colocando
+ * por delante de tuits que nunca se llegaron a mirar, y desde entonces son
+ * invisibles: la API solo devuelve lo posterior al cursor. Esto es la marcha
+ * atras.
+ *
+ * No duplica nada: lo que ya esta en la cola o publicado se reconoce por su
+ * guid y se salta.
+ */
+export async function resetAccountCursorAction(formData: FormData) {
+  const id = String(formData.get("id"));
+  const source = await prisma.source.findUnique({ where: { id } });
+  if (!source) withError("/dashboard/sources", "Fuente no encontrada");
+  if (source!.type !== SourceType.X_ACCOUNT) {
+    withError("/dashboard/sources", "Solo las cuentas de X llevan cursor");
+  }
+
+  await prisma.source.update({ where: { id }, data: { lastFetchedId: null } });
+
+  revalidatePath("/dashboard/sources");
+  redirect(
+    `/dashboard/sources?notice=${encodeURIComponent(
+      `@${source!.feedUrl.replace(/^@/, "")}: en el proximo rastreo se volveran a leer sus ultimos tuits`
+    )}`
+  );
 }
 
 /**

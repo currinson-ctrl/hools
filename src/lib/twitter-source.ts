@@ -54,6 +54,14 @@ export async function parseAccountCandidates(
   username: string;
   /** Tuit mas nuevo de la tanda; solo se guarda como cursor si se resuelven todos. */
   newestId: string | null;
+  /**
+   * La tanda ha venido llena (MAX_RESULTS tuits), señal de que la cuenta
+   * publica mas rapido de lo que se lee y puede haber tuits mas antiguos que
+   * no se han devuelto. Como la API entrega los mas NUEVOS a partir del
+   * cursor y el cursor avanza, esos se quedan atras para siempre. No se puede
+   * evitar sin leer mas tuits (mas gasto), asi que al menos se avisa.
+   */
+  pageFull: boolean;
   error: string | null;
 }> {
   const username = source.feedUrl.replace(/^@/, "").trim();
@@ -63,6 +71,7 @@ export async function parseAccountCandidates(
       candidates: [],
       username,
       newestId: null,
+      pageFull: false,
       error: "Falta configurar TWITTER_BEARER_TOKEN",
     };
   }
@@ -76,6 +85,7 @@ export async function parseAccountCandidates(
           candidates: [],
           username,
           newestId: null,
+          pageFull: false,
           error: `Cuenta de X no encontrada: @${username}`,
         };
       }
@@ -119,12 +129,19 @@ export async function parseAccountCandidates(
     // procesar (por cupo, por tiempo o por un fallo de Claude) quedaba detras
     // del since_id y no se volvia a leer nunca. Ahora lo guarda el agregador,
     // y solo si de verdad se ha resuelto toda la tanda.
-    return { candidates, username, newestId: timeline.meta.newest_id ?? null, error: null };
+    return {
+      candidates,
+      username,
+      newestId: timeline.meta.newest_id ?? null,
+      pageFull: timeline.tweets.length >= MAX_RESULTS,
+      error: null,
+    };
   } catch (err) {
     return {
       candidates: [],
       username,
       newestId: null,
+      pageFull: false,
       error: err instanceof Error ? err.message : "Error desconocido al leer la cuenta de X",
     };
   }

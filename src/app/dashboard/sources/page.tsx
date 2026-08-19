@@ -1,12 +1,17 @@
 import { prisma } from "@/lib/db";
 import { Category, SourceType } from "@prisma/client";
 import { CATEGORY_LABEL } from "@/lib/sources";
-import { addSourceAction, switchSourceTypeAction, toggleSourceAction } from "../actions";
+import {
+  addSourceAction,
+  resetAccountCursorAction,
+  switchSourceTypeAction,
+  toggleSourceAction,
+} from "../actions";
 
 export default async function SourcesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; notice?: string }>;
 }) {
   const query = await searchParams;
   const sources = await prisma.source.findMany({ orderBy: { name: "asc" } });
@@ -14,6 +19,7 @@ export default async function SourcesPage({
   return (
     <div>
       {query.error && <div className="banner error">{query.error}</div>}
+      {query.notice && <div className="banner ok">{query.notice}</div>}
 
       <h1 style={{ fontSize: 18, marginBottom: 16 }}>Fuentes</h1>
 
@@ -29,6 +35,14 @@ export default async function SourcesPage({
           <h3>{source.name}</h3>
           <div className="excerpt">
             {source.type === SourceType.X_ACCOUNT ? `@${source.feedUrl}` : source.feedUrl}
+            {source.type === SourceType.X_ACCOUNT && (
+              <>
+                <br />
+                {source.lastFetchedId
+                  ? `Leyendo solo lo posterior al tuit ${source.lastFetchedId}`
+                  : "Sin cursor: leerá sus tuits más recientes"}
+              </>
+            )}
           </div>
           {source.type === SourceType.RSS && !source.feedUrl.startsWith("http") && (
             <div className="banner error" style={{ marginTop: 8 }}>
@@ -45,6 +59,17 @@ export default async function SourcesPage({
               <form action={switchSourceTypeAction}>
                 <input type="hidden" name="id" value={source.id} />
                 <button type="submit">Convertir en cuenta de X</button>
+              </form>
+            )}
+            {source.type === SourceType.X_ACCOUNT && source.lastFetchedId && (
+              <form action={resetAccountCursorAction}>
+                <input type="hidden" name="id" value={source.id} />
+                <button
+                  type="submit"
+                  title="Olvida por dónde iba y vuelve a leer los últimos tuits de la cuenta. Úsalo si ves publicaciones en X que el rastreo no ha traído: lo que ya esté en la cola no se duplica"
+                >
+                  Volver a leer sus últimos tuits
+                </button>
               </form>
             )}
           </div>
