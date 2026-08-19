@@ -564,22 +564,115 @@ export async function fetchNowAction(formData: FormData) {
     withError(returnTo, `No se pudo completar el rastreo: ${message}`);
   }
 
-  const failed = result.results.filter((r) => r.error);
+  // El aviso cuenta lo que ha pasado, no solo el resultado. Un "0 noticias
+  // nuevas" a secas era justo lo que no se podia interpretar: puede ser que
+  // las fuentes no hayan publicado nada, que lo publicado no encaje con el
+  // tema del blog, o que ni siquiera se haya podido mirar. Ahora se dicen las
+  // tres cosas por separado.
+  const detail: string[] = [];
+  detail.push(
+    result.freshTotal === 0
+      ? "no habia nada que no tuvieramos ya visto"
+      : `${result.freshTotal} item(s) nuevo(s) en las fuentes`
+  );
+  if (result.offTopicTotal > 0) {
+    detail.push(`${result.offTopicTotal} descartado(s) por no encajar en el tema`);
+  }
+  if (result.leftTotal > 0) {
+    detail.push(`${result.leftTotal} sin mirar todavia, vuelve a pulsar`);
+  }
+
   const notice =
+    `Rastreo terminado (${result.sourcesProcessed} fuentes): ` +
     (result.createdTotal === 0
-      ? `Rastreo terminado: ninguna noticia nueva (${result.sourcesProcessed} fuentes)`
-      : `Rastreo terminado: ${result.createdTotal} noticia(s) nueva(s) de ${result.sourcesProcessed} fuentes`) +
-    (failed.length ? `, ${failed.length} fuente(s) fallaron (ver logs)` : "");
-  if (failed.length) {
-    console.error(
-      "Fuentes con error en el rastreo:",
-      failed.map((r) => `${r.source}: ${r.error}`).join(" | ")
+      ? "ninguna noticia nueva"
+      : `${result.createdTotal} noticia(s) nueva(s)`) +
+    `. ${detail.join(", ")}.`;
+
+  // Lo que si es un problema, aparte: items que han petado al procesarse
+  // (clave de Claude, limite de uso, red) y fuentes que no se han podido
+  // leer. Antes esto se confundia con "no hay noticias nuevas".
+  const problems: string[] = [];
+  const withItemErrors = result.results.filter((r) => r.failed > 0);
+  if (result.failedTotal > 0) {
+    const example = withItemErrors.find((r) => r.itemError)?.itemError;
+    problems.push(
+      `${result.failedTotal} item(s) no se han podido procesar` +
+        (example ? ` (${example})` : "") +
+        ". No se dan por vistos: se reintentan en el proximo rastreo"
+    );
+  }
+  const brokenSources = result.results.filter((r) => r.error);
+  if (brokenSources.length > 0) {
+    problems.push(
+      `${brokenSources.length} fuente(s) no se han podido leer: ` +
+        brokenSources
+          .slice(0, 3)
+          .map((r) => `${r.source} (${r.error})`)
+          .join("; ")
     );
   }
 
+  console.log(
+    "Rastreo:",
+    result.results
+      .map(
+        (r) =>
+          `${r.source} -> leidos ${r.read}, nuevos ${r.fresh}, examinados ${r.examined}, ` +
+          `creados ${r.created}, fuera de tema ${r.offTopic}, fallidos ${r.failed}, ` +
+          `pendientes ${r.left}${r.error ? `, ERROR: ${r.error}` : ""}` +
+          `${r.itemError ? `, detalle: ${r.itemError}` : ""}`
+      )
+      .join(" | ")
+  );
+
   revalidatePath("/dashboard");
   const separator = returnTo.includes("?") ? "&" : "?";
-  redirect(`${returnTo}${separator}notice=${encodeURIComponent(notice)}`);
+  const query = [`notice=${encodeURIComponent(notice)}`];
+  if (problems.length) query.push(`error=${encodeURIComponent(problems.join(". "))}`);
+  redirect(`${returnTo}${separator}${query.join("&")}`);
+}
+
+/**
+ * Saca un item de la lista de descartados para que el proximo rastreo lo
+ * vuelva a examinar. Es la valvula de escape para cuando el filtro se ha
+ * pasado de estricto con una noticia que si interesaba.
+ */
+export async function retrySkippedItemAction(formData: FormData) {
+  const id = String(formData.get("id"));
+  const returnTo = String(formData.get("returnTo") || "/dashboard/skipped");
+
+  await prisma.skippedItem.delete({ where: { id } });
+
+  revalidatePath("/dashboard/skipped");
+  const separator = returnTo.includes("?") ? "&" : "?";
+  redirect(
+    `${returnTo}${separator}notice=${encodeURIComponent(
+      "Descartada retirada de la lista: se volvera a examinar en el proximo rastreo"
+    )}`
+  );
+}
+
+/**
+ * Vacia la lista de descartados (entera o de una sola fuente). Util despues
+ * de tocar el criterio del filtro: sin esto, lo que se descarto con el
+ * criterio viejo no se volveria a mirar nunca.
+ */
+export async function clearSkippedItemsAction(formData: FormData) {
+  const sourceId = String(formData.get("sourceId") || "");
+  const returnTo = String(formData.get("returnTo") || "/dashboard/skipped");
+
+  const { count } = await prisma.skippedItem.deleteMany({
+    where: sourceId ? { sourceId } : {},
+  });
+
+  revalidatePath("/dashboard/skipped");
+  const separator = returnTo.includes("?") ? "&" : "?";
+  redirect(
+    `${returnTo}${separator}notice=${encodeURIComponent(
+      `${count} descartada(s) retiradas: se volveran a examinar en el proximo rastreo`
+    )}`
+  );
 }
 
 // Cada titular puede costar una llamada a Claude (solo los que no arregla la
@@ -684,6 +777,8 @@ export async function cleanupOffTopicAction(formData: FormData) {
 
   let rejected = 0;
   let kept = 0;
+  let failedItems = 0;
+  let cleanupError: string | null = null;
   let nextIndex = 0;
 
   async function worker() {
@@ -694,20 +789,27 @@ export async function cleanupOffTopicAction(formData: FormData) {
         .replace(/\s+/g, " ")
         .trim();
 
-      const translated = await translateToSpanish({
+      const outcome = await translateToSpanish({
         originalTitle: article.originalTitle,
         snippet,
         category: article.category,
       });
 
-      if (!translated) {
+      // Solo se rechaza cuando Claude dice que no encaja. Si la llamada
+      // FALLA (sin clave, limite de uso, red) no se toca el articulo: antes
+      // los dos casos volvian como null, asi que un fallo de la API rechazaba
+      // en masa noticias que estaban bien.
+      if (outcome.status === "off-topic") {
         await prisma.article.update({
           where: { id: article.id },
           data: { status: "REJECTED", reviewedAt: new Date() },
         });
         rejected += 1;
-      } else {
+      } else if (outcome.status === "ok") {
         kept += 1;
+      } else {
+        failedItems += 1;
+        cleanupError = cleanupError ?? outcome.message;
       }
     }
   }
@@ -720,12 +822,25 @@ export async function cleanupOffTopicAction(formData: FormData) {
   const notice =
     pending.length === 0
       ? "No había pendientes que revisar."
-      : `Limpieza: ${rejected} rechazadas por no encajar, ${kept} mantenidas. Quedan ${remaining} pendientes` +
+      : `Limpieza: ${rejected} rechazadas por no encajar, ${kept} mantenidas` +
+        (failedItems > 0 ? `, ${failedItems} sin revisar por un fallo` : "") +
+        `. Quedan ${remaining} pendientes` +
         (remaining > 0 ? " (pulsa otra vez para seguir limpiando)." : ".");
 
   revalidatePath("/dashboard");
   const separator = returnTo.includes("?") ? "&" : "?";
-  redirect(`${returnTo}${separator}notice=${encodeURIComponent(notice)}`);
+  const query = [`notice=${encodeURIComponent(notice)}`];
+  if (failedItems > 0) {
+    console.error("Fallos al limpiar fuera de tema:", cleanupError);
+    query.push(
+      `error=${encodeURIComponent(
+        `${failedItems} artículo(s) no se han podido revisar` +
+          (cleanupError ? ` (${cleanupError})` : "") +
+          ". Se han dejado como estaban."
+      )}`
+    );
+  }
+  redirect(`${returnTo}${separator}${query.join("&")}`);
 }
 
 export async function addSourceAction(formData: FormData) {

@@ -1,7 +1,14 @@
 import { TwitterApi } from "twitter-api-v2";
 import type { Source } from "@prisma/client";
 import { prisma } from "./db";
-import { buildDraft, MAX_ITEMS_PER_SOURCE, type DraftArticle, type FeedItem } from "./rss";
+import {
+  AGGREGATION_BUDGET_MS,
+  buildDraft,
+  harvestCandidates,
+  type DraftOutcome,
+  type FeedItem,
+  type SourceHarvest,
+} from "./rss";
 import type { KnownGroup } from "./groups";
 
 // Maximo de fotos que admite un tuit en la API de X.
@@ -42,11 +49,22 @@ type SourceForAccount = Pick<Source, "id" | "feedUrl" | "externalId" | "lastFetc
  */
 export async function parseAccountCandidates(
   source: SourceForAccount
-): Promise<{ candidates: AccountCandidate[]; username: string; error: string | null }> {
+): Promise<{
+  candidates: AccountCandidate[];
+  username: string;
+  /** Tuit mas nuevo de la tanda; solo se guarda como cursor si se resuelven todos. */
+  newestId: string | null;
+  error: string | null;
+}> {
   const username = source.feedUrl.replace(/^@/, "").trim();
   const client = getBearerClient();
   if (!client) {
-    return { candidates: [], username, error: "Falta configurar TWITTER_BEARER_TOKEN" };
+    return {
+      candidates: [],
+      username,
+      newestId: null,
+      error: "Falta configurar TWITTER_BEARER_TOKEN",
+    };
   }
 
   try {
@@ -54,7 +72,12 @@ export async function parseAccountCandidates(
     if (!userId) {
       const user = await client.v2.userByUsername(username);
       if (!user.data) {
-        return { candidates: [], username, error: `Cuenta de X no encontrada: @${username}` };
+        return {
+          candidates: [],
+          username,
+          newestId: null,
+          error: `Cuenta de X no encontrada: @${username}`,
+        };
       }
       userId = user.data.id;
       await prisma.source.update({ where: { id: source.id }, data: { externalId: userId } });
@@ -91,39 +114,59 @@ export async function parseAccountCandidates(
       };
     });
 
-    const newestId = timeline.meta.newest_id;
-    if (newestId && newestId !== source.lastFetchedId) {
-      await prisma.source.update({ where: { id: source.id }, data: { lastFetchedId: newestId } });
-    }
-
-    return { candidates, username, error: null };
+    // El cursor NO se mueve aqui. Antes se adelantaba al tuit mas nuevo nada
+    // mas leer el timeline, asi que todo lo que la pasada no llegase a
+    // procesar (por cupo, por tiempo o por un fallo de Claude) quedaba detras
+    // del since_id y no se volvia a leer nunca. Ahora lo guarda el agregador,
+    // y solo si de verdad se ha resuelto toda la tanda.
+    return { candidates, username, newestId: timeline.meta.newest_id ?? null, error: null };
   } catch (err) {
     return {
       candidates: [],
       username,
+      newestId: null,
       error: err instanceof Error ? err.message : "Error desconocido al leer la cuenta de X",
     };
   }
 }
 
 /**
- * A partir de los candidatos ya leidos, descarta los que ya existen y genera
- * (traduce) como maximo MAX_ITEMS_PER_SOURCE de los nuevos, reutilizando el
- * mismo pipeline de traduccion/formato que las fuentes RSS.
+ * Adelanta el cursor since_id de una cuenta de X. Solo debe llamarse cuando
+ * la pasada ha resuelto todos los tuits de la tanda (publicados o descartados
+ * por tema): si queda alguno sin mirar o alguno ha fallado, mover el cursor
+ * lo perderia para siempre.
  */
-export async function buildDraftsFromAccountCandidates(
+export async function commitAccountCursor(
+  source: Pick<Source, "id" | "lastFetchedId">,
+  newestId: string | null
+): Promise<void> {
+  if (!newestId || newestId === source.lastFetchedId) return;
+  await prisma.source.update({ where: { id: source.id }, data: { lastFetchedId: newestId } });
+}
+
+/**
+ * A partir de los candidatos ya leidos, descarta los ya vistos y examina los
+ * nuevos dentro del cupo de la pasada, reutilizando el mismo pipeline de
+ * filtro/redaccion que las fuentes RSS.
+ */
+export async function harvestAccountCandidates(
   candidates: AccountCandidate[],
   username: string,
   source: Pick<Source, "name" | "category">,
-  existingGuids: Set<string>,
-  knownGroups: KnownGroup[] = []
-): Promise<DraftArticle[]> {
-  const newCandidates = candidates
-    .filter((c) => !existingGuids.has(c.guid))
-    .slice(0, MAX_ITEMS_PER_SOURCE);
+  seenGuids: Set<string>,
+  knownGroups: KnownGroup[] = [],
+  deadline: number = Date.now() + AGGREGATION_BUDGET_MS
+): Promise<SourceHarvest> {
+  const fresh = candidates.filter((c) => !seenGuids.has(c.guid));
 
-  const drafts = await Promise.all(
-    newCandidates.map(async (c): Promise<DraftArticle | null> => {
+  return harvestCandidates(fresh, {
+    deadline,
+    meta: (c) => ({
+      guid: c.guid,
+      originalUrl: `https://x.com/${username}/status/${c.tweetId}`,
+      originalTitle: c.text,
+    }),
+    build: async (c): Promise<DraftOutcome> => {
       const [mainImage, ...extraImages] = c.imageUrls;
       const item: FeedItem = {
         link: `https://x.com/${username}/status/${c.tweetId}`,
@@ -133,15 +176,16 @@ export async function buildDraftsFromAccountCandidates(
         contentSnippet: c.text,
         enclosure: mainImage ? { url: mainImage } : undefined,
       };
-      const draft = await buildDraft(item, source, knownGroups, extraImages);
-      if (!draft) return draft;
+      const outcome = await buildDraft(item, source, knownGroups, extraImages);
+      if (outcome.status !== "draft") return outcome;
       return {
-        ...draft,
-        videoUrl: c.videoUrl,
-        ...(extraImages.length ? { extraImageUrls: extraImages } : {}),
+        status: "draft",
+        draft: {
+          ...outcome.draft,
+          videoUrl: c.videoUrl,
+          ...(extraImages.length ? { extraImageUrls: extraImages } : {}),
+        },
       };
-    })
-  );
-
-  return drafts.filter((d): d is DraftArticle => d !== null);
+    },
+  });
 }

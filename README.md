@@ -163,6 +163,36 @@ que leer las fuentes y escribir con Claude cada noticia nueva), así que no te
 extrañe que la página se quede pensando; al terminar avisa de cuántas ha
 encontrado.
 
+### Qué significa «ninguna noticia nueva»
+
+El aviso del rastreo no se queda en el número: dice cuántos items nuevos traían
+las fuentes, cuántos se han descartado por no encajar con el tema del blog,
+cuántos han fallado y cuántos se han quedado para la siguiente pasada. Son
+situaciones distintas y antes se veían todas igual:
+
+- **«no había nada que no tuviéramos ya visto»** — las fuentes no han publicado
+  nada nuevo desde el último rastreo (o lo publicado ya está en la cola).
+- **«N descartado(s) por no encajar en el tema»** — sí había noticias, pero el
+  filtro las ha considerado fuera de la cultura ultra/desplazamientos/moda
+  casual. Están una a una en la pestaña **Descartadas**, con su enlace al
+  original: si el filtro se pasó de estricto, «Volver a examinarla» la devuelve
+  al próximo rastreo.
+- **«N sin mirar todavía, vuelve a pulsar»** — cada pasada escribe como mucho
+  cuatro artículos por fuente (`MAX_ARTICLES_PER_SOURCE`) y examina como mucho
+  24 items (`MAX_EXAMINED_PER_SOURCE`), para no pasarse del límite de tiempo de
+  Vercel. Lo que sobra se coge en la siguiente pulsación, no se pierde.
+- **Banner rojo de error** — items que no se han podido procesar (falta
+  `ANTHROPIC_API_KEY`, límite de uso de la API, red) o fuentes que no
+  responden. Eso no es «no hay noticias»: es que no se ha podido mirar, y esos
+  items se reintentan en el próximo rastreo.
+
+Los descartes por tema se guardan en la tabla `SkippedItem` precisamente para
+que el rastreo pueda avanzar: si no se anotaran, cada pasada volvería a
+examinar los mismos items de cabecera del feed, los volvería a descartar y
+nunca llegaría a las noticias que vienen detrás. Después de cambiar el criterio
+del filtro conviene **vaciar la lista** desde la pestaña Descartadas, para que
+lo antiguo se vuelva a examinar con el criterio nuevo.
+
 Antes esto lo hacía un cron de GitHub Actions cada 3 horas, y se quitó a
 propósito: llenaba la cola hubiera o no alguien para revisarla, y en el caso de
 las fuentes de tipo «Cuenta de X» eso son lecturas de una API de pago ocho
@@ -255,7 +285,9 @@ variable adicional:
 Ten en cuenta que leer líneas temporales de otras cuentas es una llamada de
 pago adicional (aparte de la de publicar tuits) en el modelo de pago-por-uso
 de X — el código minimiza las llamadas cacheando en cada fuente el id de
-usuario resuelto y un cursor `since_id` para no releer tuits ya vistos, pero
+usuario resuelto y un cursor `since_id` para no releer tuits ya vistos (el
+cursor solo avanza cuando la tanda entera se ha resuelto, para no dejar tuits
+por detrás sin mirar), pero
 aun así conviene vigilar el saldo en `console.x.com` si añades varias cuentas.
 Si `TWITTER_BEARER_TOKEN` no está configurada, esas fuentes simplemente no
 producen noticias nuevas (no rompen el resto del rastreo).

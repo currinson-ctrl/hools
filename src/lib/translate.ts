@@ -335,13 +335,28 @@ function focusList(): string {
 }
 
 /**
+ * Resultado de pasar un item por el filtro + redaccion.
+ *
+ * Son TRES casos, no dos, y distinguirlos importa: "no encaja en el blog" es
+ * una decision (el item se da por visto y no se vuelve a mirar), mientras que
+ * "ha fallado la llamada" es un accidente (hay que reintentarlo en la
+ * siguiente pasada). Antes las dos cosas volvian como null, asi que una clave
+ * de API caducada o un limite de uso se veian desde fuera exactamente igual
+ * que "hoy no hay nada interesante": el rastreo decia "0 noticias nuevas" sin
+ * mas, y no habia forma de saber que en realidad no habia llegado a mirar
+ * nada.
+ */
+export type TranslationOutcome =
+  | { status: "ok"; article: TranslatedArticle }
+  | { status: "off-topic" }
+  | { status: "failed"; message: string };
+
+/**
  * Filtra y, si encaja, genera un titular + articulo completo en español de
  * España a partir del original (normalmente en ingles). El blog es sobre
  * cultura ultra/casual y desplazamientos, no noticias de futbol genericas,
  * asi que primero se le pide a Claude que decida si el tema encaja de verdad
- * en alguna de las tres categorias; si no encaja en ninguna, o si falla la
- * llamada (red, limite de uso, respuesta no valida), se descarta el item
- * devolviendo null en vez de publicar contenido fuera de tema.
+ * en alguna de las tres categorias.
  *
  * La categoria la decide el CONTENIDO, no la fuente. Antes se heredaba de la
  * fuente que traia la noticia, y como casi todas estan dadas de alta como
@@ -354,7 +369,7 @@ export async function translateToSpanish(input: {
   originalTitle: string;
   snippet: string;
   category: Category;
-}): Promise<TranslatedArticle | null> {
+}): Promise<TranslationOutcome> {
   try {
     const message = await getClient().messages.create({
       model: MODEL,
@@ -412,7 +427,7 @@ Responde SOLO con este JSON, sin texto adicional ni bloques de codigo:
       igCaption?: string;
     };
 
-    if (!parsed.relevant) return null;
+    if (!parsed.relevant) return { status: "off-topic" };
     if (!parsed.title) throw new Error("Respuesta sin los campos esperados");
 
     const sections = normalizeSections(parsed.sections, parsed.body);
@@ -440,19 +455,25 @@ Responde SOLO con este JSON, sin texto adicional ni bloques de codigo:
     }
 
     return {
-      category,
-      title,
-      lead,
-      sections,
-      pullQuote: parsed.pullQuote?.trim() || null,
-      facts: normalizeFacts(parsed.facts),
-      igCaption: parsed.igCaption || null,
-      body: [lead, ...sections.flatMap((s) => [s.heading ?? "", ...s.paragraphs])]
-        .filter(Boolean)
-        .join("\n\n"),
+      status: "ok",
+      article: {
+        category,
+        title,
+        lead,
+        sections,
+        pullQuote: parsed.pullQuote?.trim() || null,
+        facts: normalizeFacts(parsed.facts),
+        igCaption: parsed.igCaption || null,
+        body: [lead, ...sections.flatMap((s) => [s.heading ?? "", ...s.paragraphs])]
+          .filter(Boolean)
+          .join("\n\n"),
+      },
     };
   } catch (err) {
-    console.error("Fallo al traducir/filtrar con Claude, se descarta el item:", err);
-    return null;
+    // Ojo: esto NO es un descarte. El item se queda sin ver y se reintenta en
+    // la siguiente pasada; quien llama debe contarlo como fallo y enseñarlo.
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`Fallo al filtrar/redactar "${input.originalTitle}" con Claude:`, err);
+    return { status: "failed", message };
   }
 }

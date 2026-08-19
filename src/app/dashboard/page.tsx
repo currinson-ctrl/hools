@@ -109,8 +109,10 @@ export default async function DashboardPage({
           {status === "PENDING" && (
             <>
               <br />
-              Se rellenan automáticamente cuando corre el cron de agregación (o dispáralo
-              manualmente contra <code>/api/cron/fetch</code>).
+              Pulsa «Buscar noticias ahora» para rastrear las fuentes (o llama a{" "}
+              <code>/api/cron/fetch</code> desde fuera). Si el rastreo termina sin
+              noticias nuevas, el aviso dice por qué, y en «Descartadas» está el
+              detalle de lo que se ha leído y no ha encajado con el tema.
             </>
           )}
         </div>
