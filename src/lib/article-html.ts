@@ -41,7 +41,12 @@ export interface BuildArticleHtmlInput {
   /** Fotos adicionales a la destacada (las que trae un tuit multi-foto). */
   galleryImageUrls?: string[];
   sourceName: string;
-  sourceUrl: string;
+  /**
+   * URL de la noticia de origen. Las noticias escritas a mano en el panel
+   * pueden no tener ninguna: si viene vacia, no se pinta la linea "Fuente:"
+   * (un enlace vacio o al propio blog no aporta nada al lector).
+   */
+  sourceUrl: string | null;
   /**
    * Identificador estable del articulo (su guid) con el que se decide a que
    * coleccion apunta el cierre comercial. Ver buildShopCtaHtml.
@@ -264,7 +269,9 @@ export function buildArticleHtml(input: BuildArticleHtmlInput): string {
   const facts = renderFacts(input.facts ?? []);
   if (facts) parts.push(facts);
 
-  parts.push(renderSource(input.sourceName, input.sourceUrl));
+  if (input.sourceUrl) {
+    parts.push(renderSource(input.sourceName, input.sourceUrl));
+  }
   parts.push(buildShopCtaHtml(input.rotationKey));
 
   return parts.filter(Boolean).join("\n");

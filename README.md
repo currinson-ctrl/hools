@@ -36,6 +36,71 @@ falta. Si `ANTHROPIC_API_KEY` no está configurada o falla la llamada, esa
 noticia en concreto se queda en su idioma original en vez de bloquear el
 resto del rastreo.
 
+## Escribir una noticia a mano
+
+Además de lo que llega de las fuentes, el panel tiene su propia caja para
+publicar noticias propias: **`/dashboard/nueva`** (pestaña "Nueva noticia",
+o el botón "Escribir noticia" de la cola de pendientes).
+
+Se rellena titular, texto, categoría, **foto** y, si hace falta, **vídeo**.
+Opcionalmente: enlace a la fuente, texto del tuit y pie de Instagram; si se
+dejan vacíos, el tuit sale del titular más los hashtags de la categoría, y el
+pie de Instagram del texto del tuit.
+
+La noticia entra en la **misma cola de pendientes** que las rastreadas, así
+que se repasa y se publica con el mismo botón "Aprobar y publicar" (Shopify +
+X + Instagram + Facebook). Dos diferencias con las noticias de fuera:
+
+- **El texto no se reescribe.** Claude solo lo *maqueta* — entradilla,
+  ladillos, cita destacada y ficha — conservando los párrafos palabra por
+  palabra (es el mismo maquetado que usa "Remaquetar publicados"). Sin
+  `ANTHROPIC_API_KEY` se maqueta en básico, no se pierde la noticia.
+- **No pasan por "Limpiar fuera de tema".** Si te has sentado a escribirla,
+  ya has decidido que encaja.
+
+Sin enlace a la fuente, el artículo no lleva la línea "Fuente: ..." (la
+noticia es propia, no hay a quién enlazar).
+
+Las noticias manuales cuelgan de una fuente interna ("Redacción Hools") que
+se crea sola, nace pausada para que el rastreo la ignore y no aparece en
+`/dashboard/sources`: no hay nada que configurar en ella.
+
+### Fotos y vídeos: cómo se suben
+
+Los mismos dos campos están en la caja de noticia manual y en la ficha de
+cualquier artículo (`/dashboard/articles/...`), así que también se puede
+cambiar la foto o añadir un vídeo después.
+
+- **Foto**: JPG, PNG, WEBP o GIF, hasta 20 MB. Es la imagen destacada del
+  artículo en Shopify y la que se adjunta al tuit y a Instagram/Facebook.
+- **Vídeo**: MP4 o MOV, hasta 300 MB. No sale en el artículo del blog: al
+  aprobar habilita **Reel** y **Story** en Instagram y se adjunta al tuit
+  (X no admite más de 2:20 y no mezcla vídeo y fotos en el mismo tuit; el
+  formulario avisa si el vídeo se pasa). Si no se pone foto, se usa de
+  portada el fotograma que saca Shopify.
+
+El archivo **no pasa por el servidor del panel**: una función de Vercel no
+admite peticiones de más de 4,5 MB, así que el panel solo firma un destino de
+subida en Shopify (`/api/uploads/stage`) y el navegador sube el archivo
+directamente ahí. Después el panel lo registra en los Archivos de la tienda
+(`/api/uploads/complete`) y el navegador espera a que Shopify termine de
+procesarlo (`/api/uploads/status`) — segundos en una foto, varios minutos en
+un vídeo, que hay que transcodificar. Lo que se guarda en el artículo es la
+URL del CDN de Shopify.
+
+Todo acaba en los **Archivos de tu tienda** (Shopify Admin → Contenido →
+Archivos) porque todo lo que publica el sistema consume la foto y el vídeo
+como URL pública: Shopify descarga la imagen del artículo, X se baja el mp4
+para adjuntarlo, y a Instagram se le pasa la URL para que la descargue Meta.
+
+Por eso la app de Shopify necesita el scope **`write_files`** (ver "Variables
+de entorno → Shopify"). Sin él la subida falla; queda la opción de pegar a
+mano la URL de una foto o un vídeo ya alojados, que es el mismo campo.
+
+Las rutas `/api/uploads/*` comprueban la cookie de sesión del panel: firman
+peticiones contra la Admin API de la tienda, así que no pueden quedar
+abiertas (el middleware solo cubre `/dashboard`).
+
 ## Categorías (y las pestañas del blog)
 
 Las pestañas de la portada del blog —Afición / Desplazamientos / Casual— son un
@@ -226,7 +291,10 @@ en producción salvo tener las credenciales puestas).
 
 1. Shopify Admin → **Configuración → Apps y canales de venta → Desarrollar apps → Desarrollar apps en Dev Dashboard**.
 2. Crea una app (ej. "Blog Aggregator"), opción **"Empezar desde Dev Dashboard"**.
-3. En **"Alcances"** (Access → Scopes) añade: `read_content,write_content,read_online_store_pages,write_online_store_pages`.
+3. En **"Alcances"** (Access → Scopes) añade: `read_content,write_content,read_online_store_pages,write_online_store_pages,write_files`
+   (`write_files` es el que permite subir fotos y vídeos a los Archivos de
+   la tienda desde el panel; sin él todo lo demás sigue funcionando, pero esa
+   subida falla y hay que dar la foto/vídeo por URL).
 4. Marca **"Usar flujo de instalación heredado"** y publica la versión.
 5. Instala la app en la tienda Hools (botón "Instalar app" en la vista general).
 6. Ve a la pestaña **"Configuración"** de la app → **"Credenciales"** y copia

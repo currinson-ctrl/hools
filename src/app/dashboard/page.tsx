@@ -54,6 +54,9 @@ export default async function DashboardPage({
         <div className="row" style={{ gap: 8 }}>
           {status === "PENDING" && (
             <>
+              <Link className="btn" href="/dashboard/nueva">
+                Escribir noticia
+              </Link>
               <form action={fetchNowAction}>
                 <input type="hidden" name="returnTo" value={returnTo} />
                 <button
@@ -145,9 +148,11 @@ export default async function DashboardPage({
             <Link className="btn" href={`/dashboard/articles/${article.id}`}>
               Ver / editar
             </Link>
-            <a className="btn" href={article.originalUrl} target="_blank" rel="noreferrer">
-              Fuente original
-            </a>
+            {article.originalUrl && (
+              <a className="btn" href={article.originalUrl} target="_blank" rel="noreferrer">
+                Fuente original
+              </a>
+            )}
             {status === "PENDING" && (
               <>
                 <form action={approveArticleAction} className="row" style={{ alignItems: "center" }}>
