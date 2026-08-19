@@ -120,6 +120,46 @@ async function getAccessToken(domain: string): Promise<string> {
   return json.access_token;
 }
 
+/**
+ * Permiso de la app que hace falta para cada campo de la Admin API que este
+ * proyecto usa. Shopify contesta a un scope que falta con un escueto "Access
+ * denied for <campo> field", que no dice cual es ni donde se arregla.
+ */
+const SCOPE_BY_FIELD: Record<string, string> = {
+  stagedUploadsCreate: "write_files",
+  fileCreate: "write_files",
+  files: "read_files",
+  articleCreate: "write_content",
+  articleUpdate: "write_content",
+  articleDelete: "write_content",
+  products: "read_products",
+};
+
+/**
+ * Traduce los errores de la Admin API a algo accionable. El caso que importa
+ * es el permiso que falta: se nombra el scope y donde se añade, en vez de
+ * dejar al revisor con el mensaje crudo de Shopify.
+ */
+function describeShopifyErrors(messages: string[]): string {
+  const denied = messages
+    .map((m) => /Access denied for (\w+)/.exec(m)?.[1])
+    .filter((field): field is string => Boolean(field));
+
+  if (!denied.length) return `Shopify GraphQL error: ${messages.join("; ")}`;
+
+  const scopes = [...new Set(denied.map((f) => SCOPE_BY_FIELD[f]).filter(Boolean))];
+  const varios = scopes.length > 1;
+  const queja = scopes.length
+    ? `A tu app de Shopify le ${varios ? "faltan los permisos" : "falta el permiso"} ${scopes.join(" y ")}`
+    : `Tu app de Shopify no tiene permiso para ${[...new Set(denied)].join(", ")}`;
+
+  return (
+    `${queja}. ${varios ? "Añádelos" : "Añádelo"} a los scopes de la app en el Dev ` +
+    `Dashboard de Shopify y vuelve a intentarlo: el token se renueva solo, no hay ` +
+    `que desplegar nada.`
+  );
+}
+
 async function shopifyAdminRequest<T>(
   query: string,
   variables: Record<string, unknown>
@@ -146,7 +186,7 @@ async function shopifyAdminRequest<T>(
 
   const json = (await res.json()) as ShopifyGraphQLResponse<T>;
   if (json.errors?.length) {
-    throw new Error(`Shopify GraphQL error: ${json.errors.map((e) => e.message).join("; ")}`);
+    throw new Error(describeShopifyErrors(json.errors.map((e) => e.message)));
   }
   if (!json.data) {
     throw new Error("Shopify GraphQL: respuesta sin data");
