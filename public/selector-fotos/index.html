@@ -1060,7 +1060,13 @@ $$(".modal").forEach(function(m){
 });
 $("#pickFolder").addEventListener("click", function(){ $("#inFolder").click(); });
 $("#pickFiles").addEventListener("click", function(){ $("#inFiles").click(); });
-$("#addMore").addEventListener("click", function(){ $("#inFiles").click(); });
+// "Añadir": en escritorio otra carpeta (los ZIP grandes vienen partidos),
+// en móvil fotos sueltas, porque ahí no existe el selector de carpetas.
+var puedeCarpeta = "webkitdirectory" in document.createElement("input") && window.innerWidth > 640;
+$("#addMore").textContent = puedeCarpeta ? "Añadir otra carpeta" : "Añadir fotos";
+$("#addMore").addEventListener("click", function(){
+  $(puedeCarpeta ? "#inFolder" : "#inFiles").click();
+});
 $("#inFolder").addEventListener("change", function(e){ cargarArchivos(e.target.files); e.target.value = ""; });
 $("#inFiles").addEventListener("change", function(e){ cargarArchivos(e.target.files); e.target.value = ""; });
 $("#loadUrls").addEventListener("click", function(){ cargarDesdeTexto($("#urlBox").value); });
