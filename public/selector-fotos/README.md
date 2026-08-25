@@ -23,8 +23,10 @@ También funciona sin servidor: basta con abrir `index.html` con doble clic
 2. Carga las fotos, de una de estas dos formas:
    - **Carpeta local** (recomendado): descargar el ZIP de la galería, descomprimirlo
      y elegir la carpeta. Funciona sin conexión y con galerías grandes.
-   - **URLs**: pegar las direcciones de las imágenes, una por línea. La propia página
-     incluye el código para sacarlas desde la consola del navegador en la galería.
+   - **URLs**: pegar las direcciones de las imágenes, una por línea. Es la vía a usar
+     cuando el fotógrafo tiene la descarga desactivada. La propia página incluye un
+     código para pegar en la consola del navegador: recorre la galería solo, espera a
+     que carguen todas las miniaturas y copia las URLs al portapapeles.
 3. Marca cada foto con **Sí** o **No** (clic en la foto = Sí; atajos `S`, `N`,
    `Espacio` y flechas). Se guarda solo en el navegador según se vota.
 4. **Exportar mi selección** genera un `.json` que se pasa a los demás.
@@ -40,6 +42,8 @@ También funciona sin servidor: basta con abrir `index.html` con doble clic
 - Los votos viven en `localStorage`, con clave por galería y por socio
   (`hools.sel.<galeria>.votos.<socio>`), así que tres personas pueden usar
   el mismo ordenador sin pisarse.
+- Cuando varias URLs son la misma foto en distintos tamaños (lo habitual en las
+  galerías online), se agrupan y se conserva la de mayor resolución.
 - El emparejamiento entre selecciones se hace por nombre de archivo normalizado
   (sin ruta, sin extensión y sin sufijos de tamaño tipo `-xl` o `_thumb`), para que
   cuadre aunque uno haya trabajado con el ZIP y otro con las URLs.

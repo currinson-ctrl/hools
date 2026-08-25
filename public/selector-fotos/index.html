@@ -293,9 +293,11 @@ pre.code{
         <details class="snippet">
           <summary>¿Cómo consigo esas URLs? (30 segundos)</summary>
           <p class="hint" style="margin-top:10px">
-            1. Abre la galería en Chrome y baja hasta el final para que carguen todas las fotos.<br>
-            2. Pulsa <code class="k">F12</code> y abre la pestaña <b>Console</b>.<br>
-            3. Pega este código, pulsa Enter y las URLs quedan copiadas. Vuelve aquí y pégalas arriba.
+            1. Abre la galería en Chrome y pulsa <code class="k">F12</code>, pestaña <b>Console</b>.<br>
+            2. Si es la primera vez, Chrome pide escribir <code class="k">allow pasting</code> antes de dejarte pegar.<br>
+            3. Pega este código y pulsa Enter. Baja solo por toda la galería (puede tardar
+            un minuto) y al terminar te dice cuántas URLs ha copiado.<br>
+            4. Vuelve aquí y pégalas en el recuadro de arriba.
           </p>
           <pre class="code" id="snippetCode"></pre>
           <button class="btn sm" id="copySnippet" style="margin-top:8px">Copiar código</button>
@@ -467,6 +469,25 @@ function keyOf(nombre){
   n = n.replace(/[-_](xxl|xl|lg|md|sm|xs|thumb|thumbnail|small|large|preview|web|full|orig(inal)?|\d{3,4}x\d{3,4}|\d{3,4}w)$/i, "");
   return n.trim();
 }
+// Pixieset y compañía sirven la misma foto en varios tamaños. Cuando dos URLs
+// son la misma foto nos quedamos con la que promete más resolución.
+function puntuaSrc(src){
+  var u = String(src).toLowerCase();
+  var mejor = 0;
+  var dims = u.match(/(\d{3,5})\s*x\s*(\d{3,5})/);
+  if(dims) mejor = Math.max(+dims[1], +dims[2]);
+  var w = u.match(/[?&](?:w|width|size)=(\d{2,5})/) || u.match(/[\/_-](\d{3,5})w[\/._-]/);
+  if(w) mejor = Math.max(mejor, +w[1]);
+  if(mejor) return mejor;
+  var tokens = [
+    [/(orig(inal)?|full|source)/, 4000], [/xxl/, 2400], [/[^a-z]xl[^a-z]|-xl\.|_xl\./, 1800],
+    [/(large|lg)/, 1400], [/(medium|md|web)/, 900], [/(small|sm)/, 500],
+    [/(thumb|thumbnail|preview|tiny|xs)/, 200]
+  ];
+  for(var i = 0; i < tokens.length; i++){ if(tokens[i][0].test(u)) return tokens[i][1]; }
+  return 1000;
+}
+
 function nombreDe(src){
   var n = String(src).split("?")[0].split("#")[0];
   n = n.substring(n.lastIndexOf("/") + 1);
@@ -522,7 +543,12 @@ function anadirFotos(items){
   var nuevas = 0;
   items.forEach(function(it){
     var k = keyOf(it.nombre);
-    if(!k || byKey[k]) return;
+    if(!k) return;
+    if(byKey[k]){
+      // ya la teníamos: nos quedamos con la versión de más resolución
+      if(puntuaSrc(it.src) > puntuaSrc(byKey[k].src)) byKey[k].src = it.src;
+      return;
+    }
     var f = { key: k, nombre: it.nombre, src: it.src, el: null, roto: false };
     byKey[k] = f; fotos.push(f); nuevas++;
   });
@@ -1097,7 +1123,22 @@ document.addEventListener("drop", function(e){
 
 /* ------------------------------------------------ código para la consola */
 var SNIPPET = [
-  "(() => {",
+  "(async () => {",
+  "  const dormir = ms => new Promise(r => setTimeout(r, ms));",
+  "  // 1. baja del todo para que la galeria cargue todas las fotos",
+  "  const scrollables = [document.scrollingElement].concat(",
+  "    [...document.querySelectorAll('*')].filter(el =>",
+  "      el.scrollHeight > el.clientHeight + 200 && /auto|scroll/.test(getComputedStyle(el).overflowY))",
+  "  );",
+  "  for (let i = 0; i < 400; i++) {",
+  "    const antes = scrollables.map(el => el.scrollHeight + ':' + el.scrollTop).join('|');",
+  "    scrollables.forEach(el => { el.scrollTop = el.scrollHeight; });",
+  "    window.scrollTo(0, document.body.scrollHeight);",
+  "    await dormir(400);",
+  "    if (scrollables.map(el => el.scrollHeight + ':' + el.scrollTop).join('|') === antes) break;",
+  "  }",
+  "  await dormir(1500);",
+  "  // 2. recoge las direcciones de las imagenes",
   "  const urls = new Set();",
   "  const add = u => {",
   "    if (!u) return;",
@@ -1107,12 +1148,13 @@ var SNIPPET = [
   "  document.querySelectorAll('img, [data-src], [data-original], [style*=\"background\"]').forEach(el => {",
   "    add(el.currentSrc); add(el.src); add(el.dataset && el.dataset.src);",
   "    add(el.dataset && el.dataset.original);",
+  "    if (el.srcset) el.srcset.split(',').forEach(s => add(s));",
   "    const bg = getComputedStyle(el).backgroundImage;",
   "    if (bg && bg !== 'none') add(bg.slice(bg.indexOf('(') + 1, bg.lastIndexOf(')')).replace(/['\"]/g, ''));",
   "  });",
   "  const txt = [...urls].join('\\n');",
   "  copy(txt);",
-  "  console.log(urls.size + ' URLs copiadas al portapapeles');",
+  "  console.log('%c' + urls.size + ' URLs copiadas al portapapeles', 'font-size:16px;color:#e0472e');",
   "})()"
 ].join("\n");
 $("#snippetCode").textContent = SNIPPET;
