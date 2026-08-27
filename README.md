@@ -291,10 +291,14 @@ en producción salvo tener las credenciales puestas).
 
 1. Shopify Admin → **Configuración → Apps y canales de venta → Desarrollar apps → Desarrollar apps en Dev Dashboard**.
 2. Crea una app (ej. "Blog Aggregator"), opción **"Empezar desde Dev Dashboard"**.
-3. En **"Alcances"** (Access → Scopes) añade: `read_content,write_content,read_online_store_pages,write_online_store_pages,write_files`
+3. En **"Alcances"** (Access → Scopes) añade: `read_content,write_content,read_online_store_pages,write_online_store_pages,write_files,read_products`
    (`write_files` es el que permite subir fotos y vídeos a los Archivos de
    la tienda desde el panel; sin él todo lo demás sigue funcionando, pero esa
-   subida falla y hay que dar la foto/vídeo por URL).
+   subida falla y hay que dar la foto/vídeo por URL. `read_products` es el que
+   permite que el resumen semanal (`/dashboard/newsletter`) saque la prenda y
+   **su precio** de la tienda; sin él se cae a un catálogo escrito a mano en
+   `src/lib/newsletter.ts`, que envejece, y el correo puede salir con un precio
+   que ya no es el de la tienda — el panel avisa cuando pasa).
 4. Marca **"Usar flujo de instalación heredado"** y publica la versión.
 5. Instala la app en la tienda Hools (botón "Instalar app" en la vista general).
 6. Ve a la pestaña **"Configuración"** de la app → **"Credenciales"** y copia

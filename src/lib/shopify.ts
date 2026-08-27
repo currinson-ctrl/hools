@@ -360,6 +360,7 @@ interface ProductsResponse {
       title: string;
       handle: string;
       description: string;
+      isGiftCard: boolean;
       featuredMedia: { preview: { image: { url: string } | null } | null } | null;
       priceRangeV2: { minVariantPrice: { amount: string; currencyCode: string } };
     }>;
@@ -373,6 +374,7 @@ const PRODUCTS_QUERY = /* GraphQL */ `
         title
         handle
         description
+        isGiftCard
         featuredMedia {
           preview {
             image {
@@ -401,7 +403,10 @@ export async function fetchActiveProducts(): Promise<
 > {
   const data = await shopifyAdminRequest<ProductsResponse>(PRODUCTS_QUERY, {});
   return data.products.nodes
-    .filter((p) => p.featuredMedia?.preview?.image?.url)
+    // La seccion del correo es "la prenda de la semana": la tarjeta regalo es
+    // un producto activo con foto y precio, y colarse ahi la dejaria como
+    // recomendacion de vestuario.
+    .filter((p) => !p.isGiftCard && p.featuredMedia?.preview?.image?.url)
     .map((p) => ({
       title: p.title,
       handle: p.handle,
