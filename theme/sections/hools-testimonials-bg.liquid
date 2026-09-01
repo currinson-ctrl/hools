@@ -1,0 +1,364 @@
+{% comment %}
+HOOLS · TESTIMONIOS PRO DEFINITIVO
+Control total de espaciado + scroll visible
+- Ajuste móvil: menos espacio entre título ("Desde la Grada") y el carrusel
+- Foto por testimonio: la del bloque manda; si no hay, cae a la del producto
+  enlazado, para que ninguna tarjeta se quede coja mientras faltan fotos.
+{% endcomment %}
+
+{%- assign av = section.settings.avatar_size | default: 72 -%}
+{%- assign av2 = av | times: 2 -%}
+{%- assign av3 = av | times: 3 -%}
+
+<section
+  class="hools-testi"
+  style="
+    {% if section.settings.bg_image != blank %}
+      background-image:url('{{ section.settings.bg_image | image_url: width: 2400 }}');
+    {% endif %}
+    --overlay: {{ section.settings.overlay_opacity | divided_by: 100.0 }};
+    --title-color: {{ section.settings.title_color }};
+    --kicker-color: {{ section.settings.kicker_color }};
+    --align: {{ section.settings.head_align }};
+  "
+>
+
+  <div class="hools-inner page-width">
+
+    <header class="hools-head">
+      {% if section.settings.kicker != blank %}
+        <div class="hools-kicker">{{ section.settings.kicker }}</div>
+      {% endif %}
+      {% if section.settings.title != blank %}
+        <h2 class="hools-title">{{ section.settings.title }}</h2>
+      {% endif %}
+    </header>
+
+    <div class="hools-track">
+      {% for block in section.blocks %}
+        {%- assign p = block.settings.product -%}
+
+        {%- comment -%}
+          La foto del bloque manda; si no la hay, se usa la del producto
+          enlazado. El alt cambia con el origen: con la foto del cliente el
+          nombre ya esta al lado en texto (decorativa, alt vacio); con la del
+          producto, el titulo si dice algo que no esta escrito en la tarjeta.
+        {%- endcomment -%}
+        {%- assign avatar = block.settings.photo -%}
+        {%- assign avatar_alt = '' -%}
+        {%- if avatar == blank and p != blank -%}
+          {%- assign avatar = p.featured_image -%}
+          {%- assign avatar_alt = p.title -%}
+        {%- endif -%}
+
+        <article class="hools-card" {{ block.shopify_attributes }}>
+
+          <div class="hools-stars">
+            {% assign star_count = block.settings.stars %}
+            {% for i in (1..5) %}
+              {% if i <= star_count %}
+                <span class="on">★</span>
+              {% else %}
+                <span class="off">★</span>
+              {% endif %}
+            {% endfor %}
+          </div>
+
+          {% if block.settings.quote != blank %}
+            <div class="hools-quote">“{{ block.settings.quote }}”</div>
+          {% endif %}
+
+          {% if avatar != blank or block.settings.name != blank %}
+            <div class="hools-person">
+
+              {% if avatar != blank %}
+                <img
+                  class="hools-avatar"
+                  src="{{ avatar | image_url: width: av2 }}"
+                  srcset="{{ avatar | image_url: width: av }} 1x,
+                          {{ avatar | image_url: width: av2 }} 2x,
+                          {{ avatar | image_url: width: av3 }} 3x"
+                  width="{{ av }}"
+                  height="{{ av }}"
+                  alt="{{ avatar_alt | escape }}"
+                  loading="lazy">
+              {% endif %}
+
+              {% if block.settings.name != blank %}
+                <div class="hools-meta">
+                  {{ block.settings.name }}{% if block.settings.meta != blank %} · {{ block.settings.meta }}{% endif %}
+                </div>
+              {% endif %}
+
+            </div>
+          {% endif %}
+
+          {% if p != blank and p.url != blank %}
+            <div class="hools-cta">
+              <a href="{{ p.url }}" class="hools-btn">VER PRODUCTO →</a>
+            </div>
+          {% elsif block.settings.product_link != blank %}
+            <div class="hools-cta">
+              <a href="{{ block.settings.product_link }}" class="hools-btn">VER PRODUCTO →</a>
+            </div>
+          {% endif %}
+
+        </article>
+      {% endfor %}
+    </div>
+
+  </div>
+</section>
+
+<style>
+/* ============================
+   CONTROL REAL DE SECCIÓN
+   ============================ */
+#shopify-section-{{ section.id }}{
+  padding-top: {{ section.settings.pad_top }}px !important;      /* CONTROL: espacio arriba sección */
+  padding-bottom: {{ section.settings.pad_bottom }}px !important;/* CONTROL: espacio abajo sección */
+  margin: 0 !important;
+}
+
+/* ============================
+   SECCIÓN BASE
+   ============================ */
+.hools-testi{
+  position: relative;
+  width: 100%;
+  background-color:#0b0b0b;
+  background-size:cover;
+  background-position:center;
+  background-repeat:no-repeat;
+  color:#F8F8F8;
+  isolation:isolate;
+}
+
+/* Overlay */
+.hools-testi::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:rgba(0,0,0,var(--overlay));
+  z-index:0;
+}
+
+.hools-inner{
+  position:relative;
+  z-index:1;
+}
+
+/* ============================
+   HEADER
+   ============================ */
+.hools-head{
+  text-align:var(--align);
+  padding-top: {{ section.settings.title_space_top }}px; /* CONTROL: espacio sobre el header (desktop) */
+  padding-bottom: 0;
+}
+
+.hools-kicker{
+  font-size:12px;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--kicker-color);
+}
+
+.hools-title{
+  margin-top:12px; /* CONTROL: separación kicker -> título (desktop) */
+  font-family:"Source Serif 4", serif;
+  font-size:38px;
+  color:var(--title-color);
+}
+
+/* ============================
+   CARRUSEL
+   ============================ */
+.hools-track{
+  display:flex;
+  gap:28px; /* CONTROL: separación entre cards */
+  overflow-x:auto;
+  scroll-snap-type:x mandatory;
+
+  padding-top: {{ section.settings.track_pad_top }}px;       /* CONTROL: aire arriba carrusel (desktop) */
+  padding-bottom: {{ section.settings.track_pad_bottom }}px; /* CONTROL: aire abajo carrusel */
+
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:auto;
+}
+
+/* Scroll visible */
+.hools-track::-webkit-scrollbar{
+  height:10px;
+}
+.hools-track::-webkit-scrollbar-track{
+  background:rgba(255,255,255,.15);
+  border-radius:999px;
+}
+.hools-track::-webkit-scrollbar-thumb{
+  background:rgba(255,255,255,.4);
+  border-radius:999px;
+}
+
+/* ============================
+   CARDS
+   ============================ */
+.hools-card{
+  scroll-snap-align:start;
+  flex:0 0 86%;
+  background:rgba(0,0,0,.6);
+  border-radius:16px;
+  padding:28px;
+}
+
+@media(min-width:750px){
+  .hools-card{ flex-basis:calc(50% - 14px); }
+}
+@media(min-width:990px){
+  .hools-card{ flex-basis:calc(33.333% - 18px); }
+}
+
+.hools-stars{ font-size:18px; margin-bottom:12px; }
+.hools-stars .on{ color:#CCB229; }
+.hools-stars .off{ color:rgba(255,255,255,.25); }
+
+.hools-quote{ line-height:1.6; margin-bottom:16px; }
+
+/* ============================
+   FOTO + FIRMA
+   ============================ */
+.hools-person{
+  display:flex;
+  align-items:center;
+  gap:12px; /* CONTROL: separación foto -> nombre */
+}
+
+.hools-avatar{
+  flex:0 0 auto;
+  width:{{ av }}px;  /* CONTROL: ajuste "Tamaño de la foto" en el editor */
+  height:{{ av }}px;
+  /* Recorta al cuadro sin deformar: da igual como venga la foto original */
+  object-fit:cover;
+  border-radius:{% if section.settings.avatar_shape == 'round' %}50%{% else %}8px{% endif %};
+  border:1px solid rgba(255,255,255,.18);
+  display:block;
+}
+
+.hools-meta{ opacity:.85; font-size:14px; min-width:0; }
+
+.hools-cta{ margin-top:14px; } /* CONTROL: separación meta -> CTA */
+
+.hools-btn{
+  display:inline-block;
+  font-size:13px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  text-decoration:none;
+  color:#CCB229;
+  border-bottom:1px solid #CCB229;
+  padding-bottom:2px;
+  transition:opacity .2s ease;
+}
+.hools-btn:hover{ opacity:.7; }
+
+/* ======================================================
+   ✅ AJUSTE MÓVIL: MENOS ESPACIO ENTRE "DESDE LA GRADA"
+   y el carrusel de testimonios
+   ====================================================== */
+@media (max-width: 749px){
+
+  .hools-head{
+    padding-top: 18px !important; /* ✅ CONTROL: antes era title_space_top (muy alto en móvil) */
+  }
+
+  .hools-title{
+    margin-top: 8px !important;   /* ✅ CONTROL: menos separación kicker -> título */
+    font-size: 32px !important;   /* opcional: un pelín más equilibrado en móvil */
+  }
+
+  .hools-track{
+    padding-top: 10px !important; /* ✅ CONTROL: antes track_pad_top (24 por defecto) */
+    padding-bottom: 22px !important; /* mantiene scroll cómodo */
+    gap: 18px !important;         /* un poco más compacto en móvil */
+  }
+
+  .hools-card{
+    padding: 22px !important;     /* opcional: card un pelín más compacta */
+    flex-basis: 88% !important;
+  }
+}
+</style>
+
+{% schema %}
+{
+  "name": "HOOLS · Testimonios PRO",
+  "settings": [
+    { "type": "image_picker", "id": "bg_image", "label": "Imagen de fondo" },
+    { "type": "range", "id": "overlay_opacity", "label": "Oscurecer fondo", "min": 0, "max": 80, "step": 5, "default": 55 },
+
+    { "type": "range", "id": "pad_top", "label": "Espacio arriba sección", "min": 0, "max": 200, "step": 4, "default": 80 },
+    { "type": "range", "id": "pad_bottom", "label": "Espacio abajo sección", "min": 0, "max": 200, "step": 4, "default": 80 },
+
+    { "type": "range", "id": "title_space_top", "label": "Espacio por encima del título", "min": 0, "max": 200, "step": 4, "default": 60 },
+
+    { "type": "range", "id": "track_pad_top", "label": "Aire extra arriba carrusel", "min": 0, "max": 120, "step": 2, "default": 24 },
+    { "type": "range", "id": "track_pad_bottom", "label": "Aire extra bajo carrusel", "min": 0, "max": 120, "step": 2, "default": 30 },
+
+    { "type": "color", "id": "title_color", "label": "Color del título", "default": "#FFFFFF" },
+    { "type": "color", "id": "kicker_color", "label": "Color del kicker", "default": "#FFFFFF" },
+
+    {
+      "type": "select",
+      "id": "head_align",
+      "label": "Alineación",
+      "default": "center",
+      "options": [
+        { "value": "left", "label": "Izquierda" },
+        { "value": "center", "label": "Centro" },
+        { "value": "right", "label": "Derecha" }
+      ]
+    },
+
+    { "type": "text", "id": "kicker", "label": "Kicker", "default": "LO QUE DICE LA GRADA" },
+    { "type": "text", "id": "title", "label": "Título", "default": "Testimonios" },
+
+    { "type": "header", "content": "Foto de los testimonios" },
+    { "type": "range", "id": "avatar_size", "label": "Tamaño de la foto", "min": 40, "max": 112, "step": 4, "unit": "px", "default": 72 },
+    {
+      "type": "select",
+      "id": "avatar_shape",
+      "label": "Forma de la foto",
+      "default": "square",
+      "options": [
+        { "value": "square", "label": "Cuadrada" },
+        { "value": "round", "label": "Redonda" }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "type": "review",
+      "name": "Testimonio",
+      "settings": [
+        { "type": "range", "id": "stars", "label": "Estrellas", "min": 1, "max": 5, "step": 1, "default": 5 },
+        { "type": "textarea", "id": "quote", "label": "Texto" },
+        { "type": "text", "id": "name", "label": "Nombre" },
+        { "type": "text", "id": "meta", "label": "Ciudad / Extra" },
+        { "type": "image_picker", "id": "photo", "label": "Foto", "info": "Opcional. Si la dejas vacía se usa la foto del producto enlazado. Sube el original a ~1000-1200 px de ancho: el tamaño en pantalla lo controla el ajuste de la sección, no el fichero." },
+        { "type": "product", "id": "product", "label": "Producto" },
+        { "type": "url", "id": "product_link", "label": "Enlace (fallback)" }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "HOOLS · Testimonios PRO",
+      "blocks": [
+        { "type": "review" },
+        { "type": "review" },
+        { "type": "review" }
+      ]
+    }
+  ]
+}
+{% endschema %}

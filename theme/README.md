@@ -11,6 +11,7 @@ theme/
   sections/main-article-hools-editorial.liquid  plantilla de artículo
   sections/hools-blog-strip.liquid              franja del blog en la home
   sections/hools-hero.liquid                    hero de la portada de la tienda
+  sections/hools-testimonials-bg.liquid         testimonios "Desde la Grada" (home)
   snippets/hools-article-card.liquid            tarjeta de artículo (4 variantes)
   templates/blog.hools-editorial.json           ajustes de la portada
   templates/article.hools-editorial.json        ajustes de la plantilla de artículo
@@ -22,6 +23,21 @@ portada, donde el nombre del fichero de la foto estaba escrito a mano dos veces
 texto; ahora es un `image_picker` y se cambia desde el editor. Su ajuste
 `image` vive en `templates/index.json`, que **no** está aquí: ese fichero lo
 mantiene el editor y contiene toda la portada de la tienda, no solo el hero.
+
+`hools-testimonials-bg` es la sección "Desde la Grada" de la portada. El
+carrusel es `scroll-snap` nativo de CSS (`overflow-x:auto` +
+`scroll-snap-type`), sin JS ni librería: no hace falta añadir ninguna para
+moverlo. Cada testimonio lleva una foto opcional (`photo`); si se deja vacía se
+usa la del producto enlazado, así que ninguna tarjeta se queda coja mientras
+faltan fotos. El tamaño y la forma se cambian desde el editor
+(`avatar_size`, `avatar_shape`), no tocando el CSS.
+
+> **Las fotos de los testimonios no están aquí.** `photo` es un `image_picker`
+> de bloque, y como el `image` del hero, sólo vive en `templates/index.json`
+> — el fichero que mantiene el editor y que **no** está en el repo. Recrear la
+> sección sin él deja los testimonios con la foto del producto (el respaldo),
+> no en blanco, pero las fotos de los clientes hay que volver a elegirlas a
+> mano.
 
 Los dos `templates/*.json` están aquí porque guardan ajustes que **el schema de
 la sección no puede reponer**: los `image_picker` y los `url` no admiten valor
@@ -99,6 +115,7 @@ Estos ficheros **no se despliegan solos**: hay que subirlos al tema. Con
 ```bash
 shopify theme push --theme <ID_DEL_TEMA> --only sections/main-blog-hools-editorial.liquid \
                                           --only sections/main-article-hools-editorial.liquid \
+                                          --only sections/hools-testimonials-bg.liquid \
                                           --only snippets/hools-article-card.liquid \
                                           --only templates/blog.hools-editorial.json \
                                           --only templates/article.hools-editorial.json
