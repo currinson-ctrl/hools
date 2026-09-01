@@ -1,0 +1,1178 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230f0f10'/%3E%3Cpath d='M8 16.5l5 5 11-11' stroke='%23e0472e' stroke-width='3.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<title>Selector de fotos · Hools</title>
+<style>
+:root{
+  --bg:#0f0f10; --panel:#18181a; --panel-2:#1f1f22; --border:#2a2a2d;
+  --text:#f2f2f0; --muted:#9a9a9e; --accent:#e0472e; --accent-hover:#c93d27;
+  --ok:#3f9a5c; --ok-soft:rgba(63,154,92,.16); --no:#8a8a90;
+  --card:190px; --radius:10px;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--accent)}
+.hide{display:none !important}
+
+/* ---------- barra superior ---------- */
+.topbar{
+  position:sticky;top:0;z-index:40;background:rgba(15,15,16,.94);
+  backdrop-filter:blur(8px);border-bottom:1px solid var(--border);
+}
+.topbar-in{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:12px 18px}
+.brand{font-weight:800;letter-spacing:.06em;text-transform:uppercase;font-size:13px;white-space:nowrap}
+.brand span{color:var(--accent)}
+.gal{font-size:12px;color:var(--muted);border-left:1px solid var(--border);padding-left:14px}
+.gal b{color:var(--text);font-weight:600}
+.spacer{flex:1}
+.whoami{display:flex;align-items:center;gap:8px;font-size:13px}
+.whoami .dot{width:9px;height:9px;border-radius:50%;background:var(--accent)}
+.chip-input{
+  background:var(--panel-2);border:1px solid var(--border);border-radius:999px;
+  padding:6px 12px;font-size:13px;min-width:130px;outline:none;
+}
+.chip-input:focus{border-color:var(--accent)}
+
+/* ---------- botones ---------- */
+.btn{
+  background:var(--panel-2);border:1px solid var(--border);border-radius:8px;
+  padding:8px 13px;font-size:13px;cursor:pointer;white-space:nowrap;
+  transition:background .12s,border-color .12s,transform .06s;
+}
+.btn:hover{background:#26262a;border-color:#3a3a3f}
+.btn:active{transform:translateY(1px)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.btn.primary:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+.btn.ghost{background:transparent}
+.btn.sm{padding:5px 10px;font-size:12px}
+.btn[disabled]{opacity:.4;cursor:not-allowed}
+
+/* ---------- pantalla de inicio ---------- */
+.wrap{max-width:1500px;margin:0 auto;padding:0 18px 120px}
+.intro{max-width:960px;margin:0 auto;padding:44px 0 0}
+.intro h1{font-size:26px;margin:0 0 8px;letter-spacing:-.01em}
+.intro p.lead{color:var(--muted);font-size:15px;line-height:1.55;margin:0 0 30px;max-width:70ch}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.card{
+  background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);
+  padding:20px;display:flex;flex-direction:column;gap:12px
+}
+.card h2{margin:0;font-size:15px;display:flex;align-items:center;gap:9px}
+.num{
+  width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;
+  font-size:12px;font-weight:700;display:grid;place-items:center;flex:none
+}
+.card p{margin:0;color:var(--muted);font-size:13px;line-height:1.55}
+.card .grow{flex:1}
+.hint{font-size:12px;color:var(--muted);line-height:1.5}
+code.k{background:var(--panel-2);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:12px}
+textarea.urls{
+  width:100%;min-height:120px;background:var(--panel-2);border:1px solid var(--border);
+  border-radius:8px;padding:10px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:12px;resize:vertical;outline:none
+}
+textarea.urls:focus{border-color:var(--accent)}
+details.snippet{border-top:1px solid var(--border);padding-top:12px;margin-top:2px}
+details.snippet summary{cursor:pointer;font-size:13px;color:var(--muted)}
+details.snippet summary:hover{color:var(--text)}
+pre.code{
+  background:#000;border:1px solid var(--border);border-radius:8px;padding:12px;
+  overflow:auto;font-size:11px;line-height:1.5;margin:10px 0 0;max-height:220px
+}
+
+/* ---------- barra de herramientas ---------- */
+.toolbar{
+  position:sticky;top:53px;z-index:30;background:rgba(15,15,16,.94);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--border);margin:0 -18px 18px;padding:10px 18px;
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap
+}
+.counts{display:flex;gap:6px;flex-wrap:wrap}
+.count{
+  display:flex;align-items:center;gap:6px;background:var(--panel-2);border:1px solid var(--border);
+  border-radius:999px;padding:5px 12px;font-size:12px;cursor:pointer;color:var(--muted);
+  transition:border-color .12s,color .12s,background .12s
+}
+.count:hover{color:var(--text)}
+.count.on{background:var(--text);color:#000;border-color:var(--text);font-weight:600}
+.count b{font-weight:700}
+.count .sw{width:8px;height:8px;border-radius:50%}
+.sw-si{background:var(--ok)} .sw-no{background:var(--no)} .sw-un{background:var(--accent)}
+.search{
+  background:var(--panel-2);border:1px solid var(--border);border-radius:8px;
+  padding:7px 11px;font-size:13px;outline:none;width:170px
+}
+.search:focus{border-color:var(--accent)}
+.zoom{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted)}
+.zoom input{width:90px;accent-color:var(--accent)}
+.saved{font-size:11px;color:var(--muted);opacity:0;transition:opacity .3s}
+.saved.on{opacity:1}
+
+/* ---------- rejilla ---------- */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--card),1fr));gap:14px}
+.ph{
+  background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);
+  overflow:hidden;display:flex;flex-direction:column;position:relative;
+  transition:border-color .12s,box-shadow .12s,opacity .18s
+}
+.ph:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.ph.v-si{border-color:var(--ok);box-shadow:0 0 0 1px var(--ok) inset}
+.ph.v-no{opacity:.42}
+.ph.v-no .thumb img{filter:grayscale(1)}
+.thumb{
+  position:relative;aspect-ratio:1/1;background:#000;cursor:pointer;overflow:hidden;
+  display:grid;place-items:center
+}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb .ldg{position:absolute;inset:0;display:grid;place-items:center;color:#3a3a3f;font-size:11px}
+.thumb .err{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:11px;padding:10px;text-align:center;background:var(--panel-2)}
+.idx{
+  position:absolute;top:7px;left:7px;background:rgba(0,0,0,.72);border-radius:5px;
+  padding:2px 7px;font-size:11px;color:#fff;font-variant-numeric:tabular-nums
+}
+.badge{
+  position:absolute;top:7px;right:7px;width:24px;height:24px;border-radius:50%;
+  display:grid;place-items:center;font-size:13px;font-weight:700;color:#fff;opacity:0;transform:scale(.6);
+  transition:opacity .14s,transform .14s
+}
+.ph.v-si .badge{background:var(--ok);opacity:1;transform:scale(1)}
+.ph.v-no .badge{background:#3a3a3f;opacity:1;transform:scale(1)}
+.zoomb{
+  position:absolute;bottom:7px;right:7px;width:26px;height:26px;border-radius:6px;border:none;
+  background:rgba(0,0,0,.66);color:#fff;cursor:pointer;display:grid;place-items:center;font-size:13px;
+  opacity:0;transition:opacity .14s
+}
+.thumb:hover .zoomb{opacity:1}
+.name{
+  font-size:11px;color:var(--muted);padding:7px 9px 0;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;direction:rtl;text-align:left
+}
+.vote{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:7px 9px 9px}
+.vbtn{
+  border:1px solid var(--border);background:var(--panel-2);border-radius:7px;padding:7px 0;
+  font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;
+  justify-content:center;gap:5px;transition:all .12s
+}
+.vbtn:hover{border-color:#4a4a50}
+.vbtn.on-si{background:var(--ok);border-color:var(--ok);color:#fff}
+.vbtn.on-no{background:#3a3a3f;border-color:#4a4a50;color:#fff}
+.empty{text-align:center;color:var(--muted);padding:70px 20px;font-size:14px}
+
+/* ---------- pie fijo ---------- */
+.footbar{
+  position:fixed;left:0;right:0;bottom:0;z-index:35;background:rgba(24,24,26,.97);
+  backdrop-filter:blur(8px);border-top:1px solid var(--border);
+  padding:10px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap
+}
+.footbar .info{font-size:12px;color:var(--muted)}
+.footbar .info b{color:var(--text)}
+
+/* ---------- modal ---------- */
+.modal{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.72);display:grid;place-items:center;padding:20px}
+.modal-box{
+  background:var(--panel);border:1px solid var(--border);border-radius:12px;
+  width:min(900px,100%);max-height:88vh;display:flex;flex-direction:column;overflow:hidden
+}
+.modal-head{display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--border)}
+.modal-head h3{margin:0;font-size:15px}
+.modal-body{padding:18px;overflow:auto}
+.modal-foot{padding:14px 18px;border-top:1px solid var(--border);display:flex;gap:9px;flex-wrap:wrap;justify-content:flex-end}
+.x{margin-left:auto;background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;padding:0 4px}
+.x:hover{color:var(--text)}
+
+/* ---------- resumen equipo ---------- */
+.team-filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
+.tcell{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.tcell .th{aspect-ratio:1/1;background:#000}
+.tcell .th img{width:100%;height:100%;object-fit:cover;display:block}
+.tcell .tn{font-size:10px;color:var(--muted);padding:6px 7px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;direction:rtl;text-align:left}
+.votes{display:flex;gap:4px;padding:6px 7px 8px;flex-wrap:wrap}
+.vt{font-size:10px;padding:2px 6px;border-radius:4px;background:#2a2a2d;color:var(--muted);white-space:nowrap}
+.vt.si{background:var(--ok-soft);color:#7fd39a}
+.vt.no{background:#2a2a2d;color:#77777d;text-decoration:line-through}
+.peers{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.peer{background:var(--panel-2);border:1px solid var(--border);border-radius:999px;padding:5px 10px;font-size:12px;display:flex;align-items:center;gap:7px}
+.peer button{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;padding:0}
+.peer button:hover{color:var(--accent)}
+
+/* ---------- visor ---------- */
+.viewer{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.95);display:flex;flex-direction:column}
+.viewer .vtop{display:flex;align-items:center;gap:12px;padding:12px 16px;color:#fff;font-size:13px}
+.viewer .vtop .vname{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.viewer .vstage{flex:1;display:grid;place-items:center;padding:0 16px;min-height:0;position:relative}
+.viewer .vstage img{max-width:100%;max-height:100%;object-fit:contain}
+.nav{
+  position:absolute;top:50%;transform:translateY(-50%);width:44px;height:60px;border:none;
+  background:rgba(255,255,255,.08);color:#fff;font-size:22px;cursor:pointer;border-radius:8px
+}
+.nav:hover{background:rgba(255,255,255,.16)}
+.nav.prev{left:10px} .nav.next{right:10px}
+.viewer .vbot{display:flex;justify-content:center;gap:10px;padding:16px}
+.viewer .vbot .vbtn{padding:11px 26px;font-size:14px}
+
+@media(max-width:640px){
+  :root{--card:132px}
+  .topbar{position:static}
+  .topbar-in{padding:10px 14px;gap:10px}
+  .gal{border-left:none;padding-left:0;width:100%;order:5}
+  .wrap{padding:0 14px 190px}
+  .toolbar{top:0;margin:0 -14px 14px;padding:10px 14px}
+  .search{width:100%}
+  .kbd-hint{display:none}
+  .footbar{padding:9px 14px;gap:7px}
+  .footbar .btn{flex:1 1 auto}
+  .modal{padding:0}
+  .modal-box{max-height:100vh;border-radius:0;border:none}
+  .tgrid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-in">
+    <div class="brand">HOOLS <span>·</span> Selector de fotos</div>
+    <div class="gal" id="galLabel">Galería: <b>hoolsbrandagosto2026</b></div>
+    <div class="spacer"></div>
+    <div class="whoami">
+      <span class="dot"></span>
+      <label for="socio" style="color:var(--muted)">Soy:</label>
+      <input id="socio" class="chip-input" placeholder="tu nombre" autocomplete="off" maxlength="24">
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- ============ INICIO ============ -->
+  <section id="intro" class="intro">
+    <h1>Selecciona las fotos con un Sí o un No</h1>
+    <p class="lead">
+      Cada socio abre esta página, marca cada foto y exporta su selección en un archivo.
+      Después, cualquiera importa los archivos de los otros dos y ve de un vistazo en qué
+      fotos coincidís. Todo funciona en tu navegador: las fotos no se suben a ningún sitio.
+    </p>
+
+    <div class="cards">
+      <div class="card">
+        <h2><span class="num">1</span> Cargar una carpeta de fotos</h2>
+        <p>
+          La opción recomendada. Descarga la galería desde Pixieset, descomprime el ZIP
+          y elige aquí esa carpeta. Funciona sin conexión y con cualquier cantidad de fotos.
+        </p>
+        <div class="grow"></div>
+        <div>
+          <button class="btn primary" id="pickFolder">Elegir carpeta…</button>
+          <button class="btn ghost" id="pickFiles">o elegir fotos sueltas</button>
+        </div>
+        <input type="file" id="inFolder" webkitdirectory directory multiple accept="image/*" class="hide">
+        <input type="file" id="inFiles" multiple accept="image/*" class="hide">
+        <p class="hint">Las fotos no salen de tu ordenador. Tus votos se guardan solos en este navegador.</p>
+      </div>
+
+      <div class="card">
+        <h2><span class="num">2</span> Pegar las URLs de la galería</h2>
+        <p>
+          Si prefieres no descargar nada, pega aquí las direcciones de las imágenes
+          (una por línea) y se cargarán directamente desde Pixieset.
+        </p>
+        <textarea class="urls" id="urlBox" placeholder="https://images.pixieset.com/…/foto-001.jpg&#10;https://images.pixieset.com/…/foto-002.jpg"></textarea>
+        <div>
+          <button class="btn primary" id="loadUrls">Cargar URLs</button>
+        </div>
+        <details class="snippet">
+          <summary>¿Cómo consigo esas URLs? (30 segundos)</summary>
+          <p class="hint" style="margin-top:10px">
+            1. Abre la galería en Chrome y pulsa <code class="k">F12</code>, pestaña <b>Console</b>.<br>
+            2. Si es la primera vez, Chrome pide escribir <code class="k">allow pasting</code> antes de dejarte pegar.<br>
+            3. Pega este código y pulsa Enter. Baja solo por toda la galería (puede tardar
+            un minuto) y al terminar te dice cuántas URLs ha copiado.<br>
+            4. Vuelve aquí y pégalas en el recuadro de arriba.
+          </p>
+          <pre class="code" id="snippetCode"></pre>
+          <button class="btn sm" id="copySnippet" style="margin-top:8px">Copiar código</button>
+        </details>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h2><span class="num">3</span> ¿Ya tienes selecciones de tus socios?</h2>
+      <p>Importa aquí los archivos <code class="k">.json</code> que te hayan pasado para comparar las tres listas.</p>
+      <div><button class="btn" id="importIntro">Importar selecciones…</button></div>
+    </div>
+  </section>
+
+  <!-- ============ GALERÍA ============ -->
+  <section id="gallery" class="hide">
+    <div class="toolbar">
+      <div class="counts">
+        <button class="count on" data-f="all">Todas <b id="cAll">0</b></button>
+        <button class="count" data-f="si"><span class="sw sw-si"></span>Sí <b id="cSi">0</b></button>
+        <button class="count" data-f="no"><span class="sw sw-no"></span>No <b id="cNo">0</b></button>
+        <button class="count" data-f="un"><span class="sw sw-un"></span>Sin decidir <b id="cUn">0</b></button>
+      </div>
+      <input class="search" id="search" placeholder="Buscar por nombre…" autocomplete="off">
+      <div class="spacer"></div>
+      <div class="zoom">
+        <span>Tamaño</span>
+        <input type="range" id="size" min="120" max="360" step="10" value="190">
+      </div>
+      <span class="saved" id="saved">Guardado ✓</span>
+    </div>
+    <div class="grid" id="grid"></div>
+    <div class="empty hide" id="empty">No hay fotos con este filtro.</div>
+  </section>
+</div>
+
+<!-- ============ PIE ============ -->
+<div class="footbar hide" id="footbar">
+  <div class="info">
+    <b id="fSi">0</b> sí · <b id="fNo">0</b> no · <b id="fUn">0</b> sin decidir
+    <span class="kbd-hint" style="opacity:.55"> · atajos: S / N / ← → / Espacio</span>
+  </div>
+  <div class="spacer"></div>
+  <button class="btn sm ghost" id="clearVotes">Borrar mis votos</button>
+  <button class="btn sm" id="addMore">Añadir fotos</button>
+  <button class="btn sm" id="importBtn">Importar socios</button>
+  <button class="btn sm" id="teamBtn">Comparar selecciones</button>
+  <button class="btn sm primary" id="exportBtn">Exportar mi selección</button>
+</div>
+
+<input type="file" id="inImport" accept=".json,application/json" multiple class="hide">
+
+<!-- ============ MODAL EQUIPO ============ -->
+<div class="modal hide" id="teamModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Comparar selecciones</h3>
+      <button class="x" data-close="teamModal">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="peers" id="peers"></div>
+      <div class="team-filters" id="teamFilters"></div>
+      <div class="tgrid" id="tgrid"></div>
+      <div class="empty hide" id="tEmpty">Ninguna foto en este grupo.</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" id="importInModal">Importar más selecciones…</button>
+      <button class="btn" id="copyFinal">Copiar nombres del grupo</button>
+      <button class="btn primary" id="downloadFinal">Descargar lista (.txt)</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL EXPORTAR ============ -->
+<div class="modal hide" id="exportModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Exportar mi selección</h3>
+      <button class="x" data-close="exportModal">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="hint" style="margin:0 0 14px">
+        Descarga el archivo y pásaselo a tus socios (email, WhatsApp, Drive…).
+        Ellos lo importan aquí mismo y verán tu selección junto a la suya.
+      </p>
+      <textarea class="urls" id="exportPreview" readonly style="min-height:180px"></textarea>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" id="copyNames">Copiar nombres de los «Sí»</button>
+      <button class="btn primary" id="downloadJson">Descargar .json</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ VISOR ============ -->
+<div class="viewer hide" id="viewer">
+  <div class="vtop">
+    <span id="vCount"></span>
+    <span class="vname" id="vName"></span>
+    <div class="spacer"></div>
+    <button class="btn sm ghost" data-close="viewer">Cerrar (Esc)</button>
+  </div>
+  <div class="vstage">
+    <button class="nav prev" id="vPrev">‹</button>
+    <img id="vImg" alt="">
+    <button class="nav next" id="vNext">›</button>
+  </div>
+  <div class="vbot">
+    <button class="vbtn" id="vSi">✓ Sí</button>
+    <button class="vbtn" id="vNo">✕ No</button>
+  </div>
+</div>
+<script>
+(function(){
+"use strict";
+
+var $  = function(s){ return document.querySelector(s); };
+var $$ = function(s){ return Array.prototype.slice.call(document.querySelectorAll(s)); };
+
+/* ---------------------------------------------------------------- estado */
+var params  = new URLSearchParams(location.search);
+var GALERIA = params.get("g") || "hoolsbrandagosto2026";
+var PREFIX  = "hools.sel." + GALERIA + ".";
+
+var fotos   = [];   // {key, nombre, src, el}
+var byKey   = {};
+var votos   = {};   // key -> "si" | "no"
+var peers   = {};   // nombre -> {si:[keys], no:[keys]}
+var socio   = "";
+var filtro  = "all";
+var query   = "";
+var foco    = -1;
+var teamFiltro = "all";
+
+$("#galLabel").innerHTML = 'Galería: <b>' + GALERIA + '</b>';
+
+/* --------------------------------------------------------- almacenamiento */
+function lsGet(k, def){
+  try { var v = localStorage.getItem(PREFIX + k); return v ? JSON.parse(v) : def; }
+  catch(e){ return def; }
+}
+function lsSet(k, v){
+  try { localStorage.setItem(PREFIX + k, JSON.stringify(v)); } catch(e){}
+}
+var savedTimer;
+function flashSaved(){
+  var el = $("#saved"); if(!el) return;
+  el.classList.add("on");
+  clearTimeout(savedTimer);
+  savedTimer = setTimeout(function(){ el.classList.remove("on"); }, 1100);
+}
+function guardarVotos(){
+  if(!socio) return;
+  lsSet("votos." + socio, votos);
+  flashSaved();
+}
+function cargarVotos(){
+  votos = socio ? (lsGet("votos." + socio, {}) || {}) : {};
+}
+
+/* -------------------------------------------------------------- utilidades */
+// Clave de comparación: mismo nombre de archivo aunque cambie carpeta,
+// extensión o el sufijo de tamaño que añaden las galerías online.
+function keyOf(nombre){
+  var n = String(nombre).split("?")[0].split("#")[0];
+  n = n.substring(n.lastIndexOf("/") + 1);
+  try { n = decodeURIComponent(n); } catch(e){}
+  n = n.toLowerCase().replace(/\.(jpe?g|png|webp|gif|heic|tiff?)$/i, "");
+  n = n.replace(/[-_](xxl|xl|lg|md|sm|xs|thumb|thumbnail|small|large|preview|web|full|orig(inal)?|\d{3,4}x\d{3,4}|\d{3,4}w)$/i, "");
+  return n.trim();
+}
+// Pixieset y compañía sirven la misma foto en varios tamaños. Cuando dos URLs
+// son la misma foto nos quedamos con la que promete más resolución.
+function puntuaSrc(src){
+  var u = String(src).toLowerCase();
+  var mejor = 0;
+  var dims = u.match(/(\d{3,5})\s*x\s*(\d{3,5})/);
+  if(dims) mejor = Math.max(+dims[1], +dims[2]);
+  var w = u.match(/[?&](?:w|width|size)=(\d{2,5})/) || u.match(/[\/_-](\d{3,5})w[\/._-]/);
+  if(w) mejor = Math.max(mejor, +w[1]);
+  if(mejor) return mejor;
+  var tokens = [
+    [/(orig(inal)?|full|source)/, 4000], [/xxl/, 2400], [/[^a-z]xl[^a-z]|-xl\.|_xl\./, 1800],
+    [/(large|lg)/, 1400], [/(medium|md|web)/, 900], [/(small|sm)/, 500],
+    [/(thumb|thumbnail|preview|tiny|xs)/, 200]
+  ];
+  for(var i = 0; i < tokens.length; i++){ if(tokens[i][0].test(u)) return tokens[i][1]; }
+  return 1000;
+}
+
+function nombreDe(src){
+  var n = String(src).split("?")[0].split("#")[0];
+  n = n.substring(n.lastIndexOf("/") + 1);
+  try { n = decodeURIComponent(n); } catch(e){}
+  return n || src;
+}
+function esImagen(name){ return /\.(jpe?g|png|webp|gif|heic|avif|tiff?)$/i.test(name); }
+
+function copiar(texto, btn){
+  var ok = function(){
+    if(!btn) return;
+    var t = btn.textContent; btn.textContent = "Copiado ✓";
+    setTimeout(function(){ btn.textContent = t; }, 1400);
+  };
+  if(navigator.clipboard && location.protocol !== "file:"){
+    navigator.clipboard.writeText(texto).then(ok, function(){ fallback(texto, ok); });
+  } else { fallback(texto, ok); }
+}
+function fallback(texto, ok){
+  var ta = document.createElement("textarea");
+  ta.value = texto; ta.style.position = "fixed"; ta.style.opacity = "0";
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand("copy"); ok(); } catch(e){ alert("No se ha podido copiar. Selecciona el texto a mano."); }
+  document.body.removeChild(ta);
+}
+function descargar(nombre, contenido, tipo){
+  var blob = new Blob([contenido], { type: tipo || "text/plain;charset=utf-8" });
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement("a");
+  a.href = url; a.download = nombre;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+}
+
+/* -------------------------------------------------------------- socio */
+var inSocio = $("#socio");
+socio = lsGet("socio", "") || "";
+inSocio.value = socio;
+inSocio.addEventListener("change", cambiarSocio);
+inSocio.addEventListener("blur", cambiarSocio);
+function cambiarSocio(){
+  var nuevo = inSocio.value.trim();
+  if(nuevo === socio) return;
+  socio = nuevo;
+  lsSet("socio", socio);
+  cargarVotos();
+  pintarVotos();
+  actualizarContadores();
+}
+
+/* --------------------------------------------------------- carga de fotos */
+function anadirFotos(items){
+  var nuevas = 0;
+  items.forEach(function(it){
+    var k = keyOf(it.nombre);
+    if(!k) return;
+    if(byKey[k]){
+      // ya la teníamos: nos quedamos con la versión de más resolución
+      if(puntuaSrc(it.src) > puntuaSrc(byKey[k].src)) byKey[k].src = it.src;
+      return;
+    }
+    var f = { key: k, nombre: it.nombre, src: it.src, el: null, roto: false };
+    byKey[k] = f; fotos.push(f); nuevas++;
+  });
+  fotos.sort(function(a, b){
+    return a.nombre.localeCompare(b.nombre, "es", { numeric: true, sensitivity: "base" });
+  });
+  lsSet("nombres", fotos.map(function(f){ return f.nombre; }));
+  return nuevas;
+}
+
+function cargarArchivos(fileList){
+  var files = Array.prototype.slice.call(fileList).filter(function(f){
+    return (f.type && f.type.indexOf("image/") === 0) || esImagen(f.name);
+  });
+  if(!files.length){ alert("No se han encontrado imágenes en esa carpeta."); return; }
+  var items = files.map(function(f){
+    return { nombre: f.name, src: URL.createObjectURL(f) };
+  });
+  var n = anadirFotos(items);
+  abrirGaleria(n, files.length);
+}
+
+function cargarDesdeTexto(texto){
+  var urls = [];
+  var re = /https?:\/\/[^\s"'<>()\\]+/g, m;
+  while((m = re.exec(texto)) !== null){
+    var u = m[0].replace(/[.,;)\]]+$/, "");
+    if(esImagen(u.split("?")[0])) urls.push(u);
+  }
+  if(!urls.length){
+    // también aceptamos una lista pegada sin protocolo, una por línea
+    texto.split(/[\n,]+/).forEach(function(l){
+      l = l.trim();
+      if(l && esImagen(l.split("?")[0])) urls.push(l);
+    });
+  }
+  if(!urls.length){
+    alert("No he encontrado ninguna URL de imagen en lo que has pegado.\n\nDeben acabar en .jpg, .jpeg, .png o .webp");
+    return;
+  }
+  var vistas = {};
+  var items = [];
+  urls.forEach(function(u){
+    if(vistas[u]) return; vistas[u] = 1;
+    items.push({ nombre: nombreDe(u), src: u });
+  });
+  var n = anadirFotos(items);
+  abrirGaleria(n, items.length);
+}
+
+function abrirGaleria(nuevas, total){
+  if(!nuevas){ alert("Esas fotos ya estaban cargadas."); return; }
+  $("#intro").classList.add("hide");
+  $("#gallery").classList.remove("hide");
+  $("#footbar").classList.remove("hide");
+  cargarVotos();
+  render();
+  if(!socio){ inSocio.focus(); }
+}
+
+/* --------------------------------------------------------------- render */
+var grid = $("#grid");
+
+function render(){
+  grid.innerHTML = "";
+  fotos.forEach(function(f, i){
+    var card = document.createElement("div");
+    card.className = "ph";
+    card.tabIndex = 0;
+    card.dataset.key = f.key;
+    card.dataset.i = i;
+
+    var th = document.createElement("div");
+    th.className = "thumb";
+
+    var img = document.createElement("img");
+    img.loading = "lazy";
+    img.decoding = "async";
+    img.alt = f.nombre;
+    img.referrerPolicy = "no-referrer";
+    img.src = f.src;
+    img.addEventListener("error", function(){
+      f.roto = true;
+      th.innerHTML = '<div class="err">No se ha podido cargar<br>' + f.nombre + "</div>";
+    });
+    th.appendChild(img);
+
+    var idx = document.createElement("div");
+    idx.className = "idx"; idx.textContent = i + 1;
+    th.appendChild(idx);
+
+    var badge = document.createElement("div");
+    badge.className = "badge";
+    th.appendChild(badge);
+
+    var zb = document.createElement("button");
+    zb.className = "zoomb"; zb.title = "Ver grande"; zb.textContent = "⛶";
+    zb.addEventListener("click", function(e){ e.stopPropagation(); abrirVisor(i); });
+    th.appendChild(zb);
+
+    th.addEventListener("click", function(){ votar(f.key, "si", true); foco = i; });
+
+    var nm = document.createElement("div");
+    nm.className = "name"; nm.title = f.nombre; nm.textContent = f.nombre;
+
+    var vote = document.createElement("div");
+    vote.className = "vote";
+    var bSi = document.createElement("button");
+    bSi.className = "vbtn"; bSi.dataset.v = "si"; bSi.innerHTML = "✓ Sí";
+    var bNo = document.createElement("button");
+    bNo.className = "vbtn"; bNo.dataset.v = "no"; bNo.innerHTML = "✕ No";
+    bSi.addEventListener("click", function(){ votar(f.key, "si", true); foco = i; });
+    bNo.addEventListener("click", function(){ votar(f.key, "no", true); foco = i; });
+    vote.appendChild(bSi); vote.appendChild(bNo);
+
+    card.appendChild(th); card.appendChild(nm); card.appendChild(vote);
+    card.addEventListener("focus", function(){ foco = i; });
+    grid.appendChild(card);
+    f.el = card;
+  });
+  pintarVotos();
+  aplicarFiltro();
+  actualizarContadores();
+}
+
+function pintarUna(f){
+  if(!f.el) return;
+  var v = votos[f.key];
+  f.el.classList.toggle("v-si", v === "si");
+  f.el.classList.toggle("v-no", v === "no");
+  var badge = f.el.querySelector(".badge");
+  if(badge) badge.textContent = v === "si" ? "✓" : (v === "no" ? "✕" : "");
+  var bs = f.el.querySelectorAll(".vbtn");
+  bs[0].classList.toggle("on-si", v === "si");
+  bs[1].classList.toggle("on-no", v === "no");
+}
+function pintarVotos(){ fotos.forEach(pintarUna); }
+
+function votar(key, valor, toggle){
+  if(votos[key] === valor && toggle) delete votos[key];
+  else votos[key] = valor;
+  var f = byKey[key];
+  if(f) pintarUna(f);
+  guardarVotos();
+  actualizarContadores();
+  if(filtro !== "all") setTimeout(aplicarFiltro, 260);
+  if(!$("#viewer").classList.contains("hide")) pintarVisor();
+}
+
+/* -------------------------------------------------------- filtros y cuentas */
+function coincide(f){
+  var v = votos[f.key];
+  var okF = filtro === "all" ||
+            (filtro === "si" && v === "si") ||
+            (filtro === "no" && v === "no") ||
+            (filtro === "un" && !v);
+  var okQ = !query || f.nombre.toLowerCase().indexOf(query) !== -1;
+  return okF && okQ;
+}
+function aplicarFiltro(){
+  var visibles = 0;
+  fotos.forEach(function(f){
+    if(!f.el) return;
+    var ok = coincide(f);
+    f.el.classList.toggle("hide", !ok);
+    if(ok) visibles++;
+  });
+  $("#empty").classList.toggle("hide", visibles > 0);
+}
+function actualizarContadores(){
+  var si = 0, no = 0;
+  fotos.forEach(function(f){
+    if(votos[f.key] === "si") si++;
+    else if(votos[f.key] === "no") no++;
+  });
+  var un = fotos.length - si - no;
+  $("#cAll").textContent = fotos.length;
+  $("#cSi").textContent = si;
+  $("#cNo").textContent = no;
+  $("#cUn").textContent = un;
+  $("#fSi").textContent = si;
+  $("#fNo").textContent = no;
+  $("#fUn").textContent = un;
+}
+
+$$(".count").forEach(function(b){
+  b.addEventListener("click", function(){
+    $$(".count").forEach(function(x){ x.classList.remove("on"); });
+    b.classList.add("on");
+    filtro = b.dataset.f;
+    aplicarFiltro();
+  });
+});
+$("#search").addEventListener("input", function(e){
+  query = e.target.value.trim().toLowerCase();
+  aplicarFiltro();
+});
+$("#size").addEventListener("input", function(e){
+  document.documentElement.style.setProperty("--card", e.target.value + "px");
+});
+
+/* ------------------------------------------------------------- atajos */
+document.addEventListener("keydown", function(e){
+  var t = e.target.tagName;
+  if(t === "INPUT" || t === "TEXTAREA") return;
+
+  var vAbierto = !$("#viewer").classList.contains("hide");
+  if(e.key === "Escape"){
+    if(vAbierto){ cerrarVisor(); return; }
+    var m = document.querySelector(".modal:not(.hide)");
+    if(m){ m.classList.add("hide"); return; }
+  }
+  if(!fotos.length) return;
+
+  var lista = fotos.filter(coincide);
+  if(!lista.length) return;
+
+  if(vAbierto){
+    if(e.key === "ArrowRight"){ e.preventDefault(); mover(1); return; }
+    if(e.key === "ArrowLeft"){ e.preventDefault(); mover(-1); return; }
+  }
+
+  var k = e.key.toLowerCase();
+  if(k === "s" || k === "n" || e.key === " "){
+    e.preventDefault();
+    var f = fotos[foco];
+    if(!f){ f = lista[0]; foco = fotos.indexOf(f); }
+    var valor = (k === "n") ? "no" : "si";
+    if(e.key === " ") valor = votos[f.key] === "si" ? "no" : "si";
+    votar(f.key, valor, k !== " ");
+    if(!vAbierto && (k === "s" || k === "n")) mover(1);
+    return;
+  }
+  if(e.key === "ArrowRight" || e.key === "ArrowLeft"){
+    e.preventDefault();
+    mover(e.key === "ArrowRight" ? 1 : -1);
+  }
+});
+
+function mover(paso){
+  var lista = fotos.filter(coincide);
+  if(!lista.length) return;
+  var actual = fotos[foco];
+  var pos = lista.indexOf(actual);
+  var next = lista[Math.max(0, Math.min(lista.length - 1, (pos === -1 ? 0 : pos + paso)))];
+  if(!next) return;
+  foco = fotos.indexOf(next);
+  if(!$("#viewer").classList.contains("hide")) pintarVisor();
+  else if(next.el){ next.el.focus({ preventScroll: false }); }
+}
+
+/* -------------------------------------------------------------- visor */
+function abrirVisor(i){
+  foco = i;
+  $("#viewer").classList.remove("hide");
+  pintarVisor();
+}
+function cerrarVisor(){
+  $("#viewer").classList.add("hide");
+  var f = fotos[foco];
+  if(f && f.el) f.el.focus();
+}
+function pintarVisor(){
+  var f = fotos[foco]; if(!f) return;
+  $("#vImg").src = f.src;
+  $("#vImg").referrerPolicy = "no-referrer";
+  $("#vName").textContent = f.nombre;
+  $("#vCount").textContent = (fotos.indexOf(f) + 1) + " / " + fotos.length;
+  var v = votos[f.key];
+  $("#vSi").classList.toggle("on-si", v === "si");
+  $("#vNo").classList.toggle("on-no", v === "no");
+}
+$("#vPrev").addEventListener("click", function(){ mover(-1); });
+$("#vNext").addEventListener("click", function(){ mover(1); });
+$("#vSi").addEventListener("click", function(){ var f = fotos[foco]; if(f) votar(f.key, "si", true); });
+$("#vNo").addEventListener("click", function(){ var f = fotos[foco]; if(f) votar(f.key, "no", true); });
+
+/* --------------------------------------------------------- exportar */
+function nombresPorVoto(valor){
+  return fotos.filter(function(f){ return votos[f.key] === valor; })
+              .map(function(f){ return f.nombre; });
+}
+function payloadExport(){
+  return {
+    app: "hools-selector-fotos",
+    version: 1,
+    galeria: GALERIA,
+    socio: socio,
+    fecha: new Date().toISOString(),
+    total: fotos.length,
+    si: nombresPorVoto("si"),
+    no: nombresPorVoto("no")
+  };
+}
+$("#exportBtn").addEventListener("click", function(){
+  if(!socio){
+    alert("Escribe tu nombre arriba a la derecha antes de exportar,\nasí tus socios sabrán de quién es la selección.");
+    inSocio.focus();
+    return;
+  }
+  var p = payloadExport();
+  $("#exportPreview").value = JSON.stringify(p, null, 2);
+  $("#exportModal").classList.remove("hide");
+});
+$("#downloadJson").addEventListener("click", function(){
+  var p = payloadExport();
+  var slug = (socio || "socio").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  descargar("seleccion-" + GALERIA + "-" + slug + ".json",
+            JSON.stringify(p, null, 2), "application/json;charset=utf-8");
+});
+$("#copyNames").addEventListener("click", function(e){
+  copiar(nombresPorVoto("si").join("\n"), e.currentTarget);
+});
+
+/* --------------------------------------------------------- importar */
+function abrirImport(){ $("#inImport").click(); }
+$("#importBtn").addEventListener("click", abrirImport);
+$("#importIntro").addEventListener("click", abrirImport);
+$("#importInModal").addEventListener("click", abrirImport);
+
+$("#inImport").addEventListener("change", function(e){
+  var files = Array.prototype.slice.call(e.target.files);
+  var pendientes = files.length, importados = [];
+  if(!pendientes) return;
+  files.forEach(function(file){
+    var r = new FileReader();
+    r.onload = function(){
+      try {
+        var d = JSON.parse(r.result);
+        if(!d || (!d.si && !d.no)) throw new Error("formato");
+        var nombre = (d.socio || file.name.replace(/\.json$/i, "")).trim() || "Socio";
+        peers[nombre] = {
+          si: (d.si || []).map(keyOf),
+          no: (d.no || []).map(keyOf),
+          nombres: {} 
+        };
+        (d.si || []).concat(d.no || []).forEach(function(n){ peers[nombre].nombres[keyOf(n)] = n; });
+        importados.push(nombre);
+      } catch(err){
+        alert("No he podido leer «" + file.name + "». ¿Seguro que es un archivo exportado por esta página?");
+      }
+      if(--pendientes === 0){
+        lsSet("peers", peers);
+        if(importados.length){
+          if($("#intro").classList.contains("hide")) abrirEquipo();
+          else alert("Importadas las selecciones de: " + importados.join(", ") +
+                     "\n\nCarga ahora las fotos para verlas comparadas.");
+        }
+      }
+    };
+    r.readAsText(file);
+  });
+  e.target.value = "";
+});
+
+/* --------------------------------------------------- comparar selecciones */
+var GRUPOS = [
+  { id:"all",  txt:"Todas", slug:"todas" },
+  { id:"todos",txt:"Sí de todos", slug:"si-de-todos" },
+  { id:"may",  txt:"Mayoría", slug:"mayoria" },
+  { id:"algun",txt:"Algún sí", slug:"algun-si" },
+  { id:"conf", txt:"En conflicto", slug:"en-conflicto" },
+  { id:"nadie",txt:"Ningún sí", slug:"ningun-si" }
+];
+
+function votantes(){
+  var v = [];
+  if(socio || Object.keys(votos).length) v.push({ nombre: socio || "Yo", propio: true });
+  Object.keys(peers).forEach(function(n){
+    if(n !== socio) v.push({ nombre: n, propio: false });
+  });
+  return v;
+}
+function votoDe(votante, key){
+  if(votante.propio) return votos[key] || null;
+  var p = peers[votante.nombre];
+  if(!p) return null;
+  if(p.si.indexOf(key) !== -1) return "si";
+  if(p.no.indexOf(key) !== -1) return "no";
+  return null;
+}
+function universo(){
+  var keys = fotos.map(function(f){ return f.key; });
+  var set = {};
+  keys.forEach(function(k){ set[k] = 1; });
+  Object.keys(peers).forEach(function(n){
+    peers[n].si.concat(peers[n].no).forEach(function(k){
+      if(!set[k]){ set[k] = 1; keys.push(k); }
+    });
+  });
+  return keys;
+}
+function nombreVisible(key){
+  if(byKey[key]) return byKey[key].nombre;
+  var n = null;
+  Object.keys(peers).some(function(p){
+    if(peers[p].nombres && peers[p].nombres[key]){ n = peers[p].nombres[key]; return true; }
+    return false;
+  });
+  return n || key;
+}
+
+function abrirEquipo(){
+  $("#teamModal").classList.remove("hide");
+  pintarPeers();
+  pintarFiltrosEquipo();
+  pintarEquipo();
+}
+$("#teamBtn").addEventListener("click", abrirEquipo);
+
+function pintarPeers(){
+  var cont = $("#peers");
+  cont.innerHTML = "";
+  var vs = votantes();
+  if(!vs.length){
+    cont.innerHTML = '<span class="hint">Todavía no hay ninguna selección. Vota tus fotos o importa la de tus socios.</span>';
+    return;
+  }
+  vs.forEach(function(v){
+    var n = 0;
+    universo().forEach(function(k){ if(votoDe(v, k) === "si") n++; });
+    var el = document.createElement("span");
+    el.className = "peer";
+    el.innerHTML = "<b>" + v.nombre + "</b> <span style='color:var(--muted)'>" + n + " sí</span>";
+    if(!v.propio){
+      var x = document.createElement("button");
+      x.textContent = "×"; x.title = "Quitar esta selección";
+      x.addEventListener("click", function(){
+        delete peers[v.nombre];
+        lsSet("peers", peers);
+        pintarPeers(); pintarEquipo();
+      });
+      el.appendChild(x);
+    }
+    cont.appendChild(el);
+  });
+}
+function pintarFiltrosEquipo(){
+  var cont = $("#teamFilters");
+  cont.innerHTML = "";
+  GRUPOS.forEach(function(g){
+    var b = document.createElement("button");
+    b.className = "count" + (teamFiltro === g.id ? " on" : "");
+    b.textContent = g.txt;
+    b.addEventListener("click", function(){
+      teamFiltro = g.id;
+      pintarFiltrosEquipo(); pintarEquipo();
+    });
+    cont.appendChild(b);
+  });
+}
+function grupoDe(key, vs){
+  var si = 0, no = 0;
+  vs.forEach(function(v){
+    var x = votoDe(v, key);
+    if(x === "si") si++; else if(x === "no") no++;
+  });
+  return { si: si, no: no, total: vs.length };
+}
+function enGrupo(r){
+  switch(teamFiltro){
+    case "todos": return r.total > 0 && r.si === r.total;
+    case "may":   return r.si >= Math.ceil((r.total || 1) / 2) && r.si > 0;
+    case "algun": return r.si > 0;
+    case "conf":  return r.si > 0 && r.no > 0;
+    case "nadie": return r.si === 0;
+    default:      return true;
+  }
+}
+var ultimaLista = [];
+function pintarEquipo(){
+  var vs   = votantes();
+  var cont = $("#tgrid");
+  cont.innerHTML = "";
+  var lista = universo().map(function(k){
+    return { key: k, r: grupoDe(k, vs) };
+  }).filter(function(o){ return enGrupo(o.r); });
+
+  lista.sort(function(a, b){
+    if(b.r.si !== a.r.si) return b.r.si - a.r.si;
+    return nombreVisible(a.key).localeCompare(nombreVisible(b.key), "es", { numeric: true });
+  });
+  ultimaLista = lista.map(function(o){ return nombreVisible(o.key); });
+  $("#tEmpty").classList.toggle("hide", lista.length > 0);
+
+  lista.forEach(function(o){
+    var f = byKey[o.key];
+    var cell = document.createElement("div");
+    cell.className = "tcell";
+    var th = document.createElement("div");
+    th.className = "th";
+    if(f){
+      var img = document.createElement("img");
+      img.loading = "lazy"; img.referrerPolicy = "no-referrer"; img.src = f.src; img.alt = f.nombre;
+      th.appendChild(img);
+    } else {
+      th.style.display = "grid";
+      th.style.placeItems = "center";
+      th.innerHTML = '<span style="color:#4a4a50;font-size:11px;padding:8px;text-align:center">sin cargar</span>';
+    }
+    var nm = document.createElement("div");
+    nm.className = "tn"; nm.title = nombreVisible(o.key); nm.textContent = nombreVisible(o.key);
+    var vv = document.createElement("div");
+    vv.className = "votes";
+    vs.forEach(function(v){
+      var x = votoDe(v, o.key);
+      var s = document.createElement("span");
+      s.className = "vt" + (x === "si" ? " si" : (x === "no" ? " no" : ""));
+      s.textContent = v.nombre + (x === "si" ? " ✓" : (x === "no" ? " ✕" : " –"));
+      vv.appendChild(s);
+    });
+    cell.appendChild(th); cell.appendChild(nm); cell.appendChild(vv);
+    cont.appendChild(cell);
+  });
+}
+$("#copyFinal").addEventListener("click", function(e){
+  copiar(ultimaLista.join("\n"), e.currentTarget);
+});
+$("#downloadFinal").addEventListener("click", function(){
+  var g = GRUPOS.filter(function(x){ return x.id === teamFiltro; })[0];
+  descargar("fotos-" + (g ? g.slug : "grupo") + "-" + GALERIA + ".txt",
+            ultimaLista.join("\n"));
+});
+
+/* --------------------------------------------------------- varios */
+$$("[data-close]").forEach(function(b){
+  b.addEventListener("click", function(){
+    var id = b.dataset.close;
+    if(id === "viewer") cerrarVisor();
+    else $("#" + id).classList.add("hide");
+  });
+});
+$$(".modal").forEach(function(m){
+  m.addEventListener("click", function(e){ if(e.target === m) m.classList.add("hide"); });
+});
+$("#pickFolder").addEventListener("click", function(){ $("#inFolder").click(); });
+$("#pickFiles").addEventListener("click", function(){ $("#inFiles").click(); });
+// "Añadir": en escritorio otra carpeta (los ZIP grandes vienen partidos),
+// en móvil fotos sueltas, porque ahí no existe el selector de carpetas.
+var puedeCarpeta = "webkitdirectory" in document.createElement("input") && window.innerWidth > 640;
+$("#addMore").textContent = puedeCarpeta ? "Añadir otra carpeta" : "Añadir fotos";
+$("#addMore").addEventListener("click", function(){
+  $(puedeCarpeta ? "#inFolder" : "#inFiles").click();
+});
+$("#inFolder").addEventListener("change", function(e){ cargarArchivos(e.target.files); e.target.value = ""; });
+$("#inFiles").addEventListener("change", function(e){ cargarArchivos(e.target.files); e.target.value = ""; });
+$("#loadUrls").addEventListener("click", function(){ cargarDesdeTexto($("#urlBox").value); });
+$("#clearVotes").addEventListener("click", function(){
+  if(!confirm("¿Borrar todos tus votos de esta galería? Las selecciones importadas de tus socios no se tocan.")) return;
+  votos = {};
+  guardarVotos();
+  pintarVotos(); aplicarFiltro(); actualizarContadores();
+});
+
+// arrastrar y soltar fotos o archivos .json sobre la página
+["dragover", "drop"].forEach(function(ev){
+  document.addEventListener(ev, function(e){ e.preventDefault(); });
+});
+document.addEventListener("drop", function(e){
+  var files = Array.prototype.slice.call(e.dataTransfer.files || []);
+  if(!files.length) return;
+  var jsons = files.filter(function(f){ return /\.json$/i.test(f.name); });
+  var imgs  = files.filter(function(f){ return !/\.json$/i.test(f.name); });
+  if(imgs.length) cargarArchivos(imgs);
+  if(jsons.length){
+    var dt = new DataTransfer();
+    jsons.forEach(function(f){ dt.items.add(f); });
+    $("#inImport").files = dt.files;
+    $("#inImport").dispatchEvent(new Event("change"));
+  }
+});
+
+/* ------------------------------------------------ código para la consola */
+var SNIPPET = [
+  "(async () => {",
+  "  const dormir = ms => new Promise(r => setTimeout(r, ms));",
+  "  // 1. baja del todo para que la galeria cargue todas las fotos",
+  "  const scrollables = [document.scrollingElement].concat(",
+  "    [...document.querySelectorAll('*')].filter(el =>",
+  "      el.scrollHeight > el.clientHeight + 200 && /auto|scroll/.test(getComputedStyle(el).overflowY))",
+  "  );",
+  "  for (let i = 0; i < 400; i++) {",
+  "    const antes = scrollables.map(el => el.scrollHeight + ':' + el.scrollTop).join('|');",
+  "    scrollables.forEach(el => { el.scrollTop = el.scrollHeight; });",
+  "    window.scrollTo(0, document.body.scrollHeight);",
+  "    await dormir(400);",
+  "    if (scrollables.map(el => el.scrollHeight + ':' + el.scrollTop).join('|') === antes) break;",
+  "  }",
+  "  await dormir(1500);",
+  "  // 2. recoge las direcciones de las imagenes",
+  "  const urls = new Set();",
+  "  const add = u => {",
+  "    if (!u) return;",
+  "    u = String(u).trim().split(' ')[0];",
+  "    if (/^https?:\\/\\//.test(u) && /\\.(jpe?g|png|webp)/i.test(u)) urls.add(u);",
+  "  };",
+  "  document.querySelectorAll('img, [data-src], [data-original], [style*=\"background\"]').forEach(el => {",
+  "    add(el.currentSrc); add(el.src); add(el.dataset && el.dataset.src);",
+  "    add(el.dataset && el.dataset.original);",
+  "    if (el.srcset) el.srcset.split(',').forEach(s => add(s));",
+  "    const bg = getComputedStyle(el).backgroundImage;",
+  "    if (bg && bg !== 'none') add(bg.slice(bg.indexOf('(') + 1, bg.lastIndexOf(')')).replace(/['\"]/g, ''));",
+  "  });",
+  "  const txt = [...urls].join('\\n');",
+  "  copy(txt);",
+  "  console.log('%c' + urls.size + ' URLs copiadas al portapapeles', 'font-size:16px;color:#e0472e');",
+  "})()"
+].join("\n");
+$("#snippetCode").textContent = SNIPPET;
+$("#copySnippet").addEventListener("click", function(e){ copiar(SNIPPET, e.currentTarget); });
+
+/* ------------------------------------------------------- arranque */
+peers = lsGet("peers", {}) || {};
+var nombresPrevios = lsGet("nombres", null);
+if(nombresPrevios && nombresPrevios.length){
+  var n = nombresPrevios.length;
+  var aviso = document.createElement("p");
+  aviso.className = "hint";
+  aviso.style.cssText = "margin-top:20px;padding:12px 14px;background:var(--panel);border:1px solid var(--border);border-radius:8px";
+  aviso.innerHTML = "En este navegador ya hay una selección guardada sobre <b>" + n + " fotos</b>. " +
+                    "Vuelve a cargar la misma carpeta o las mismas URLs y tus votos aparecerán de nuevo.";
+  $("#intro").appendChild(aviso);
+}
+})();
+</script>
+</body>
+</html>
