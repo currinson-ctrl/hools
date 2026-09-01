@@ -9,14 +9,18 @@ export interface NewsletterProduct {
   blurb: string;
 }
 
-// Catalogo de respaldo: la app de Shopify solo tiene scopes de contenido
-// (blog), no de productos, asi que si la consulta de productos falla por
-// permisos se rota sobre esta lista fija. Actualizala si cambia la tienda.
+// Catalogo de respaldo: se usa SOLO si la consulta de productos a Shopify
+// falla (tipicamente porque a la app le falta el scope read_products). Es
+// una copia a mano del catalogo, asi que envejece: el precio de aqui puede
+// dejar de ser el de la tienda sin que nadie se entere. Por eso, cuando se
+// entra por este camino, buildWeeklyNewsletter lo marca (productFallback) y
+// el panel avisa antes de que el correo salga con un precio viejo.
+// Ultima revision contra la tienda: 2026-08-27, todos los polos a 64,95 €.
 const FALLBACK_PRODUCTS: NewsletterProduct[] = [
   {
     title: "The Classic",
     handle: "the-classic",
-    price: "45,45 €",
+    price: "64,95 €",
     imageUrl:
       "https://cdn.shopify.com/s/files/1/0988/6364/5011/files/hools-polo-terrace-negro-rayas-amarillas-lifestyle-hombre_jpg.jpg?v=1767896424",
     blurb: "Polo negro con detalles amarillos. Estética 70–90, algodón pesado, hecho en Portugal.",
@@ -24,7 +28,7 @@ const FALLBACK_PRODUCTS: NewsletterProduct[] = [
   {
     title: "The Corner",
     handle: "the-corner",
-    price: "45,45 €",
+    price: "64,95 €",
     imageUrl:
       "https://cdn.shopify.com/s/files/1/0988/6364/5011/files/hools-polo-terrace-corner-azul-marino-modelo-detalle.png?v=1770660649",
     blurb: "Azul marino con rayas blancas. Terrace clásico de los que no caducan.",
@@ -32,7 +36,7 @@ const FALLBACK_PRODUCTS: NewsletterProduct[] = [
   {
     title: "Away",
     handle: "away",
-    price: "45,45 €",
+    price: "64,95 €",
     imageUrl:
       "https://cdn.shopify.com/s/files/1/0988/6364/5011/files/hools-polo-terrace-the-corner-azul-marino-frontal.png?v=1770660742",
     blurb: "Azul marino pensado para los días fuera de casa.",
@@ -40,7 +44,7 @@ const FALLBACK_PRODUCTS: NewsletterProduct[] = [
   {
     title: "Trasferta",
     handle: "trasferta",
-    price: "45,45 €",
+    price: "64,95 €",
     imageUrl:
       "https://cdn.shopify.com/s/files/1/0988/6364/5011/files/hools-polo-terrace-the-corner-azul-marino-detalle-cuello.png?v=1770671313",
     blurb: "Lo que los tifosi llaman viajar a campo ajeno con un único objetivo.",
@@ -48,7 +52,7 @@ const FALLBACK_PRODUCTS: NewsletterProduct[] = [
   {
     title: "The Beat",
     handle: "the-beat",
-    price: "45,45 €",
+    price: "64,95 €",
     imageUrl:
       "https://cdn.shopify.com/s/files/1/0988/6364/5011/files/hools-polo-ska-the-beat-verde-frontal.png?v=1770671519",
     blurb: "Verde con cuadros ska. Para los que llevan el ritmo también fuera del estadio.",
@@ -56,7 +60,7 @@ const FALLBACK_PRODUCTS: NewsletterProduct[] = [
   {
     title: "The Streetlight",
     handle: "the-streetlight",
-    price: "45,45 €",
+    price: "64,95 €",
     imageUrl:
       "https://cdn.shopify.com/s/files/1/0988/6364/5011/files/hools-polo-ska-the-streetlight-granate-frontal.png?v=1770671743",
     blurb: "Granate con ajedrezado ska en cuello y mangas. Setentero hasta la médula.",
@@ -98,6 +102,11 @@ export interface WeeklyNewsletter {
   html: string;
   articleTitles: string[];
   productTitle: string;
+  /**
+   * Motivo por el que la prenda (y su precio) salen del catalogo de respaldo
+   * en vez de la tienda, o null si vienen de Shopify y estan al dia.
+   */
+  productFallback: string | null;
 }
 
 export async function buildWeeklyNewsletter(): Promise<WeeklyNewsletter | null> {
@@ -109,11 +118,17 @@ export async function buildWeeklyNewsletter(): Promise<WeeklyNewsletter | null> 
   if (!articles.length) return null;
 
   let products = FALLBACK_PRODUCTS;
+  let productFallback: string | null = null;
   try {
     const fromApi = await fetchActiveProducts();
     if (fromApi.length) products = fromApi;
-  } catch {
-    // sin scope de productos: usamos el catalogo fijo
+    else productFallback = "Shopify no devolvio ningun producto activo con imagen.";
+  } catch (error) {
+    // Sin datos de la tienda se rota sobre el catalogo fijo, pero el motivo
+    // no se pierde: es lo que separa "el precio esta al dia" de "el precio
+    // es el que alguien copio a mano hace meses".
+    productFallback = error instanceof Error ? error.message : String(error);
+    console.error("Newsletter: no se pudieron leer los productos de Shopify:", productFallback);
   }
   const product = products[isoWeek(new Date()) % products.length];
 
@@ -249,5 +264,6 @@ ${articleBlocks}
     html,
     articleTitles: articles.map((a) => a.title),
     productTitle: product.title,
+    productFallback,
   };
 }

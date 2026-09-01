@@ -20,6 +20,19 @@ export default async function NewsletterPage() {
     <div>
       <h1 style={{ fontSize: 18, marginBottom: 16 }}>Resumen semanal</h1>
 
+      {newsletter.productFallback && (
+        <div className="card" style={{ borderLeft: "4px solid #c0392b" }}>
+          <h3>⚠ El precio de la prenda no viene de la tienda</h3>
+          <p style={{ margin: "8px 0 0", fontSize: 14, lineHeight: 1.6 }}>
+            No se han podido leer los productos de Shopify, así que la prenda y su precio
+            salen del catálogo de respaldo escrito a mano en <code>src/lib/newsletter.ts</code>,
+            que puede estar desfasado. <strong>Comprueba el precio en la tienda antes de
+            enviar el correo.</strong>
+          </p>
+          <p className="meta" style={{ marginTop: 8 }}>Motivo: {newsletter.productFallback}</p>
+        </div>
+      )}
+
       <div className="card">
         <h3>Cómo enviarlo (5 minutos)</h3>
         <ol style={{ margin: "8px 0 0 18px", lineHeight: 1.8, fontSize: 14 }}>
