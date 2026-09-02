@@ -11,6 +11,7 @@ theme/
   sections/main-article-hools-editorial.liquid  plantilla de artículo
   sections/hools-blog-strip.liquid              franja del blog en la home
   sections/hools-hero.liquid                    hero de la portada de la tienda
+  sections/hools-manual-carousel.liquid         carrusel de producto de la home
   snippets/hools-article-card.liquid            tarjeta de artículo (4 variantes)
   templates/blog.hools-editorial.json           ajustes de la portada
   templates/article.hools-editorial.json        ajustes de la plantilla de artículo
@@ -22,6 +23,14 @@ portada, donde el nombre del fichero de la foto estaba escrito a mano dos veces
 texto; ahora es un `image_picker` y se cambia desde el editor. Su ajuste
 `image` vive en `templates/index.json`, que **no** está aquí: ese fichero lo
 mantiene el editor y contiene toda la portada de la tienda, no solo el hero.
+
+`hools-manual-carousel` es el carrusel de producto de la portada de la tienda:
+sus tarjetas no salen de una colección, se eligen a mano como bloques. El hueco
+de la foto tiene proporción fija (ajuste `media_ratio`, 4:5 por defecto) porque
+las fotos de producto no vienen todas iguales — unas son 4:5 y otras cuadradas —
+y a altura libre cada tarjeta medía distinto: el nombre y el precio de las
+cuadradas subían y la fila no cuadraba. La foto se encaja con `object-fit`
+(`image_fit`), y por defecto `contain`, o sea entera y sin recortar.
 
 Los dos `templates/*.json` están aquí porque guardan ajustes que **el schema de
 la sección no puede reponer**: los `image_picker` y los `url` no admiten valor

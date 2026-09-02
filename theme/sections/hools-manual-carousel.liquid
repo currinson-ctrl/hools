@@ -1,0 +1,449 @@
+{% comment %}
+HOOLS · Carrusel manual (FLOAT CLEAN + Fondo uniforme)
+- Fondo sección uniforme
+- Producto flotando
+- CTA "COMPRAR" debajo del precio en amarillo HOOLS
+- Swipe + flechas
+- Compactado en móvil (menos separación)
+
+TAMAÑO DE LAS FOTOS
+-------------------
+Antes cada foto salía a su altura natural (`height:auto`), y como las de
+producto no vienen todas con la misma proporción — unas son 4:5 y otras
+cuadradas — cada tarjeta medía distinto: las cuadradas quedaban más bajas y
+su nombre, precio y "COMPRAR" subían, así que la fila no cuadraba.
+
+Ahora el hueco de la foto tiene una proporción fija (ajuste "Proporción de la
+foto"), igual para todas las tarjetas, así que el texto arranca siempre a la
+misma altura. La foto se encaja dentro con `object-fit` — por defecto
+`contain`, que la mete entera sin recortar: si no llena el hueco, lo que sobra
+queda del color de fondo de la sección y no se nota, porque las fotos ya
+vienen sobre fondo claro. Quien prefiera que la foto llene el hueco a costa de
+recortarla tiene el ajuste "Encaje de la foto" en Rellenar.
+{% endcomment %}
+
+{{ 'component-price.css' | asset_url | stylesheet_tag }}
+
+{%- style -%}
+/* ===============================
+   HOOLS · Carrusel manual FLOAT
+   =============================== */
+
+/* ====== FONDO UNIFORME ====== */
+#shopify-section-{{ section.id }},
+#shopify-section-{{ section.id }} .hools-wrap{
+  background: {{ section.settings.bg_color }} !important; /* CONTROL: color de fondo */
+}
+
+#shopify-section-{{ section.id }} .page-width,
+#shopify-section-{{ section.id }} .page-width-full{
+  background: transparent !important;
+}
+
+/* ====== ESPACIADO SECCIÓN ====== */
+#shopify-section-{{ section.id }} .hools-wrap{
+  padding-top: {{ section.settings.padding_top }}px;     /* CONTROL: padding arriba */
+  padding-bottom: {{ section.settings.padding_bottom }}px; /* CONTROL: padding abajo */
+}
+
+#shopify-section-{{ section.id }} .hools-title{
+  margin: 0 0 24px 0; /* CONTROL: separación título sección -> carrusel */
+}
+
+/* ====== SLIDER ====== */
+#shopify-section-{{ section.id }} .hools-slider-wrapper{
+  position: relative;
+}
+
+#shopify-section-{{ section.id }} .hools-slider{
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(240px, 1fr); /* CONTROL: ancho tarjetas */
+  gap: 28px;                              /* CONTROL: separación entre tarjetas (desktop + móvil) */
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  background: transparent !important;
+  padding-bottom: 2px; /* CONTROL: evita cortes visuales en móvil */
+}
+
+#shopify-section-{{ section.id }} .hools-slider::-webkit-scrollbar{ display:none; }
+#shopify-section-{{ section.id }} .hools-slider{ scrollbar-width:none; }
+
+#shopify-section-{{ section.id }} .hools-slide{
+  scroll-snap-align: start;
+}
+
+/* ====== LINK COMPLETO ====== */
+#shopify-section-{{ section.id }} .hools-card{
+  display:block;
+  text-decoration:none;
+  color:inherit;
+  background: transparent !important;
+}
+
+/* ====== IMAGEN ======
+   El hueco de la foto mide igual en todas las tarjetas: es lo que mantiene
+   alineados el nombre, el precio y el CTA de una tarjeta a otra, vengan las
+   fotos con la proporción que vengan. */
+#shopify-section-{{ section.id }} .hools-media{
+  background: {{ section.settings.bg_color }} !important; /* CONTROL: fondo detrás del PNG/JPG */
+  padding: 34px 18px 26px; /* CONTROL: aire alrededor de imagen (desktop) */
+  box-sizing: border-box;  /* el padding entra dentro de la proporción */
+  aspect-ratio: {{ section.settings.media_ratio }}; /* CONTROL: proporción del hueco de la foto */
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+#shopify-section-{{ section.id }} .hools-img{
+  width: 100%;
+  max-width: 460px; /* CONTROL: tamaño máximo imagen */
+  height: 100%;
+  object-fit: {{ section.settings.image_fit }}; /* CONTROL: contain = entera sin recortar; cover = llena recortando */
+  display:block;
+}
+
+/* ====== TEXTO ====== */
+#shopify-section-{{ section.id }} .hools-info{
+  padding: 0 18px 12px; /* CONTROL: padding lateral + abajo del bloque de texto */
+}
+
+/* TÍTULO PRODUCTO */
+#shopify-section-{{ section.id }} .hools-name{
+  font-size: 14px;                 /* CONTROL: tamaño del nombre */
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  margin: 0 0 8px 0;               /* CONTROL: separación nombre -> precio (desktop) */
+  line-height: 1.15;               /* CONTROL: altura de línea */
+  color: {{ section.settings.text_color }};
+}
+
+/* PRECIO */
+#shopify-section-{{ section.id }} .hools-price{
+  font-size: 14px;                 /* CONTROL: tamaño del precio */
+  font-weight: 600;
+  letter-spacing: .02em;
+  margin: 0;                       /* CONTROL: evitamos margen por defecto */
+  line-height: 1.15;
+  color: {{ section.settings.text_color }};
+}
+
+/* ===== CTA "COMPRAR" ===== */
+#shopify-section-{{ section.id }} .hools-cta{
+  font-size: 13px;                 /* CONTROL: tamaño del CTA */
+  margin-top: 6px;                 /* CONTROL: separación precio -> CTA (desktop) */
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: #CCB229;                  /* Amarillo HOOLS */
+  transition: opacity .2s ease;
+}
+
+#shopify-section-{{ section.id }} .hools-card:hover .hools-cta{
+  opacity: .7;
+}
+
+/* ====== FLECHAS ====== */
+#shopify-section-{{ section.id }} .hools-arrow{
+  position:absolute;
+  top:40%;
+  transform:translateY(-50%);
+  background: rgba(255,255,255,.92);
+  color:#151515;
+  border: 1px solid rgba(0,0,0,.12);
+  width:44px;
+  height:44px;
+  font-size:22px;
+  cursor:pointer;
+  z-index:50;
+  border-radius:0;
+  opacity:.9;
+}
+#shopify-section-{{ section.id }} .hools-arrow:hover{ opacity:1; }
+
+#shopify-section-{{ section.id }} .hools-arrow--prev{ left: 6px; }
+#shopify-section-{{ section.id }} .hools-arrow--next{ right: 6px; }
+
+/* ====== DESKTOP ====== */
+@media(min-width:990px){
+  #shopify-section-{{ section.id }} .hools-slider{
+    grid-auto-columns:minmax(280px,1fr); /* CONTROL: ancho tarjetas en desktop */
+  }
+  #shopify-section-{{ section.id }} .hools-media{
+    padding: 44px 24px 30px; /* CONTROL: aire alrededor imagen en desktop */
+  }
+}
+
+/* ==================================================
+   ✅ MÓVIL — COMPACTAR
+   Reduce separación y "aire" en versión móvil
+   ================================================== */
+@media(max-width: 749px){
+
+  /* CONTROL: separación entre tarjetas en móvil */
+  #shopify-section-{{ section.id }} .hools-slider{
+    gap: 16px; /* antes 28px */
+    grid-auto-columns: minmax(220px, 85%); /* CONTROL: ancho tarjeta móvil (más "centrada") */
+  }
+
+  /* CONTROL: aire alrededor de la imagen en móvil */
+  #shopify-section-{{ section.id }} .hools-media{
+    padding: 18px 14px 12px; /* antes 34/18/26 */
+  }
+
+  /* CONTROL: padding del bloque de texto en móvil */
+  #shopify-section-{{ section.id }} .hools-info{
+    padding: 0 14px 8px; /* antes 18/12 */
+  }
+
+  /* CONTROL: separación título -> precio en móvil */
+  #shopify-section-{{ section.id }} .hools-name{
+    margin: 0 0 4px 0;  /* antes 8px */
+    font-size: 13px;    /* opcional: un pelín más compacto */
+  }
+
+  /* CONTROL: separación precio -> CTA en móvil */
+  #shopify-section-{{ section.id }} .hools-cta{
+    margin-top: 4px;    /* antes 6px */
+    font-size: 12px;    /* opcional: más discreto */
+  }
+
+  /* Flechas un poco más discretas en móvil */
+  #shopify-section-{{ section.id }} .hools-arrow{
+    width:40px;         /* CONTROL: tamaño flecha */
+    height:40px;
+    font-size:20px;
+    top:38%;
+  }
+}
+
+/* ==================================================
+   ✅ MÓVIL — COMPACTAR SÍ O SÍ (con !important)
+   ================================================== */
+@media (max-width: 749px){
+
+  /* CONTROL: menos aire arriba/abajo de toda la sección en móvil */
+  #shopify-section-{{ section.id }} .hools-wrap{
+    padding-top: 12px !important;     /* antes: lo que marque el setting */
+    padding-bottom: 12px !important;  /* antes: lo que marque el setting */
+  }
+
+  /* CONTROL: menos separación entre tarjetas y tamaño más "móvil real" */
+  #shopify-section-{{ section.id }} .hools-slider{
+    gap: 14px !important; /* antes 28 */
+    grid-auto-columns: minmax(220px, 82%) !important; /* ancho tarjeta en móvil */
+  }
+}
+
+/* ==================================================
+   ✅ MÓVIL — ULTRA COMPACTO (más pegado aún)
+   ================================================== */
+@media (max-width: 749px){
+
+  /* CONTROL: menos aire arriba/abajo de toda la sección */
+  #shopify-section-{{ section.id }} .hools-wrap{
+    padding-top: 8px !important;      /* antes 12 */
+    padding-bottom: 8px !important;   /* antes 12 */
+  }
+
+  /* CONTROL: tarjetas un pelín más juntas */
+  #shopify-section-{{ section.id }} .hools-slider{
+    gap: 12px !important; /* antes 14/16 */
+    grid-auto-columns: minmax(220px, 80%) !important; /* tarjeta un pelín más grande en pantalla */
+  }
+
+  /* ✅ MENOS "AIRE" EN LA IMAGEN */
+  #shopify-section-{{ section.id }} .hools-media{
+    padding: 10px 10px 6px !important; /* antes 14 12 8 */
+  }
+
+  /* ✅ MENOS "AIRE" EN TEXTO */
+  #shopify-section-{{ section.id }} .hools-info{
+    padding: 0 10px 4px !important; /* antes 0 12 6 */
+  }
+
+  /* CONTROL: título más pegado */
+  #shopify-section-{{ section.id }} .hools-name{
+    margin: 0 0 2px 0 !important;  /* antes 3/4 */
+    line-height: 1.05 !important;
+    font-size: 13px !important;
+  }
+
+  /* CONTROL: precio pegado */
+  #shopify-section-{{ section.id }} .hools-price{
+    margin: 0 !important;
+    line-height: 1.05 !important;
+    font-size: 13px !important;
+  }
+
+  /* CONTROL: CTA casi "a cuchillo" debajo del precio */
+  #shopify-section-{{ section.id }} .hools-cta{
+    margin-top: 2px !important;   /* antes 3/4 */
+    line-height: 1 !important;
+    font-size: 12px !important;
+  }
+
+  /* Flechas un poco más discretas */
+  #shopify-section-{{ section.id }} .hools-arrow{
+    width: 38px !important;
+    height: 38px !important;
+    font-size: 19px !important;
+  }
+}
+{%- endstyle -%}
+
+<div class="hools-wrap">
+  <div class="{% if section.settings.full_width %}page-width-full{% else %}page-width{% endif %}">
+
+    {% if section.settings.title != blank %}
+      <h2 class="hools-title {{ section.settings.heading_size }}">{{ section.settings.title }}</h2>
+    {% endif %}
+
+    <div class="hools-slider-wrapper">
+
+      <button class="hools-arrow hools-arrow--prev" type="button" aria-label="Anterior">‹</button>
+
+      <div class="hools-slider">
+
+        {% for block in section.blocks %}
+          {% liquid
+            assign p = block.settings.product
+            assign img = block.settings.image
+            assign name_text = block.settings.custom_title
+            if name_text == blank and p != blank
+              assign name_text = p.title
+            endif
+          %}
+
+          <div class="hools-slide" {{ block.shopify_attributes }}>
+            {% if p != blank %}
+              <a class="hools-card" href="{{ p.url }}">
+
+                <div class="hools-media">
+                  {% if img != blank %}
+                    <img src="{{ img | image_url: width: 1400 }}" class="hools-img" loading="lazy" alt="{{ name_text | escape }}">
+                  {% elsif p.featured_image != blank %}
+                    <img src="{{ p.featured_image | image_url: width: 1400 }}" class="hools-img" loading="lazy" alt="{{ name_text | escape }}">
+                  {% endif %}
+                </div>
+
+                <div class="hools-info">
+                  <p class="hools-name">{{ name_text }}</p>
+
+                  {% if section.settings.show_price %}
+                    <div class="hools-price">{{ p.price | money }}</div>
+                  {% endif %}
+
+                  {% if block.settings.subtitle != blank %}
+                    <div class="hools-cta">{{ block.settings.subtitle }}</div>
+                  {% endif %}
+                </div>
+
+              </a>
+            {% endif %}
+          </div>
+        {% endfor %}
+
+      </div>
+
+      <button class="hools-arrow hools-arrow--next" type="button" aria-label="Siguiente">›</button>
+
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const section = document.querySelector('#shopify-section-{{ section.id }}');
+  if(!section) return;
+
+  const slider = section.querySelector('.hools-slider');
+  const prev = section.querySelector('.hools-arrow--prev');
+  const next = section.querySelector('.hools-arrow--next');
+  if(!slider || !prev || !next) return;
+
+  // CONTROL: cuánto avanza con cada click (porcentaje del ancho visible)
+  const getScrollAmount = () => slider.offsetWidth * 0.85;
+
+  next.addEventListener('click', function(){
+    slider.scrollBy({ left: getScrollAmount(), behavior: 'smooth' });
+  });
+
+  prev.addEventListener('click', function(){
+    slider.scrollBy({ left: -getScrollAmount(), behavior: 'smooth' });
+  });
+});
+</script>
+
+{% schema %}
+{
+  "name": "Hools Carrusel",
+  "tag": "section",
+  "class": "section",
+  "settings": [
+    { "type": "inline_richtext", "id": "title", "label": "Título", "default": "Destacados" },
+    {
+      "type": "select",
+      "id": "heading_size",
+      "label": "Tamaño título",
+      "default": "h2",
+      "options": [
+        { "value": "h1", "label": "H1" },
+        { "value": "h2", "label": "H2" },
+        { "value": "h3", "label": "H3" }
+      ]
+    },
+    { "type": "checkbox", "id": "show_price", "label": "Mostrar precio", "default": true },
+    { "type": "checkbox", "id": "full_width", "label": "Ancho completo", "default": false },
+
+    { "type": "header", "content": "Fotos" },
+    {
+      "type": "select",
+      "id": "media_ratio",
+      "label": "Proporción de la foto",
+      "info": "Todas las tarjetas usan la misma, así el nombre y el precio quedan a la misma altura aunque las fotos vengan con proporciones distintas.",
+      "default": "4/5",
+      "options": [
+        { "value": "4/5", "label": "Vertical 4:5" },
+        { "value": "3/4", "label": "Vertical 3:4" },
+        { "value": "2/3", "label": "Vertical 2:3" },
+        { "value": "1/1", "label": "Cuadrada 1:1" },
+        { "value": "4/3", "label": "Apaisada 4:3" }
+      ]
+    },
+    {
+      "type": "select",
+      "id": "image_fit",
+      "label": "Encaje de la foto",
+      "info": "Entera no recorta nada: si la foto no llena el hueco, lo que sobra queda del color de fondo. Rellenar ocupa todo el hueco, pero recorta lo que no cabe.",
+      "default": "contain",
+      "options": [
+        { "value": "contain", "label": "Entera (sin recortar)" },
+        { "value": "cover", "label": "Rellenar (recorta)" }
+      ]
+    },
+
+    { "type": "color", "id": "bg_color", "label": "Color fondo", "default": "#F8F8F8" },
+    { "type": "color", "id": "text_color", "label": "Color texto", "default": "#151515" },
+
+    { "type": "range", "id": "padding_top", "label": "Padding arriba", "min": 0, "max": 120, "step": 4, "default": 24 },
+    { "type": "range", "id": "padding_bottom", "label": "Padding abajo", "min": 0, "max": 120, "step": 4, "default": 24 }
+  ],
+  "blocks": [
+    {
+      "type": "item",
+      "name": "Producto",
+      "settings": [
+        { "type": "product", "id": "product", "label": "Producto" },
+        { "type": "image_picker", "id": "image", "label": "Imagen" },
+        { "type": "text", "id": "custom_title", "label": "Título opcional" },
+        { "type": "text", "id": "subtitle", "label": "Texto CTA (ej: COMPRAR)" }
+      ]
+    }
+  ],
+  "presets": [
+    { "name": "Hools Carrusel" }
+  ]
+}
+{% endschema %}
