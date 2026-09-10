@@ -134,6 +134,26 @@ const FEATURED_OVERRIDE: {
 // El enlace de baja es obligatorio: sin el, el envio incumple la ley y dispara
 // las quejas por spam. Comprueba siempre en la vista previa que aparece, y una
 // sola vez.
+// Fotos de cabecera. Rotan por semana igual que la prenda: con una sola, la
+// cabecera es fija; añadiendo mas, va cambiando sin tocar nada mas.
+//
+// Requisitos, que no son capricho:
+//
+// - JPG o PNG. Nada de SVG: Gmail no lo pinta y la cabecera saldria en blanco
+//   (ya paso con el fondo de la cabecera). HEIC tampoco lo abre ningun cliente
+//   de correo.
+// - Apaisada y de proporcion parecida entre unas y otras. La cabecera se ve a
+//   600px de ancho como mucho, y en movil a unos 350; si una foto es mucho mas
+//   alta que las demas, la altura del correo baila de una semana a otra. La que
+//   hay ahora es 1248x832 (3:2), que es una buena referencia.
+// - Que se lea en pequeño. En el movil esto se ve a un tercio de tamaño: una
+//   foto de grupo a lo lejos no se distingue, un plano medio si.
+//
+// Se suben en Shopify (Contenido > Archivos) y aqui se pega la URL del CDN.
+const HEADER_IMAGES = [
+  "https://cdn.shopify.com/s/files/1/0988/6364/5011/files/collage-imagenes-terrace.png?v=1771096753",
+];
+
 const UNSUBSCRIBE_TAG = "{{ unsubscribe }}";
 
 const DEFAULT_EYEBROW = "La prenda de la semana";
@@ -220,6 +240,13 @@ export async function buildWeeklyNewsletter(): Promise<WeeklyNewsletter | null> 
   const eyebrow = promo ? promo.eyebrow : DEFAULT_EYEBROW;
   const cta = promo ? promo.cta : DEFAULT_CTA;
 
+  // Misma rotacion semanal que la prenda. Si algun dia la lista se queda
+  // vacia, la cabecera se queda sin foto pero el correo sigue saliendo: mejor
+  // eso que un hueco roto con el icono de imagen partida.
+  const headerImage = HEADER_IMAGES.length
+    ? HEADER_IMAGES[isoWeek(new Date()) % HEADER_IMAGES.length]
+    : null;
+
   const publicDomain = process.env.SHOPIFY_PUBLIC_DOMAIN || "www.hoolsbrand.com";
   const blogHandle = process.env.SHOPIFY_BLOG_HANDLE || "the-away-end";
 
@@ -276,13 +303,17 @@ export async function buildWeeklyNewsletter(): Promise<WeeklyNewsletter | null> 
        exige VML para Outlook, y en cuanto un cliente no lo pinta el texto
        se cae encima de la foto o desaparece. Debajo se ve igual en todas
        partes. -->
-  <tr>
+  ${
+    headerImage
+      ? `<tr>
     <td bgcolor="#14130f" style="background-color:#14130f; font-size:0; line-height:0;">
-      <img src="https://cdn.shopify.com/s/files/1/0988/6364/5011/files/collage-imagenes-terrace.png?v=1771096753"
+      <img src="${escapeHtml(headerImage)}"
            alt="The Away End" width="600"
            style="width:100%; max-width:600px; height:auto; display:block; border:0;">
     </td>
-  </tr>
+  </tr>`
+      : ""
+  }
   <tr>
     <td bgcolor="#14130f"
         style="background-color:#14130f; padding:32px 24px 40px 24px;"
