@@ -15,12 +15,13 @@ export interface NewsletterProduct {
 // dejar de ser el de la tienda sin que nadie se entere. Por eso, cuando se
 // entra por este camino, buildWeeklyNewsletter lo marca (productFallback) y
 // el panel avisa antes de que el correo salga con un precio viejo.
-// Ultima revision contra la tienda: 2026-08-27, todos los polos a 64,95 €.
+// Ultima revision contra la tienda: 2026-09-10. The Classic esta a 50,00 €
+// (rebajado desde 64,95 €); el resto de polos, a 64,95 €.
 const FALLBACK_PRODUCTS: NewsletterProduct[] = [
   {
     title: "The Classic",
     handle: "the-classic",
-    price: "64,95 €",
+    price: "50,00 €",
     imageUrl:
       "https://cdn.shopify.com/s/files/1/0988/6364/5011/files/hools-polo-terrace-negro-rayas-amarillas-lifestyle-hombre_jpg.jpg?v=1767896424",
     blurb: "Polo negro con detalles amarillos. Estética 70–90, algodón pesado, hecho en Portugal.",
@@ -64,6 +65,30 @@ const FALLBACK_PRODUCTS: NewsletterProduct[] = [
     imageUrl:
       "https://cdn.shopify.com/s/files/1/0988/6364/5011/files/hools-polo-ska-the-streetlight-granate-frontal.png?v=1770671743",
     blurb: "Granate con ajedrezado ska en cuello y mangas. Setentero hasta la médula.",
+  },
+  {
+    title: "The Boleyn",
+    handle: "boleyn",
+    price: "64,95 €",
+    imageUrl:
+      "https://cdn.shopify.com/s/files/1/0988/6364/5011/files/terrace_bolyen11_02822141-5850-4ca6-906f-d9c2e04ff396.jpg?v=1788419945",
+    blurb: "Celeste con rayas granate. Claret and blue, de las combinaciones que se reconocen sin nombrarlas.",
+  },
+  {
+    title: "The Rudeboy",
+    handle: "rudeboy",
+    price: "64,95 €",
+    imageUrl:
+      "https://cdn.shopify.com/s/files/1/0988/6364/5011/files/ska_rudeboy11_dc5f003e-5de1-45aa-874c-eff804862e11.jpg?v=1788420066",
+    blurb: "Verde oliva con banda ajedrezada granate. El damero no es estampado: es el uniforme.",
+  },
+  {
+    title: "The Tangerine",
+    handle: "tangerine",
+    price: "64,95 €",
+    imageUrl:
+      "https://cdn.shopify.com/s/files/1/0988/6364/5011/files/terrace_tangerine12_ab373abc-5346-4b64-b221-e5cb9ebfee61.jpg?v=1788419934",
+    blurb: "Verde oscuro con naranja. El naranja tiene su propia historia en las gradas.",
   },
 ];
 
