@@ -168,7 +168,10 @@ function isoWeek(date: Date): number {
 export interface WeeklyNewsletter {
   subject: string;
   previewText: string;
+  /** Documento completo, para una plantilla HTML. */
   html: string;
+  /** Solo el contenido, para el bloque HTML de un editor visual. */
+  htmlFragment: string;
   articleTitles: string[];
   productTitle: string;
   /**
@@ -242,15 +245,18 @@ export async function buildWeeklyNewsletter(): Promise<WeeklyNewsletter | null> 
 
   const productUrl = `https://${publicDomain}/products/${product.handle}?${UTM}`;
 
-  const html = `<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The Away End — Resumen semanal</title>
-</head>
-<body style="margin:0; padding:0; background-color:#f4f4f2;">
-
+  // El correo se entrega de dos maneras, porque la herramienta de envio
+  // admite las dos y no sirve la misma:
+  //
+  //   html          Documento completo. Para una plantilla HTML, donde el
+  //                 correo es el documento entero.
+  //   htmlFragment  Solo el contenido. Para el bloque HTML del editor de
+  //                 arrastrar y soltar de Klaviyo, que envuelve lo que le
+  //                 pegues en su propio documento y le añade su pie con el
+  //                 enlace de baja. Ahi un documento completo quedaria
+  //                 anidado dentro de otro, y la linea de baja saldria dos
+  //                 veces: la de Klaviyo y la nuestra.
+  const buildBody = (withUnsubscribe: boolean) => `
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f2;">
 <tr><td align="center" style="padding:24px 12px;">
 
@@ -346,9 +352,13 @@ ${articleBlocks}
         &nbsp;·&nbsp;
         <a href="https://${publicDomain}/blogs/${blogHandle}?${UTM}" style="color:#999999;">The Away End</a>
       </div>
-      <div style="font-family:Arial, Helvetica, sans-serif; font-size:11px; color:#bbbbbb; padding-top:12px;">
+      ${
+        withUnsubscribe
+          ? `<div style="font-family:Arial, Helvetica, sans-serif; font-size:11px; color:#bbbbbb; padding-top:12px;">
         Recibes este correo por ser parte de Hools. ${UNSUBSCRIBE_TAG}
-      </div>
+      </div>`
+          : ""
+      }
     </td>
   </tr>
 
@@ -356,10 +366,22 @@ ${articleBlocks}
 
 </td></tr>
 </table>
+`;
 
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Away End — Resumen semanal</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f4f4f2;">
+${buildBody(true)}
 </body>
 </html>
 `;
+
+  const htmlFragment = buildBody(false).trim();
 
   return {
     subject: `${truncate(articles[0].title, 60)} — la semana en The Away End`,
@@ -369,6 +391,7 @@ ${articleBlocks}
       ? `3 crónicas de las gradas + ${product.title} rebajado a ${product.price}`
       : "3 crónicas de las gradas + la prenda de la semana",
     html,
+    htmlFragment,
     articleTitles: articles.map((a) => a.title),
     productTitle: product.title,
     productFallback,

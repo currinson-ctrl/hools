@@ -58,14 +58,14 @@ export default async function NewsletterPage({
             <strong>Vista previa:</strong> <code>{newsletter.previewText}</code>
           </li>
           <li>
-            Como plantilla, elige la <strong>vacía / editor de código</strong> (no una de las
-            prediseñadas) y pega ahí el HTML de abajo entero.
+            Como diseño, <strong>empieza con un email en blanco</strong>. En el editor, pulsa el{" "}
+            <strong>+</strong>, arrastra un bloque <strong>HTML</strong> al hueco del contenido y
+            pega ahí la <strong>primera</strong> caja de abajo (la del bloque de código).
           </li>
           <li>
-            En la vista previa de Klaviyo, comprueba que la línea del pie sale como{" "}
-            <strong>enlace de baja</strong> y no como el texto{" "}
-            <code>{"{% unsubscribe %}"}</code>. Es obligatorio: sin él, el envío incumple la ley.
-            Klaviyo no deja enviar sin enlace de baja y ofrece insertar el suyo si hace falta.
+            Klaviyo ya pone el <strong>enlace de baja</strong> en su pie, que es obligatorio.
+            Comprueba que aparece <strong>una sola vez</strong>: si sale duplicado, es que has
+            pegado la caja equivocada.
           </li>
           <li>
             Envíate una <strong>prueba desde Klaviyo</strong> antes del envío real: reescribe parte
@@ -111,7 +111,28 @@ export default async function NewsletterPage({
       </div>
 
       <div className="card">
-        <h3>HTML del email (copiar todo)</h3>
+        <h3>HTML del email — para el bloque de código de Klaviyo</h3>
+        <p style={{ margin: "8px 0 10px", fontSize: 14, lineHeight: 1.6 }}>
+          Esta es la caja que necesitas si montas el correo en el editor de arrastrar y soltar:
+          añade un bloque <strong>HTML</strong> y pega esto dentro. Va sin cabecera de documento y
+          sin línea de baja, porque de las dos cosas ya se encarga Klaviyo — si pegas la otra caja
+          aquí, el correo sale con el pie de baja duplicado.
+        </p>
+        <textarea
+          readOnly
+          defaultValue={newsletter.htmlFragment}
+          style={{ width: "100%", height: 180, fontFamily: "monospace", fontSize: 11 }}
+        />
+      </div>
+
+      <div className="card">
+        <h3>HTML del email — documento completo</h3>
+        <p style={{ margin: "8px 0 10px", fontSize: 14, lineHeight: 1.6 }}>
+          Esta solo si creas una <strong>plantilla HTML</strong>, donde el correo es el documento
+          entero. Lleva su propia línea de baja con la etiqueta{" "}
+          <code>{"{% unsubscribe %}"}</code>: comprueba en la vista previa que sale como enlace y
+          no como texto.
+        </p>
         <textarea
           readOnly
           defaultValue={newsletter.html}
