@@ -20,14 +20,18 @@ export function isTestEmailConfigured(): boolean {
 }
 
 /**
- * En el correo real, Shopify Email sustituye {{ unsubscribe }} por el enlace
- * de baja. Aqui no hay Shopify que lo sustituya, asi que la etiqueta llegaria
- * literal a la bandeja; se cambia por un aviso visible para que la prueba
- * recuerde que ese bloque hay que ponerlo en el editor.
+ * En el correo real, la herramienta de envio (Klaviyo) sustituye la etiqueta
+ * de baja por el enlace. Aqui no hay Klaviyo que lo haga, asi que la etiqueta
+ * llegaria literal a la bandeja; se cambia por un aviso visible para que la
+ * prueba recuerde que ese enlace tiene que salir en el envio real.
+ *
+ * Se aceptan las dos sintaxis: la de Klaviyo, que es la que se usa, y la de
+ * Shopify Email, para que un correo generado antes del cambio no llegue con
+ * la etiqueta vieja a la vista.
  */
 function fillUnsubscribePlaceholder(html: string): string {
   return html.replace(
-    /\{\{\s*unsubscribe\s*\}\}/g,
+    /\{[{%]\s*unsubscribe\s*[}%]\}/g,
     '<span style="color:#c0392b;">[aquí pone Shopify el enlace de baja]</span>'
   );
 }

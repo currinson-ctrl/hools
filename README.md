@@ -313,16 +313,27 @@ sirve como credencial de la Admin API; no la uses aquí.)
 ### 1-bis. Prueba del resumen semanal (Resend, opcional)
 
 El resumen semanal (`/dashboard/newsletter`) **no se envía desde el panel**:
-la lista de suscriptores vive en Shopify y el correo sale por Shopify Email
-(Marketing → Crear campaña). Lo único que hace el panel es montar el HTML.
+la lista de suscriptores vive en Shopify y el correo sale por **Klaviyo**
+(Shopify Admin → Apps → Klaviyo → Campaigns). Lo único que hace el panel es
+montar el HTML.
+
+Klaviyo, y no Shopify Email: esta tienda tiene Klaviyo y Seguno instaladas, e
+instalar una tercera app de email repartiría la lista entre varias. El HTML se
+pega en una plantilla **vacía / editor de código**, no en una prediseñada.
+
+Ojo con el enlace de baja: la etiqueta que emite el panel es la de Klaviyo
+(`{% unsubscribe %}`, en `UNSUBSCRIBE_TAG` de `src/lib/newsletter.ts`), no la
+de Shopify Email (`{{ unsubscribe }}`). Si algún día se cambia de herramienta,
+esa constante es lo único que hay que tocar.
 
 Antes de montar la campaña conviene ver el correo en una bandeja de verdad,
 porque Gmail y Outlook recortan CSS que el navegador sí pinta y la vista
 previa del panel no lo enseña. Hay dos formas:
 
-- **Sin configurar nada:** pega el HTML en la campaña de Shopify Email y usa
-  su botón **"Enviar prueba"** dentro del editor. Es el paso 4 de la propia
-  pantalla del panel.
+- **Sin configurar nada:** pega el HTML en la campaña de Klaviyo y usa su
+  botón de **enviar prueba** dentro del editor. Es además obligatorio hacerlo
+  antes del envío real: Klaviyo reescribe parte del HTML, así que lo que
+  valida el botón del panel no es exactamente lo que acaba saliendo.
 - **Con el botón del panel:** crea una cuenta gratuita en https://resend.com,
   genera una API key → `RESEND_API_KEY`, y aparecerá un botón "Enviar prueba"
   en `/dashboard/newsletter` que manda el correo sin pasar por Shopify. Sin la
@@ -333,9 +344,9 @@ previa del panel no lo enseña. Hay dos formas:
   pon el remitente en `NEWSLETTER_TEST_FROM`.
 
 La prueba llega con `[PRUEBA]` delante del asunto, y donde el correo real
-lleva el enlace de baja (`{{ unsubscribe }}`, que sustituye Shopify) la prueba
-enseña un aviso en rojo — recordatorio de que ese bloque hay que ponerlo en el
-editor de Shopify, que es obligatorio.
+lleva el enlace de baja (la etiqueta que sustituye Klaviyo) la prueba enseña
+un aviso en rojo — recordatorio de que ese enlace tiene que salir sí o sí en
+el envío real.
 
 ### 2. Traducción/reescritura en español (Claude)
 

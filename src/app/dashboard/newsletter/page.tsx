@@ -49,8 +49,8 @@ export default async function NewsletterPage({
         <h3>Cómo enviarlo (5 minutos)</h3>
         <ol style={{ margin: "8px 0 0 18px", lineHeight: 1.8, fontSize: 14 }}>
           <li>
-            Shopify Admin → <strong>Marketing → Crear campaña → Shopify Email</strong>, audiencia
-            «Suscriptores de email».
+            <strong>Klaviyo</strong> (Shopify Admin → Apps) → <strong>Campaigns → Create
+            campaign → Email</strong>, con la lista de suscriptores de la tienda.
           </li>
           <li>
             <strong>Asunto:</strong> <code>{newsletter.subject}</code>
@@ -58,12 +58,18 @@ export default async function NewsletterPage({
             <strong>Vista previa:</strong> <code>{newsletter.previewText}</code>
           </li>
           <li>
-            Pega el HTML de abajo en un bloque de HTML personalizado (o reconstruye los bloques con
-            el editor usando la vista previa como guía).
+            Como plantilla, elige la <strong>vacía / editor de código</strong> (no una de las
+            prediseñadas) y pega ahí el HTML de abajo entero.
           </li>
           <li>
-            Sustituye la línea <code>{"{{ unsubscribe }}"}</code> por el bloque de baja del editor
-            (obligatorio) y envíate una <strong>prueba</strong> antes del envío real.
+            En la vista previa de Klaviyo, comprueba que la línea del pie sale como{" "}
+            <strong>enlace de baja</strong> y no como el texto{" "}
+            <code>{"{% unsubscribe %}"}</code>. Es obligatorio: sin él, el envío incumple la ley.
+            Klaviyo no deja enviar sin enlace de baja y ofrece insertar el suyo si hace falta.
+          </li>
+          <li>
+            Envíate una <strong>prueba desde Klaviyo</strong> antes del envío real: reescribe parte
+            del HTML, así que lo que valida el botón de aquí arriba no es exactamente lo que sale.
           </li>
         </ol>
         <div className="meta" style={{ marginTop: 10 }}>
