@@ -5,6 +5,8 @@ export interface NewsletterProduct {
   title: string;
   handle: string;
   price: string;
+  /** Precio tachado. Solo cuando la prenda esta rebajada de verdad. */
+  priceBefore: string | null;
   imageUrl: string;
   blurb: string;
 }
@@ -22,6 +24,7 @@ const FALLBACK_PRODUCTS: NewsletterProduct[] = [
     title: "The Classic",
     handle: "the-classic",
     price: "50,00 €",
+    priceBefore: "64,95 €",
     imageUrl:
       "https://cdn.shopify.com/s/files/1/0988/6364/5011/files/hools-polo-terrace-negro-rayas-amarillas-lifestyle-hombre_jpg.jpg?v=1767896424",
     blurb: "Polo negro con detalles amarillos. Estética 70–90, algodón pesado, hecho en Portugal.",
@@ -30,6 +33,7 @@ const FALLBACK_PRODUCTS: NewsletterProduct[] = [
     title: "The Corner",
     handle: "the-corner",
     price: "64,95 €",
+    priceBefore: null,
     imageUrl:
       "https://cdn.shopify.com/s/files/1/0988/6364/5011/files/hools-polo-terrace-corner-azul-marino-modelo-detalle.png?v=1770660649",
     blurb: "Azul marino con rayas blancas. Terrace clásico de los que no caducan.",
@@ -38,6 +42,7 @@ const FALLBACK_PRODUCTS: NewsletterProduct[] = [
     title: "Away",
     handle: "away",
     price: "64,95 €",
+    priceBefore: null,
     imageUrl:
       "https://cdn.shopify.com/s/files/1/0988/6364/5011/files/hools-polo-terrace-the-corner-azul-marino-frontal.png?v=1770660742",
     blurb: "Azul marino pensado para los días fuera de casa.",
@@ -46,6 +51,7 @@ const FALLBACK_PRODUCTS: NewsletterProduct[] = [
     title: "Trasferta",
     handle: "trasferta",
     price: "64,95 €",
+    priceBefore: null,
     imageUrl:
       "https://cdn.shopify.com/s/files/1/0988/6364/5011/files/hools-polo-terrace-the-corner-azul-marino-detalle-cuello.png?v=1770671313",
     blurb: "Lo que los tifosi llaman viajar a campo ajeno con un único objetivo.",
@@ -54,6 +60,7 @@ const FALLBACK_PRODUCTS: NewsletterProduct[] = [
     title: "The Beat",
     handle: "the-beat",
     price: "64,95 €",
+    priceBefore: null,
     imageUrl:
       "https://cdn.shopify.com/s/files/1/0988/6364/5011/files/hools-polo-ska-the-beat-verde-frontal.png?v=1770671519",
     blurb: "Verde con cuadros ska. Para los que llevan el ritmo también fuera del estadio.",
@@ -62,6 +69,7 @@ const FALLBACK_PRODUCTS: NewsletterProduct[] = [
     title: "The Streetlight",
     handle: "the-streetlight",
     price: "64,95 €",
+    priceBefore: null,
     imageUrl:
       "https://cdn.shopify.com/s/files/1/0988/6364/5011/files/hools-polo-ska-the-streetlight-granate-frontal.png?v=1770671743",
     blurb: "Granate con ajedrezado ska en cuello y mangas. Setentero hasta la médula.",
@@ -70,6 +78,7 @@ const FALLBACK_PRODUCTS: NewsletterProduct[] = [
     title: "The Boleyn",
     handle: "boleyn",
     price: "64,95 €",
+    priceBefore: null,
     imageUrl:
       "https://cdn.shopify.com/s/files/1/0988/6364/5011/files/terrace_bolyen11_02822141-5850-4ca6-906f-d9c2e04ff396.jpg?v=1788419945",
     blurb: "Celeste con rayas granate. Claret and blue, de las combinaciones que se reconocen sin nombrarlas.",
@@ -78,6 +87,7 @@ const FALLBACK_PRODUCTS: NewsletterProduct[] = [
     title: "The Rudeboy",
     handle: "rudeboy",
     price: "64,95 €",
+    priceBefore: null,
     imageUrl:
       "https://cdn.shopify.com/s/files/1/0988/6364/5011/files/ska_rudeboy11_dc5f003e-5de1-45aa-874c-eff804862e11.jpg?v=1788420066",
     blurb: "Verde oliva con banda ajedrezada granate. El damero no es estampado: es el uniforme.",
@@ -86,11 +96,35 @@ const FALLBACK_PRODUCTS: NewsletterProduct[] = [
     title: "The Tangerine",
     handle: "tangerine",
     price: "64,95 €",
+    priceBefore: null,
     imageUrl:
       "https://cdn.shopify.com/s/files/1/0988/6364/5011/files/terrace_tangerine12_ab373abc-5346-4b64-b221-e5cb9ebfee61.jpg?v=1788419934",
     blurb: "Verde oscuro con naranja. El naranja tiene su propia historia en las gradas.",
   },
 ];
+
+// Prenda fijada a mano, por encima de la rotacion semanal. Existe para las
+// ofertas: una rebaja de verdad merece el hueco mas de una semana, y el copy
+// puede hablar de ella en vez del texto de siempre.
+//
+// Para volver a la rotacion normal basta con poner esto a null. Y aunque a
+// nadie se le ocurra, el correo no se queda anunciando una oferta muerta: el
+// copy de oferta solo se usa si la prenda sigue teniendo precio tachado (lo
+// dice la tienda), y si no, la seccion vuelve sola a su texto normal.
+const FEATURED_OVERRIDE: {
+  handle: string;
+  eyebrow: string;
+  hook: string;
+  cta: string;
+} | null = {
+  handle: "the-classic",
+  eyebrow: "La prenda de la semana · Oferta",
+  hook: "El polo que más sale de casa. Esta semana, 15 € menos.",
+  cta: "Llévatelo por 50 €",
+};
+
+const DEFAULT_EYEBROW = "La prenda de la semana";
+const DEFAULT_CTA = "Ver en la tienda";
 
 const UTM = "utm_source=newsletter&utm_medium=email&utm_campaign=resumen-semanal";
 
@@ -155,7 +189,20 @@ export async function buildWeeklyNewsletter(): Promise<WeeklyNewsletter | null> 
     productFallback = error instanceof Error ? error.message : String(error);
     console.error("Newsletter: no se pudieron leer los productos de Shopify:", productFallback);
   }
-  const product = products[isoWeek(new Date()) % products.length];
+  // La prenda fijada gana a la rotacion, pero solo si sigue existiendo en el
+  // catalogo que se acaba de leer: si se retira de la tienda, el correo vuelve
+  // a la rotacion en vez de quedarse sin seccion.
+  const pinned = FEATURED_OVERRIDE
+    ? products.find((p) => p.handle === FEATURED_OVERRIDE.handle)
+    : undefined;
+  const product = pinned || products[isoWeek(new Date()) % products.length];
+
+  // El copy de oferta solo se usa si la prenda esta rebajada de verdad. Si la
+  // rebaja termina, esto se apaga solo y la seccion vuelve a su texto normal,
+  // en vez de anunciar un descuento que ya no existe.
+  const promo = pinned && product.priceBefore ? FEATURED_OVERRIDE : null;
+  const eyebrow = promo ? promo.eyebrow : DEFAULT_EYEBROW;
+  const cta = promo ? promo.cta : DEFAULT_CTA;
 
   const publicDomain = process.env.SHOPIFY_PUBLIC_DOMAIN || "www.hoolsbrand.com";
   const blogHandle = process.env.SHOPIFY_BLOG_HANDLE || "the-away-end";
@@ -258,17 +305,22 @@ ${articleBlocks}
   <!-- PRODUCTO -->
   <tr>
     <td style="padding:24px 32px 0 32px;">
-      <div style="font-family:Arial, Helvetica, sans-serif; font-size:12px; color:#999999; letter-spacing:3px; text-transform:uppercase; padding-bottom:12px;">La prenda de la semana</div>
+      <div style="font-family:Arial, Helvetica, sans-serif; font-size:12px; color:#999999; letter-spacing:3px; text-transform:uppercase; padding-bottom:12px;">${escapeHtml(eyebrow)}</div>
       <a href="${productUrl}" style="text-decoration:none;">
         <img src="${escapeHtml(product.imageUrl)}" alt="${escapeHtml(product.title)}" width="536" style="width:100%; height:auto; display:block; border:0;">
         <div style="font-family:Georgia, serif; font-size:22px; font-weight:bold; color:#111111; padding-top:12px;">${escapeHtml(product.title)}</div>
       </a>
       <div style="font-family:Arial, Helvetica, sans-serif; font-size:14px; line-height:1.6; color:#555555; padding-top:6px;">${escapeHtml(product.blurb)}</div>
-      <div style="font-family:Arial, Helvetica, sans-serif; font-size:16px; font-weight:bold; color:#111111; padding-top:8px;">${escapeHtml(product.price)}</div>
+      ${promo ? `<div style="font-family:Arial, Helvetica, sans-serif; font-size:14px; line-height:1.6; color:#111111; font-weight:bold; padding-top:8px;">${escapeHtml(promo.hook)}</div>` : ""}
+      <div style="font-family:Arial, Helvetica, sans-serif; font-size:16px; font-weight:bold; color:#111111; padding-top:8px;">${
+        product.priceBefore
+          ? `<span style="color:#999999; font-weight:normal; text-decoration:line-through;">${escapeHtml(product.priceBefore)}</span>&nbsp;&nbsp;`
+          : ""
+      }${escapeHtml(product.price)}</div>
       <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:14px;">
         <tr>
           <td style="background-color:#111111; padding:12px 28px;">
-            <a href="${productUrl}" style="font-family:Arial, Helvetica, sans-serif; font-size:14px; font-weight:bold; color:#ffffff; text-decoration:none; letter-spacing:1px;">VER EN LA TIENDA</a>
+            <a href="${productUrl}" style="font-family:Arial, Helvetica, sans-serif; font-size:14px; font-weight:bold; color:#ffffff; text-decoration:none; letter-spacing:1px; text-transform:uppercase;">${escapeHtml(cta)}</a>
           </td>
         </tr>
       </table>
@@ -301,7 +353,11 @@ ${articleBlocks}
 
   return {
     subject: `${truncate(articles[0].title, 60)} — la semana en The Away End`,
-    previewText: "3 crónicas de las gradas + la prenda de la semana",
+    // El texto de vista previa es lo que decide si el correo se abre, asi que
+    // cuando hay oferta la anuncia ahi, con el precio que manda la tienda.
+    previewText: promo
+      ? `3 crónicas de las gradas + ${product.title} rebajado a ${product.price}`
+      : "3 crónicas de las gradas + la prenda de la semana",
     html,
     articleTitles: articles.map((a) => a.title),
     productTitle: product.title,

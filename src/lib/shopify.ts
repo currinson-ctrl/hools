@@ -363,6 +363,9 @@ interface ProductsResponse {
       isGiftCard: boolean;
       featuredMedia: { preview: { image: { url: string } | null } | null } | null;
       priceRangeV2: { minVariantPrice: { amount: string; currencyCode: string } };
+      compareAtPriceRange: {
+        minVariantCompareAtPrice: { amount: string; currencyCode: string } | null;
+      };
     }>;
   };
 }
@@ -388,10 +391,29 @@ const PRODUCTS_QUERY = /* GraphQL */ `
             currencyCode
           }
         }
+        compareAtPriceRange {
+          minVariantCompareAtPrice {
+            amount
+            currencyCode
+          }
+        }
       }
     }
   }
 `;
+
+function formatPrice(amount: string): string {
+  return `${Number(amount).toFixed(2).replace(".", ",")} €`;
+}
+
+function isOnSale(p: {
+  priceRangeV2: { minVariantPrice: { amount: string } };
+  compareAtPriceRange: { minVariantCompareAtPrice: { amount: string } | null };
+}): boolean {
+  const before = p.compareAtPriceRange.minVariantCompareAtPrice;
+  if (!before) return false;
+  return Number(before.amount) > Number(p.priceRangeV2.minVariantPrice.amount);
+}
 
 /**
  * Productos activos de la tienda para el resumen semanal. Requiere el scope
@@ -399,7 +421,14 @@ const PRODUCTS_QUERY = /* GraphQL */ `
  * llamada falla y quien llama debe usar su catalogo de respaldo.
  */
 export async function fetchActiveProducts(): Promise<
-  Array<{ title: string; handle: string; price: string; imageUrl: string; blurb: string }>
+  Array<{
+    title: string;
+    handle: string;
+    price: string;
+    priceBefore: string | null;
+    imageUrl: string;
+    blurb: string;
+  }>
 > {
   const data = await shopifyAdminRequest<ProductsResponse>(PRODUCTS_QUERY, {});
   return data.products.nodes
@@ -410,7 +439,12 @@ export async function fetchActiveProducts(): Promise<
     .map((p) => ({
       title: p.title,
       handle: p.handle,
-      price: `${Number(p.priceRangeV2.minVariantPrice.amount).toFixed(2).replace(".", ",")} €`,
+      price: formatPrice(p.priceRangeV2.minVariantPrice.amount),
+      // Precio tachado. Shopify solo lo trae cuando la prenda esta rebajada
+      // de verdad (compare-at por encima del precio), asi que el correo
+      // anuncia la oferta mientras exista y deja de hacerlo cuando termine,
+      // sin que nadie tenga que acordarse de quitarlo.
+      priceBefore: isOnSale(p) ? formatPrice(p.compareAtPriceRange.minVariantCompareAtPrice!.amount) : null,
       imageUrl: p.featuredMedia!.preview!.image!.url,
       blurb: p.description.length > 160 ? p.description.slice(0, 159).trimEnd() + "…" : p.description,
     }));
