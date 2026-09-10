@@ -1,13 +1,22 @@
 import { buildWeeklyNewsletter } from "@/lib/newsletter";
+import { isTestEmailConfigured } from "@/lib/email";
+import { sendNewsletterTestAction } from "../actions";
 
 export const dynamic = "force-dynamic";
 
-export default async function NewsletterPage() {
+export default async function NewsletterPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ notice?: string; error?: string }>;
+}) {
+  const query = await searchParams;
   const newsletter = await buildWeeklyNewsletter();
+  const canSendTest = isTestEmailConfigured();
 
   if (!newsletter) {
     return (
       <div>
+        {query.error && <div className="banner error">{query.error}</div>}
         <h1 style={{ fontSize: 18, marginBottom: 16 }}>Resumen semanal</h1>
         <div className="empty">
           Aún no hay artículos publicados con los que montar el resumen.
@@ -18,6 +27,9 @@ export default async function NewsletterPage() {
 
   return (
     <div>
+      {query.notice && <div className="banner">{query.notice}</div>}
+      {query.error && <div className="banner error">{query.error}</div>}
+
       <h1 style={{ fontSize: 18, marginBottom: 16 }}>Resumen semanal</h1>
 
       {newsletter.productFallback && (
@@ -58,6 +70,38 @@ export default async function NewsletterPage() {
           Contenido de esta semana: {newsletter.articleTitles.join(" · ")} — Prenda:{" "}
           {newsletter.productTitle} (rota automáticamente cada semana)
         </div>
+      </div>
+
+      <div className="card">
+        <h3>Verlo en tu bandeja antes de enviarlo</h3>
+        {canSendTest ? (
+          <>
+            <p style={{ margin: "8px 0 0", fontSize: 14, lineHeight: 1.6 }}>
+              Se manda este mismo correo a una dirección tuya, sin tocar la lista de
+              suscriptores. Es lo único que la vista previa de aquí abajo no puede
+              enseñarte: cómo lo recorta Gmail de verdad, y cómo se ve en el móvil.
+            </p>
+            <form action={sendNewsletterTestAction} style={{ marginTop: 12 }}>
+              <label htmlFor="to">Dirección para la prueba</label>
+              <input type="email" id="to" name="to" required placeholder="tu@correo.com" />
+              <button type="submit" style={{ marginTop: 10 }}>
+                Enviar prueba
+              </button>
+            </form>
+            <p className="meta" style={{ marginTop: 10 }}>
+              Llega con <code>[PRUEBA]</code> delante del asunto, y en el pie verás en rojo
+              dónde pondrá Shopify el enlace de baja.
+            </p>
+          </>
+        ) : (
+          <p style={{ margin: "8px 0 0", fontSize: 14, lineHeight: 1.6 }}>
+            Para poder mandarte una prueba desde aquí falta la clave de Resend. Crea una
+            cuenta gratuita en <code>resend.com</code>, genera una API key y ponla como{" "}
+            <code>RESEND_API_KEY</code> en las variables de entorno de Vercel. Mientras
+            tanto, la prueba se hace desde el propio editor de Shopify Email, con el botón
+            «Enviar prueba» (paso 4).
+          </p>
+        )}
       </div>
 
       <div className="card">

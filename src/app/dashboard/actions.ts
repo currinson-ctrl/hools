@@ -32,6 +32,8 @@ import {
   type ArticleSection,
 } from "@/lib/article-html";
 import { runAggregation } from "@/lib/aggregate";
+import { buildWeeklyNewsletter } from "@/lib/newsletter";
+import { sendTestNewsletter } from "@/lib/email";
 import { MAX_RESULTS } from "@/lib/twitter-source";
 import { getManualSource, MANUAL_GUID_PREFIX, MANUAL_SOURCE_NAME } from "@/lib/manual";
 import { buildBlogArticleUrl, buildCtaHtml, CATEGORY_HASHTAGS } from "@/lib/sources";
@@ -1186,6 +1188,40 @@ export async function createManualArticleAction(formData: FormData) {
   redirect(
     `/dashboard/articles/${article.id}?notice=${encodeURIComponent(
       "Noticia creada y guardada en pendientes. Repásala y pulsa «Aprobar y publicar»."
+    )}`
+  );
+}
+
+/**
+ * Envia el resumen semanal a una direccion para verlo en una bandeja real.
+ * No toca la lista de suscriptores: el envio de verdad sigue saliendo por
+ * Shopify Email, con su bloque de baja y su audiencia.
+ */
+export async function sendNewsletterTestAction(formData: FormData) {
+  const to = String(formData.get("to") || "").trim();
+  if (!to) withError("/dashboard/newsletter", "Escribe la dirección a la que mandar la prueba.");
+
+  const newsletter = await buildWeeklyNewsletter();
+  if (!newsletter) {
+    withError("/dashboard/newsletter", "Aún no hay artículos publicados con los que montar el resumen.");
+  }
+
+  let id: string;
+  try {
+    id = await sendTestNewsletter(to, newsletter.subject, newsletter.html);
+  } catch (error) {
+    withError("/dashboard/newsletter", error instanceof Error ? error.message : String(error));
+  }
+
+  // El aviso del precio importa mas aqui que en la pantalla: quien recibe la
+  // prueba se fia de lo que ve, y lo que ve puede llevar un precio viejo.
+  const aviso = newsletter.productFallback
+    ? " Ojo: la prenda y su precio salen del catálogo de respaldo, no de la tienda."
+    : "";
+
+  redirect(
+    `/dashboard/newsletter?notice=${encodeURIComponent(
+      `Prueba enviada a ${to} (id ${id}). Mírala en el móvil y en el ordenador antes de montar la campaña.${aviso}`
     )}`
   );
 }
