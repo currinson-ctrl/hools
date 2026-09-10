@@ -25,7 +25,7 @@ mantiene el editor y contiene toda la portada de la tienda, no solo el hero.
 
 Los dos `templates/*.json` están aquí porque guardan ajustes que **el schema de
 la sección no puede reponer**: los `image_picker` y los `url` no admiten valor
-por defecto, así que la foto de fondo de la cabecera y las tres colecciones del
+por defecto, así que la foto de fondo de la cabecera, las tres colecciones del
 CTA solo existen dentro de esos JSON. Si se recrean sin ellos, esas piezas se
 quedan en blanco sin que nada avise.
 
@@ -53,6 +53,45 @@ no con las de serie del tema (`main-blog` / `main-article`).
 > la imagen destacada a un banner: con las fotos verticales que llegan de X, el
 > resultado es una franja estirada. Si ves eso en un artículo, lo primero que
 > hay que mirar es su `templateSuffix`.
+
+## Alta a la newsletter en la portada del blog
+
+La barra de categorías (`hools-catbar`) lleva el formulario de suscripción,
+**no un enlace a otra página**: cada salto pierde gente, y el correo semanal ya
+existe.
+
+Es el `{% form 'customer' %}` de Shopify, así que las altas entran en los
+clientes de la tienda como cualquier otra suscripción, sin herramienta
+intermedia.
+
+> **El `contact[tags]` con `newsletter` es lo que hace que el alta cuente.**
+> Esa etiqueta es por la que se filtra la audiencia del envío. Sin ella el
+> correo entra en la ficha del cliente pero **no** en la lista, y quien se
+> suscriba no recibirá nada sin que nada avise.
+
+Se configura en el editor, sección **Hools Blog Cover** → «Suscripción a la
+newsletter»:
+
+| Ajuste | Por defecto |
+| --- | --- |
+| Mostrar el formulario | Sí |
+| Reclamo | «La grada al día» |
+| Texto del campo vacío | «tu correo» |
+| Texto del botón | «Suscribirme» |
+| Mensaje al suscribirse | «Dentro. Nos vemos el domingo.» |
+| Dónde va | A la derecha de las categorías, o centrado en su propia línea |
+
+Son ajustes y no texto escrito en el fichero porque **estos ficheros no se
+despliegan solos**: cambiar una palabra costaría un push al tema.
+
+En móvil el formulario baja siempre a su propia línea, elija lo que elija el
+ajuste de posición: en la misma línea que las categorías no cabe, y las dos
+cosas acaban peleándose por el scroll horizontal.
+
+Lo de «centrado» es su propia línea y no la de las categorías. Centrado en la
+misma línea no queda centrado de verdad: lo estaría respecto al hueco que
+sobra, que cambia según cuántas categorías tenga la página, así que bailaría de
+una a otra.
 
 ## Contrato con el agregador
 
