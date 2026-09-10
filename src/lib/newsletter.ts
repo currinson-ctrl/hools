@@ -123,17 +123,6 @@ const FEATURED_OVERRIDE: {
   cta: "Llévatelo por 50 €",
 };
 
-// Etiqueta de baja, en la sintaxis de la herramienta que envia. El correo sale
-// por Shopify Email, cuya etiqueta es {{ unsubscribe }} (Klaviyo, si algun dia
-// se cambia, usa {% unsubscribe %}).
-//
-// Solo hace falta en el documento completo. Por la ruta normal —pegar el
-// correo recortado en un bloque de HTML personalizado— el enlace de baja lo
-// pone el propio editor en su pie, y esta etiqueta no se usa.
-//
-// El enlace de baja es obligatorio: sin el, el envio incumple la ley y dispara
-// las quejas por spam. Comprueba siempre en la vista previa que aparece, y una
-// sola vez.
 // Fotos de cabecera. Rotan por semana igual que la prenda: con una sola, la
 // cabecera es fija; añadiendo mas, va cambiando sin tocar nada mas.
 //
@@ -145,7 +134,7 @@ const FEATURED_OVERRIDE: {
 // - Apaisada y de proporcion parecida entre unas y otras. La cabecera se ve a
 //   600px de ancho como mucho, y en movil a unos 350; si una foto es mucho mas
 //   alta que las demas, la altura del correo baila de una semana a otra. La que
-//   hay ahora es 1248x832 (3:2), que es una buena referencia.
+//   hay ahora es 1200x800 (3:2), que es una buena referencia.
 // - Que se lea en pequeño. En el movil esto se ve a un tercio de tamaño: una
 //   foto de grupo a lo lejos no se distingue, un plano medio si.
 //
@@ -161,7 +150,23 @@ const HEADER_IMAGES: Array<{ url: string; alt: string }> = [
   },
 ];
 
-const UNSUBSCRIBE_TAG = "{{ unsubscribe }}";
+// Variables que Shopify Email exige en un correo escrito a codigo. No son
+// opcionales: sin ellas el editor no deja pasar a la pantalla de envio, y las
+// nombra el mismo en sus avisos.
+//
+//   unsubscribe_link     URL de baja, distinta para cada destinatario. Va en
+//                        un href, no suelta como texto.
+//   open_tracking_block  El pixel que mide las aperturas. Va antes de </body>.
+//
+// El nombre exacto importa y no se adivina: no es {{ unsubscribe }} (que es lo
+// que ponia aqui y Shopify se comia sin avisar, dejando el correo sin enlace
+// de baja) ni {% unsubscribe %}, que es el de Klaviyo.
+//
+// Solo hacen falta en el documento completo. Por la otra ruta —pegar el correo
+// recortado en una seccion de HTML personalizado— de las dos se encarga la
+// plantilla que lo envuelve.
+const UNSUBSCRIBE_URL = "{{ unsubscribe_link }}";
+const OPEN_TRACKING_BLOCK = "{{ open_tracking_block }}";
 
 const DEFAULT_EYEBROW = "La prenda de la semana";
 const DEFAULT_CTA = "Ver en la tienda";
@@ -401,7 +406,8 @@ ${articleBlocks}
       ${
         withUnsubscribe
           ? `<div style="font-family:Arial, Helvetica, sans-serif; font-size:11px; color:#bbbbbb; padding-top:12px;">
-        Recibes este correo por ser parte de Hools. ${UNSUBSCRIBE_TAG}
+        Recibes este correo por ser parte de Hools.
+        <a href="${UNSUBSCRIBE_URL}" style="color:#bbbbbb; text-decoration:underline;">Darse de baja</a>
       </div>`
           : ""
       }
@@ -423,6 +429,7 @@ ${articleBlocks}
 </head>
 <body style="margin:0; padding:0; background-color:#f4f4f2;">
 ${buildBody(true)}
+${OPEN_TRACKING_BLOCK}
 </body>
 </html>
 `;
