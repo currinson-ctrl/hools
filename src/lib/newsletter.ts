@@ -199,11 +199,27 @@ export async function buildWeeklyNewsletter(): Promise<WeeklyNewsletter | null> 
 
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; background-color:#ffffff; border-collapse:collapse;">
 
-  <!-- CABECERA: collage del blog con la caja crema, como en la web -->
+  <!-- CABECERA: collage del blog y la caja crema.
+       El collage va como <img> de verdad, no como background-image de CSS:
+       el Gmail del movil descarta los fondos CSS (y el atributo background
+       de <td> tampoco es fiable), asi que la cabecera llegaba como un
+       rectangulo negro, el color de respaldo.
+
+       El precio de hacerlo bien es que la caja crema queda DEBAJO del
+       collage y no encima: superponer texto sobre una imagen en un correo
+       exige VML para Outlook, y en cuanto un cliente no lo pinta el texto
+       se cae encima de la foto o desaparece. Debajo se ve igual en todas
+       partes. -->
   <tr>
-    <td background="https://cdn.shopify.com/s/files/1/0988/6364/5011/files/collage-imagenes-terrace.png?v=1771096753"
-        bgcolor="#14130f"
-        style="background-image:url('https://cdn.shopify.com/s/files/1/0988/6364/5011/files/collage-imagenes-terrace.png?v=1771096753'); background-size:cover; background-position:center; background-color:#14130f; padding:52px 24px;"
+    <td bgcolor="#14130f" style="background-color:#14130f; font-size:0; line-height:0;">
+      <img src="https://cdn.shopify.com/s/files/1/0988/6364/5011/files/collage-imagenes-terrace.png?v=1771096753"
+           alt="The Away End" width="600"
+           style="width:100%; max-width:600px; height:auto; display:block; border:0;">
+    </td>
+  </tr>
+  <tr>
+    <td bgcolor="#14130f"
+        style="background-color:#14130f; padding:32px 24px 40px 24px;"
         align="center">
       <table role="presentation" width="440" cellpadding="0" cellspacing="0" style="max-width:440px; width:90%; background-color:#f7f4ec;">
         <tr>
