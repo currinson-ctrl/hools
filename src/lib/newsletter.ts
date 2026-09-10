@@ -150,8 +150,15 @@ const FEATURED_OVERRIDE: {
 //   foto de grupo a lo lejos no se distingue, un plano medio si.
 //
 // Se suben en Shopify (Contenido > Archivos) y aqui se pega la URL del CDN.
-const HEADER_IMAGES = [
-  "https://cdn.shopify.com/s/files/1/0988/6364/5011/files/collage-imagenes-terrace.png?v=1771096753",
+//
+// El alt no es un tramite: cuando el cliente de correo bloquea las imagenes
+// —lo hace siempre en la carpeta de spam, y a menudo con remitentes nuevos— es
+// lo unico que se lee en el hueco de la cabecera.
+const HEADER_IMAGES: Array<{ url: string; alt: string }> = [
+  {
+    url: "https://cdn.shopify.com/s/files/1/0988/6364/5011/files/theclassic_den_1.jpg?v=1789028749",
+    alt: "Grada cantando de noche, con el polo The Classic de Hools en primer plano",
+  },
 ];
 
 const UNSUBSCRIBE_TAG = "{{ unsubscribe }}";
@@ -307,8 +314,8 @@ export async function buildWeeklyNewsletter(): Promise<WeeklyNewsletter | null> 
     headerImage
       ? `<tr>
     <td bgcolor="#14130f" style="background-color:#14130f; font-size:0; line-height:0;">
-      <img src="${escapeHtml(headerImage)}"
-           alt="The Away End" width="600"
+      <img src="${escapeHtml(headerImage.url)}"
+           alt="${escapeHtml(headerImage.alt)}" width="600"
            style="width:100%; max-width:600px; height:auto; display:block; border:0;">
     </td>
   </tr>`
