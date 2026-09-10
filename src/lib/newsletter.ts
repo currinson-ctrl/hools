@@ -123,6 +123,46 @@ const FEATURED_OVERRIDE: {
   cta: "Llévatelo por 50 €",
 };
 
+// Etiqueta de baja, en la sintaxis de la herramienta que envia. El correo sale
+// por Shopify Email, cuya etiqueta es {{ unsubscribe }} (Klaviyo, si algun dia
+// se cambia, usa {% unsubscribe %}).
+//
+// Solo hace falta en el documento completo. Por la ruta normal —pegar el
+// correo recortado en un bloque de HTML personalizado— el enlace de baja lo
+// pone el propio editor en su pie, y esta etiqueta no se usa.
+//
+// El enlace de baja es obligatorio: sin el, el envio incumple la ley y dispara
+// las quejas por spam. Comprueba siempre en la vista previa que aparece, y una
+// sola vez.
+// Fotos de cabecera. Rotan por semana igual que la prenda: con una sola, la
+// cabecera es fija; añadiendo mas, va cambiando sin tocar nada mas.
+//
+// Requisitos, que no son capricho:
+//
+// - JPG o PNG. Nada de SVG: Gmail no lo pinta y la cabecera saldria en blanco
+//   (ya paso con el fondo de la cabecera). HEIC tampoco lo abre ningun cliente
+//   de correo.
+// - Apaisada y de proporcion parecida entre unas y otras. La cabecera se ve a
+//   600px de ancho como mucho, y en movil a unos 350; si una foto es mucho mas
+//   alta que las demas, la altura del correo baila de una semana a otra. La que
+//   hay ahora es 1248x832 (3:2), que es una buena referencia.
+// - Que se lea en pequeño. En el movil esto se ve a un tercio de tamaño: una
+//   foto de grupo a lo lejos no se distingue, un plano medio si.
+//
+// Se suben en Shopify (Contenido > Archivos) y aqui se pega la URL del CDN.
+//
+// El alt no es un tramite: cuando el cliente de correo bloquea las imagenes
+// —lo hace siempre en la carpeta de spam, y a menudo con remitentes nuevos— es
+// lo unico que se lee en el hueco de la cabecera.
+const HEADER_IMAGES: Array<{ url: string; alt: string }> = [
+  {
+    url: "https://cdn.shopify.com/s/files/1/0988/6364/5011/files/theclassic_den_1.jpg?v=1789028749",
+    alt: "Grada cantando de noche, con el polo The Classic de Hools en primer plano",
+  },
+];
+
+const UNSUBSCRIBE_TAG = "{{ unsubscribe }}";
+
 const DEFAULT_EYEBROW = "La prenda de la semana";
 const DEFAULT_CTA = "Ver en la tienda";
 
@@ -158,7 +198,10 @@ function isoWeek(date: Date): number {
 export interface WeeklyNewsletter {
   subject: string;
   previewText: string;
+  /** Documento completo, para una plantilla HTML. */
   html: string;
+  /** Solo el contenido, para el bloque HTML de un editor visual. */
+  htmlFragment: string;
   articleTitles: string[];
   productTitle: string;
   /**
@@ -204,6 +247,13 @@ export async function buildWeeklyNewsletter(): Promise<WeeklyNewsletter | null> 
   const eyebrow = promo ? promo.eyebrow : DEFAULT_EYEBROW;
   const cta = promo ? promo.cta : DEFAULT_CTA;
 
+  // Misma rotacion semanal que la prenda. Si algun dia la lista se queda
+  // vacia, la cabecera se queda sin foto pero el correo sigue saliendo: mejor
+  // eso que un hueco roto con el icono de imagen partida.
+  const headerImage = HEADER_IMAGES.length
+    ? HEADER_IMAGES[isoWeek(new Date()) % HEADER_IMAGES.length]
+    : null;
+
   const publicDomain = process.env.SHOPIFY_PUBLIC_DOMAIN || "www.hoolsbrand.com";
   const blogHandle = process.env.SHOPIFY_BLOG_HANDLE || "the-away-end";
 
@@ -232,15 +282,18 @@ export async function buildWeeklyNewsletter(): Promise<WeeklyNewsletter | null> 
 
   const productUrl = `https://${publicDomain}/products/${product.handle}?${UTM}`;
 
-  const html = `<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The Away End — Resumen semanal</title>
-</head>
-<body style="margin:0; padding:0; background-color:#f4f4f2;">
-
+  // El correo se entrega de dos maneras, porque la herramienta de envio
+  // admite las dos y no sirve la misma:
+  //
+  //   html          Documento completo. Para una plantilla HTML, donde el
+  //                 correo es el documento entero.
+  //   htmlFragment  Solo el contenido. Para el bloque HTML del editor de
+  //                 arrastrar y soltar de Klaviyo, que envuelve lo que le
+  //                 pegues en su propio documento y le añade su pie con el
+  //                 enlace de baja. Ahi un documento completo quedaria
+  //                 anidado dentro de otro, y la linea de baja saldria dos
+  //                 veces: la de Klaviyo y la nuestra.
+  const buildBody = (withUnsubscribe: boolean) => `
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f2;">
 <tr><td align="center" style="padding:24px 12px;">
 
@@ -257,13 +310,17 @@ export async function buildWeeklyNewsletter(): Promise<WeeklyNewsletter | null> 
        exige VML para Outlook, y en cuanto un cliente no lo pinta el texto
        se cae encima de la foto o desaparece. Debajo se ve igual en todas
        partes. -->
-  <tr>
+  ${
+    headerImage
+      ? `<tr>
     <td bgcolor="#14130f" style="background-color:#14130f; font-size:0; line-height:0;">
-      <img src="https://cdn.shopify.com/s/files/1/0988/6364/5011/files/collage-imagenes-terrace.png?v=1771096753"
-           alt="The Away End" width="600"
+      <img src="${escapeHtml(headerImage.url)}"
+           alt="${escapeHtml(headerImage.alt)}" width="600"
            style="width:100%; max-width:600px; height:auto; display:block; border:0;">
     </td>
-  </tr>
+  </tr>`
+      : ""
+  }
   <tr>
     <td bgcolor="#14130f"
         style="background-color:#14130f; padding:32px 24px 40px 24px;"
@@ -336,9 +393,13 @@ ${articleBlocks}
         &nbsp;·&nbsp;
         <a href="https://${publicDomain}/blogs/${blogHandle}?${UTM}" style="color:#999999;">The Away End</a>
       </div>
-      <div style="font-family:Arial, Helvetica, sans-serif; font-size:11px; color:#bbbbbb; padding-top:12px;">
-        Recibes este correo por ser parte de Hools. {{ unsubscribe }}
-      </div>
+      ${
+        withUnsubscribe
+          ? `<div style="font-family:Arial, Helvetica, sans-serif; font-size:11px; color:#bbbbbb; padding-top:12px;">
+        Recibes este correo por ser parte de Hools. ${UNSUBSCRIBE_TAG}
+      </div>`
+          : ""
+      }
     </td>
   </tr>
 
@@ -346,10 +407,22 @@ ${articleBlocks}
 
 </td></tr>
 </table>
+`;
 
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Away End — Resumen semanal</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f4f4f2;">
+${buildBody(true)}
 </body>
 </html>
 `;
+
+  const htmlFragment = buildBody(false).trim();
 
   return {
     subject: `${truncate(articles[0].title, 60)} — la semana en The Away End`,
@@ -359,6 +432,7 @@ ${articleBlocks}
       ? `3 crónicas de las gradas + ${product.title} rebajado a ${product.price}`
       : "3 crónicas de las gradas + la prenda de la semana",
     html,
+    htmlFragment,
     articleTitles: articles.map((a) => a.title),
     productTitle: product.title,
     productFallback,
