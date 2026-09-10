@@ -25,9 +25,9 @@ mantiene el editor y contiene toda la portada de la tienda, no solo el hero.
 
 Los dos `templates/*.json` están aquí porque guardan ajustes que **el schema de
 la sección no puede reponer**: los `image_picker` y los `url` no admiten valor
-por defecto, así que la foto de fondo de la cabecera y las tres colecciones del
-CTA solo existen dentro de esos JSON. Si se recrean sin ellos, esas piezas se
-quedan en blanco sin que nada avise.
+por defecto, así que la foto de fondo de la cabecera, las tres colecciones del
+CTA y **el enlace del botón de suscripción** solo existen dentro de esos JSON.
+Si se recrean sin ellos, esas piezas se quedan en blanco sin que nada avise.
 
 > **El JSON de la portada lo mantiene el editor de temas, y lo guarda
 > minificado.** Su copia de aquí está formateada para que el diff se lea, así
@@ -53,6 +53,36 @@ no con las de serie del tema (`main-blog` / `main-article`).
 > la imagen destacada a un banner: con las fotos verticales que llegan de X, el
 > resultado es una franja estirada. Si ves eso en un artículo, lo primero que
 > hay que mirar es su `templateSuffix`.
+
+## Botón de suscripción a la newsletter
+
+La barra de categorías de la portada del blog (`hools-catbar`) lleva un botón
+de suscripción. Se configura en el editor de temas, en la sección **Hools Blog
+Cover** → «Suscripción a la newsletter»:
+
+| Ajuste | Qué hace |
+| --- | --- |
+| Texto del botón | Por defecto «La grada al día» |
+| Enlace del botón | A dónde lleva. **Sin esto el botón no aparece** |
+| Dónde va | A la derecha de las categorías, o centrado en su propia línea |
+
+**El botón no se pinta si el enlace está vacío**, y es a propósito: los ajustes
+de tipo `url` no admiten valor por defecto, así que la alternativa era un botón
+que no lleva a ningún sitio. Si lo subes y no lo ves, lo primero que hay que
+mirar es ese ajuste.
+
+Hace falta una página con el formulario de suscripción a la que apuntarlo. En
+Shopify, el formulario de newsletter suele estar en el pie; si no hay página
+propia, se puede crear una y meter ahí el bloque de suscripción.
+
+En móvil el botón baja siempre a su propia línea, elija lo que elija el ajuste
+de posición: en la misma línea que las categorías no cabe, y las dos cosas
+acaban peleándose por el scroll horizontal.
+
+Lo de «centrado» es su propia línea y no la de las categorías. Centrado en la
+misma línea no queda centrado de verdad: lo estaría respecto al hueco que
+sobra, que cambia según cuántas categorías tenga la página, así que bailaría de
+una a otra.
 
 ## Contrato con el agregador
 

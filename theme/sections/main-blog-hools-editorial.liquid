@@ -135,20 +135,39 @@
       </div>
     </header>
 
-    <nav class="hools-catbar" aria-label="Categorías del blog">
-      <div class="hools-catbar__inner">
-        <a
-          class="hools-catbar__cat{% if active_tag == blank %} is-active{% endif %}"
-          href="{{ blog.url }}"
-        >Todo</a>
-        {%- for tag in cat_tags -%}
-          {%- if blog.all_tags contains tag -%}
-            <a
-              class="hools-catbar__cat{% if active_tag == tag %} is-active{% endif %}"
-              href="{{ blog.url }}/tagged/{{ tag | handleize }}"
-            >{{ cat_labels[forloop.index0] }}</a>
-          {%- endif -%}
-        {%- endfor -%}
+    {%- comment -%}
+      El CTA de suscripcion solo aparece si tiene destino. Los ajustes de tipo
+      url no admiten valor por defecto (ver theme/README.md), asi que sin
+      enlace no se pinta nada: mejor eso que un boton que no lleva a ningun
+      sitio.
+    {%- endcomment -%}
+    {%- assign show_sub_cta = false -%}
+    {%- if section.settings.sub_cta_url != blank and section.settings.sub_cta_label != blank -%}
+      {%- assign show_sub_cta = true -%}
+    {%- endif -%}
+
+    <nav class="hools-catbar hools-catbar--{{ section.settings.sub_cta_position }}" aria-label="Categorías del blog">
+      <div class="hools-catbar__row">
+        <div class="hools-catbar__inner">
+          <a
+            class="hools-catbar__cat{% if active_tag == blank %} is-active{% endif %}"
+            href="{{ blog.url }}"
+          >Todo</a>
+          {%- for tag in cat_tags -%}
+            {%- if blog.all_tags contains tag -%}
+              <a
+                class="hools-catbar__cat{% if active_tag == tag %} is-active{% endif %}"
+                href="{{ blog.url }}/tagged/{{ tag | handleize }}"
+              >{{ cat_labels[forloop.index0] }}</a>
+            {%- endif -%}
+          {%- endfor -%}
+        </div>
+
+        {%- if show_sub_cta -%}
+          <a class="hools-catbar__cta" href="{{ section.settings.sub_cta_url }}">
+            {{ section.settings.sub_cta_label }}
+          </a>
+        {%- endif -%}
       </div>
     </nav>
 
@@ -394,13 +413,62 @@
     border-bottom:2px solid var(--hools-black);
   }
 
-  .hools-catbar__inner{
+  .hools-catbar__row{
     max-width:var(--hools-wrap);
     margin:0 auto;
     padding:0 20px;
     display:flex;
+    align-items:center;
+    gap:16px;
+  }
+
+  .hools-catbar__inner{
+    display:flex;
     gap:4px;
     overflow-x:auto;
+  }
+
+  /* El CTA a la derecha: las categorias se quedan a la izquierda y el hueco
+     que sobra en esa linea, que estaba vacio, pasa a empujarlo al extremo. */
+  .hools-catbar--right .hools-catbar__inner{ flex:1 1 auto; }
+
+  /* Centrado: el CTA baja a su propia linea. En la misma linea que las
+     categorias no puede centrarse de verdad —quedaria centrado respecto al
+     hueco sobrante, que se mueve segun cuantas categorias haya y en que
+     idioma— y bailaria de una pagina a otra. */
+  .hools-catbar--center .hools-catbar__row{
+    flex-direction:column;
+    align-items:stretch;
+    gap:0;
+  }
+
+  .hools-catbar--center .hools-catbar__inner{ justify-content:center; }
+
+  .hools-catbar--center .hools-catbar__cta{
+    align-self:center;
+    margin:0 0 12px;
+  }
+
+  .hools-catbar__cta{
+    flex:0 0 auto;
+    font-family:var(--hools-sans);
+    font-size:12px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.1em;
+    text-decoration:none;
+    color:#fff;
+    background:var(--hools-black);
+    padding:9px 16px;
+    border:2px solid var(--hools-black);
+    white-space:nowrap;
+    transition:background .15s ease, color .15s ease;
+  }
+
+  .hools-catbar__cta:hover{
+    background:var(--hools-gold);
+    border-color:var(--hools-gold);
+    color:var(--hools-black);
   }
 
   .hools-catbar__cat{
@@ -685,7 +753,16 @@
   @media (max-width:749px){
     .hools-hero{ padding:20px 16px; }
     .hools-hero__band{ padding:16px 18px; }
-    .hools-catbar__inner{ padding:0 16px; }
+    /* En movil el CTA baja siempre, elija lo que elija el ajuste: en la misma
+       linea deja las categorias sin sitio y las dos cosas se pelean por el
+       scroll horizontal. */
+    .hools-catbar__row{
+      padding:0 16px;
+      flex-direction:column;
+      align-items:stretch;
+      gap:0;
+    }
+    .hools-catbar__cta{ align-self:center; margin:2px 0 12px; }
     .hools-cover{ padding:20px 16px 0; gap:24px; }
     .hools-cover__pair{
       grid-template-columns:minmax(0,1fr);
@@ -712,6 +789,14 @@
     { "type": "text", "id": "title_line_2", "label": "Título línea 2", "default": "END" },
     { "type": "text", "id": "hero_subtitle", "label": "Subtítulo", "default": "La historia que se escribe en el sector visitante." },
     { "type": "text", "id": "hero_seo_title", "label": "Título SEO (H1 real, no visible)", "default": "Cultura terrace y fútbol casual: la historia que se escribe en el sector visitante" },
+
+    { "type": "header", "content": "Suscripción a la newsletter" },
+    { "type": "text", "id": "sub_cta_label", "label": "Texto del botón", "default": "La grada al día" },
+    { "type": "url", "id": "sub_cta_url", "label": "Enlace del botón", "info": "Sin enlace el botón no aparece. Apunta a la página donde esté el formulario de suscripción." },
+    { "type": "select", "id": "sub_cta_position", "label": "Dónde va", "default": "right", "options": [
+      { "value": "right", "label": "A la derecha de las categorías" },
+      { "value": "center", "label": "Centrado, en su propia línea" }
+    ], "info": "En móvil baja siempre a su propia línea, elijas lo que elijas." },
 
     { "type": "header", "content": "Portada" },
     { "type": "text", "id": "rail_title", "label": "Título de la columna lateral", "default": "También hoy" },
