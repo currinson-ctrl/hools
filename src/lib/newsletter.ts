@@ -123,15 +123,18 @@ const FEATURED_OVERRIDE: {
   cta: "Llévatelo por 50 €",
 };
 
-// Etiqueta que la herramienta de envio sustituye por el enlace de baja. El
-// correo sale por Klaviyo, cuya sintaxis es {% unsubscribe %} (Shopify Email
-// usaba {{ unsubscribe }}, que aqui no vale y llegaria escrita tal cual).
+// Etiqueta de baja, en la sintaxis de la herramienta que envia. El correo sale
+// por Shopify Email, cuya etiqueta es {{ unsubscribe }} (Klaviyo, si algun dia
+// se cambia, usa {% unsubscribe %}).
 //
-// Klaviyo no deja enviar una campaña sin enlace de baja: si por lo que sea la
-// etiqueta no se sustituye, avisa antes de enviar y ofrece insertar el suyo.
-// Comprueba en su vista previa que esta linea sale como enlace y no como
-// texto: sin ella el envio incumple la ley y dispara las quejas por spam.
-const UNSUBSCRIBE_TAG = "{% unsubscribe %}";
+// Solo hace falta en el documento completo. Por la ruta normal —pegar el
+// correo recortado en un bloque de HTML personalizado— el enlace de baja lo
+// pone el propio editor en su pie, y esta etiqueta no se usa.
+//
+// El enlace de baja es obligatorio: sin el, el envio incumple la ley y dispara
+// las quejas por spam. Comprueba siempre en la vista previa que aparece, y una
+// sola vez.
+const UNSUBSCRIBE_TAG = "{{ unsubscribe }}";
 
 const DEFAULT_EYEBROW = "La prenda de la semana";
 const DEFAULT_CTA = "Ver en la tienda";

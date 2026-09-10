@@ -20,14 +20,13 @@ export function isTestEmailConfigured(): boolean {
 }
 
 /**
- * En el correo real, la herramienta de envio (Klaviyo) sustituye la etiqueta
- * de baja por el enlace. Aqui no hay Klaviyo que lo haga, asi que la etiqueta
- * llegaria literal a la bandeja; se cambia por un aviso visible para que la
- * prueba recuerde que ese enlace tiene que salir en el envio real.
+ * En el correo real, la herramienta de envio (Shopify Email) sustituye la
+ * etiqueta de baja por el enlace. Aqui no hay Shopify que lo haga, asi que la
+ * etiqueta llegaria literal a la bandeja; se cambia por un aviso visible para
+ * que la prueba recuerde que ese enlace tiene que salir en el envio real.
  *
- * Se aceptan las dos sintaxis: la de Klaviyo, que es la que se usa, y la de
- * Shopify Email, para que un correo generado antes del cambio no llegue con
- * la etiqueta vieja a la vista.
+ * Se aceptan las dos sintaxis, la de Shopify Email y la de Klaviyo, para que
+ * cambiar de herramienta no deje etiquetas viejas a la vista.
  */
 function fillUnsubscribePlaceholder(html: string): string {
   return html.replace(
