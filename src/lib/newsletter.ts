@@ -154,8 +154,12 @@ const HEADER_IMAGES: Array<{ url: string; alt: string }> = [
 // opcionales: sin ellas el editor no deja pasar a la pantalla de envio, y las
 // nombra el mismo en sus avisos.
 //
-//   unsubscribe_link     URL de baja, distinta para cada destinatario. Va en
-//                        un href, no suelta como texto.
+//   unsubscribe_link     El enlace de baja YA HECHO: Shopify lo sustituye por
+//                        un <a> completo, con su texto ("Cancelar
+//                        suscripcion"). Va suelta. Meterla dentro de un href
+//                        inserta un <a> dentro del atributo, se sale de las
+//                        comillas y el resto del codigo acaba a la vista en el
+//                        pie del correo.
 //   open_tracking_block  El pixel que mide las aperturas. Va antes de </body>.
 //
 // El nombre exacto importa y no se adivina: no es {{ unsubscribe }} (que es lo
@@ -165,7 +169,7 @@ const HEADER_IMAGES: Array<{ url: string; alt: string }> = [
 // Solo hacen falta en el documento completo. Por la otra ruta —pegar el correo
 // recortado en una seccion de HTML personalizado— de las dos se encarga la
 // plantilla que lo envuelve.
-const UNSUBSCRIBE_URL = "{{ unsubscribe_link }}";
+const UNSUBSCRIBE_LINK = "{{ unsubscribe_link }}";
 const OPEN_TRACKING_BLOCK = "{{ open_tracking_block }}";
 
 const DEFAULT_EYEBROW = "La prenda de la semana";
@@ -406,8 +410,7 @@ ${articleBlocks}
       ${
         withUnsubscribe
           ? `<div style="font-family:Arial, Helvetica, sans-serif; font-size:11px; color:#bbbbbb; padding-top:12px;">
-        Recibes este correo por ser parte de Hools.
-        <a href="${UNSUBSCRIBE_URL}" style="color:#bbbbbb; text-decoration:underline;">Darse de baja</a>
+        Recibes este correo por ser parte de Hools. ${UNSUBSCRIBE_LINK}
       </div>`
           : ""
       }
