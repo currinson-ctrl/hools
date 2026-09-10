@@ -128,10 +128,10 @@ export default async function NewsletterPage({
       <div className="card">
         <h3>HTML del email — documento completo</h3>
         <p style={{ margin: "8px 0 10px", fontSize: 14, lineHeight: 1.6 }}>
-          Solo si en algún momento montas el correo como <strong>documento entero</strong>, fuera
-          del editor. Lleva su propia línea de baja con la etiqueta{" "}
-          <code>{"{{ unsubscribe }}"}</code>, que hay que sustituir a mano por el bloque de baja
-          del editor.
+          Para <strong>«Crear con código»</strong>, donde el correo es el documento entero. Trae
+          ya las dos variables que Shopify exige ahí: <code>{"{{ unsubscribe_link }}"}</code> en el
+          enlace de baja del pie y <code>{"{{ open_tracking_block }}"}</code> para medir aperturas.
+          Sin ellas, el editor no deja llegar a la pantalla de envío.
         </p>
         <textarea
           readOnly

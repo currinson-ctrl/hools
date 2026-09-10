@@ -327,14 +327,18 @@ El panel da el correo en **dos cajas**:
 - **HTML personalizado** (`htmlFragment`): la normal. Va dentro de una sección
   de HTML personalizado del editor. Sin cabecera de documento y sin línea de
   baja, porque de las dos cosas se encarga el editor.
-- **Documento entero** (`html`): solo si se monta el correo fuera del editor.
-  Lleva su propia línea de baja con `{{ unsubscribe }}`, que hay que sustituir
-  a mano por el bloque de baja.
+- **Documento entero** (`html`): para «Crear con código», donde el correo es
+  el documento completo. Trae las dos variables que Shopify exige ahí:
+  `{{ unsubscribe_link }}` (la URL de baja, dentro de un `href`) y
+  `{{ open_tracking_block }}` (el píxel de aperturas, antes de `</body>`).
+  Sin ellas el editor no deja llegar a la pantalla de envío.
 
 Pegar la segunda donde va la primera deja el correo con **dos enlaces de
-baja**. La etiqueta sale de `UNSUBSCRIBE_TAG` en `src/lib/newsletter.ts`: si
-algún día se envía desde Klaviyo, es `{% unsubscribe %}` y es lo único que hay
-que cambiar.
+baja**. Los nombres de esas variables salen de `UNSUBSCRIBE_URL` y
+`OPEN_TRACKING_BLOCK` en `src/lib/newsletter.ts`, y no se adivinan: no son
+`{{ unsubscribe }}` (que Shopify se come sin avisar, dejando el correo sin
+enlace de baja) ni `{% unsubscribe %}`, que es el de Klaviyo. Si algún día se
+cambia de herramienta, esas dos constantes son lo único que hay que tocar.
 
 Antes de montar la campaña conviene ver el correo en una bandeja de verdad,
 porque Gmail y Outlook recortan CSS que el navegador sí pinta y la vista

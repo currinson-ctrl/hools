@@ -30,7 +30,7 @@ export function isTestEmailConfigured(): boolean {
  */
 function fillUnsubscribePlaceholder(html: string): string {
   return html.replace(
-    /\{[{%]\s*unsubscribe\s*[}%]\}/g,
+    /\{[{%]\s*unsubscribe(_link)?\s*[}%]\}/g,
     '<span style="color:#c0392b;">[aquí pone Shopify el enlace de baja]</span>'
   );
 }
