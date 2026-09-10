@@ -135,17 +135,6 @@
       </div>
     </header>
 
-    {%- comment -%}
-      El CTA de suscripcion solo aparece si tiene destino. Los ajustes de tipo
-      url no admiten valor por defecto (ver theme/README.md), asi que sin
-      enlace no se pinta nada: mejor eso que un boton que no lleva a ningun
-      sitio.
-    {%- endcomment -%}
-    {%- assign show_sub_cta = false -%}
-    {%- if section.settings.sub_cta_url != blank and section.settings.sub_cta_label != blank -%}
-      {%- assign show_sub_cta = true -%}
-    {%- endif -%}
-
     <nav class="hools-catbar hools-catbar--{{ section.settings.sub_cta_position }}" aria-label="Categorías del blog">
       <div class="hools-catbar__row">
         <div class="hools-catbar__inner">
@@ -163,10 +152,50 @@
           {%- endfor -%}
         </div>
 
-        {%- if show_sub_cta -%}
-          <a class="hools-catbar__cta" href="{{ section.settings.sub_cta_url }}">
-            {{ section.settings.sub_cta_label }}
-          </a>
+        {%- comment -%}
+          Alta a la newsletter, aqui mismo y no en otra pagina: cada salto
+          pierde gente, y el correo semanal ya existe.
+
+          form 'customer' es el formulario de suscripcion de Shopify. El
+          contact[tags] con "newsletter" es lo que hace que el alta cuente como
+          suscriptor y no como un contacto suelto: es la etiqueta por la que se
+          filtra la audiencia del envio. Sin ella el correo entra en la ficha
+          del cliente pero no en la lista.
+        {%- endcomment -%}
+        {%- if section.settings.sub_show -%}
+          <div class="hools-sub">
+            {%- form 'customer', class: 'hools-sub__form' -%}
+              <input type="hidden" name="contact[tags]" value="newsletter">
+
+              {%- if form.posted_successfully? -%}
+                <p class="hools-sub__msg hools-sub__msg--ok">
+                  {{ section.settings.sub_success }}
+                </p>
+              {%- else -%}
+                <label class="hools-sub__kicker" for="HoolsSubEmail">
+                  {{ section.settings.sub_label }}
+                </label>
+                <input
+                  class="hools-sub__input"
+                  id="HoolsSubEmail"
+                  type="email"
+                  name="contact[email]"
+                  placeholder="{{ section.settings.sub_placeholder }}"
+                  autocomplete="email"
+                  required
+                >
+                <button class="hools-sub__btn" type="submit">
+                  {{ section.settings.sub_button }}
+                </button>
+              {%- endif -%}
+
+              {%- if form.errors -%}
+                <p class="hools-sub__msg hools-sub__msg--err">
+                  {{ form.errors.translated_fields.email }} {{ form.errors.messages.email }}
+                </p>
+              {%- endif -%}
+            {%- endform -%}
+          </div>
         {%- endif -%}
       </div>
     </nav>
@@ -428,14 +457,14 @@
     overflow-x:auto;
   }
 
-  /* El CTA a la derecha: las categorias se quedan a la izquierda y el hueco
-     que sobra en esa linea, que estaba vacio, pasa a empujarlo al extremo. */
+  /* El alta a la derecha: las categorias se quedan a la izquierda y el hueco
+     que sobra en esa linea, que estaba vacio, pasa a empujarla al extremo. */
   .hools-catbar--right .hools-catbar__inner{ flex:1 1 auto; }
 
-  /* Centrado: el CTA baja a su propia linea. En la misma linea que las
-     categorias no puede centrarse de verdad —quedaria centrado respecto al
-     hueco sobrante, que se mueve segun cuantas categorias haya y en que
-     idioma— y bailaria de una pagina a otra. */
+  /* Centrado: el alta baja a su propia linea. En la misma linea que las
+     categorias no puede centrarse de verdad —quedaria centrada respecto al
+     hueco sobrante, que se mueve segun cuantas categorias tenga la pagina— y
+     bailaria de una a otra. */
   .hools-catbar--center .hools-catbar__row{
     flex-direction:column;
     align-items:stretch;
@@ -444,32 +473,79 @@
 
   .hools-catbar--center .hools-catbar__inner{ justify-content:center; }
 
-  .hools-catbar--center .hools-catbar__cta{
+  .hools-catbar--center .hools-sub{
     align-self:center;
     margin:0 0 12px;
   }
 
-  .hools-catbar__cta{
-    flex:0 0 auto;
+  .hools-sub{ flex:0 0 auto; }
+
+  .hools-sub__form{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin:0;
+    flex-wrap:wrap;
+  }
+
+  .hools-sub__kicker{
+    font-family:var(--hools-sans);
+    font-size:11px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.1em;
+    color:var(--hools-black);
+    white-space:nowrap;
+  }
+
+  .hools-sub__input{
+    font-family:var(--hools-sans);
+    font-size:13px;
+    color:var(--hools-black);
+    background:#fff;
+    border:1px solid rgba(21,21,21,.3);
+    border-radius:0;
+    padding:7px 10px;
+    width:190px;
+    max-width:100%;
+  }
+
+  .hools-sub__input:focus{
+    outline:none;
+    border-color:var(--hools-black);
+  }
+
+  .hools-sub__btn{
     font-family:var(--hools-sans);
     font-size:12px;
     font-weight:700;
     text-transform:uppercase;
     letter-spacing:.1em;
-    text-decoration:none;
     color:#fff;
     background:var(--hools-black);
-    padding:9px 16px;
     border:2px solid var(--hools-black);
+    border-radius:0;
+    padding:7px 14px;
+    cursor:pointer;
     white-space:nowrap;
     transition:background .15s ease, color .15s ease;
   }
 
-  .hools-catbar__cta:hover{
+  .hools-sub__btn:hover{
     background:var(--hools-gold);
     border-color:var(--hools-gold);
     color:var(--hools-black);
   }
+
+  .hools-sub__msg{
+    font-family:var(--hools-sans);
+    font-size:12px;
+    margin:0;
+    white-space:normal;
+  }
+
+  .hools-sub__msg--ok{ color:var(--hools-green); font-weight:700; }
+  .hools-sub__msg--err{ color:#a3231f; }
 
   .hools-catbar__cat{
     font-family:var(--hools-sans);
@@ -753,16 +829,18 @@
   @media (max-width:749px){
     .hools-hero{ padding:20px 16px; }
     .hools-hero__band{ padding:16px 18px; }
-    /* En movil el CTA baja siempre, elija lo que elija el ajuste: en la misma
-       linea deja las categorias sin sitio y las dos cosas se pelean por el
-       scroll horizontal. */
+    /* En movil el alta baja siempre, elija lo que elija el ajuste: en la
+       misma linea deja las categorias sin sitio y las dos cosas se pelean por
+       el scroll horizontal. */
     .hools-catbar__row{
       padding:0 16px;
       flex-direction:column;
       align-items:stretch;
       gap:0;
     }
-    .hools-catbar__cta{ align-self:center; margin:2px 0 12px; }
+    .hools-sub{ align-self:center; margin:2px 0 12px; }
+    .hools-sub__form{ justify-content:center; }
+    .hools-sub__input{ width:min(220px, 60vw); }
     .hools-cover{ padding:20px 16px 0; gap:24px; }
     .hools-cover__pair{
       grid-template-columns:minmax(0,1fr);
@@ -791,8 +869,11 @@
     { "type": "text", "id": "hero_seo_title", "label": "Título SEO (H1 real, no visible)", "default": "Cultura terrace y fútbol casual: la historia que se escribe en el sector visitante" },
 
     { "type": "header", "content": "Suscripción a la newsletter" },
-    { "type": "text", "id": "sub_cta_label", "label": "Texto del botón", "default": "La grada al día" },
-    { "type": "url", "id": "sub_cta_url", "label": "Enlace del botón", "info": "Sin enlace el botón no aparece. Apunta a la página donde esté el formulario de suscripción." },
+    { "type": "checkbox", "id": "sub_show", "label": "Mostrar el formulario", "default": true },
+    { "type": "text", "id": "sub_label", "label": "Reclamo", "default": "La grada al día" },
+    { "type": "text", "id": "sub_placeholder", "label": "Texto del campo vacío", "default": "tu correo" },
+    { "type": "text", "id": "sub_button", "label": "Texto del botón", "default": "Suscribirme" },
+    { "type": "text", "id": "sub_success", "label": "Mensaje al suscribirse", "default": "Dentro. Nos vemos el domingo." },
     { "type": "select", "id": "sub_cta_position", "label": "Dónde va", "default": "right", "options": [
       { "value": "right", "label": "A la derecha de las categorías" },
       { "value": "center", "label": "Centrado, en su propia línea" }

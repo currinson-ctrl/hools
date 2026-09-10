@@ -26,8 +26,8 @@ mantiene el editor y contiene toda la portada de la tienda, no solo el hero.
 Los dos `templates/*.json` están aquí porque guardan ajustes que **el schema de
 la sección no puede reponer**: los `image_picker` y los `url` no admiten valor
 por defecto, así que la foto de fondo de la cabecera, las tres colecciones del
-CTA y **el enlace del botón de suscripción** solo existen dentro de esos JSON.
-Si se recrean sin ellos, esas piezas se quedan en blanco sin que nada avise.
+CTA solo existen dentro de esos JSON. Si se recrean sin ellos, esas piezas se
+quedan en blanco sin que nada avise.
 
 > **El JSON de la portada lo mantiene el editor de temas, y lo guarda
 > minificado.** Su copia de aquí está formateada para que el diff se lea, así
@@ -54,30 +54,39 @@ no con las de serie del tema (`main-blog` / `main-article`).
 > resultado es una franja estirada. Si ves eso en un artículo, lo primero que
 > hay que mirar es su `templateSuffix`.
 
-## Botón de suscripción a la newsletter
+## Alta a la newsletter en la portada del blog
 
-La barra de categorías de la portada del blog (`hools-catbar`) lleva un botón
-de suscripción. Se configura en el editor de temas, en la sección **Hools Blog
-Cover** → «Suscripción a la newsletter»:
+La barra de categorías (`hools-catbar`) lleva el formulario de suscripción,
+**no un enlace a otra página**: cada salto pierde gente, y el correo semanal ya
+existe.
 
-| Ajuste | Qué hace |
+Es el `{% form 'customer' %}` de Shopify, así que las altas entran en los
+clientes de la tienda como cualquier otra suscripción, sin herramienta
+intermedia.
+
+> **El `contact[tags]` con `newsletter` es lo que hace que el alta cuente.**
+> Esa etiqueta es por la que se filtra la audiencia del envío. Sin ella el
+> correo entra en la ficha del cliente pero **no** en la lista, y quien se
+> suscriba no recibirá nada sin que nada avise.
+
+Se configura en el editor, sección **Hools Blog Cover** → «Suscripción a la
+newsletter»:
+
+| Ajuste | Por defecto |
 | --- | --- |
-| Texto del botón | Por defecto «La grada al día» |
-| Enlace del botón | A dónde lleva. **Sin esto el botón no aparece** |
+| Mostrar el formulario | Sí |
+| Reclamo | «La grada al día» |
+| Texto del campo vacío | «tu correo» |
+| Texto del botón | «Suscribirme» |
+| Mensaje al suscribirse | «Dentro. Nos vemos el domingo.» |
 | Dónde va | A la derecha de las categorías, o centrado en su propia línea |
 
-**El botón no se pinta si el enlace está vacío**, y es a propósito: los ajustes
-de tipo `url` no admiten valor por defecto, así que la alternativa era un botón
-que no lleva a ningún sitio. Si lo subes y no lo ves, lo primero que hay que
-mirar es ese ajuste.
+Son ajustes y no texto escrito en el fichero porque **estos ficheros no se
+despliegan solos**: cambiar una palabra costaría un push al tema.
 
-Hace falta una página con el formulario de suscripción a la que apuntarlo. En
-Shopify, el formulario de newsletter suele estar en el pie; si no hay página
-propia, se puede crear una y meter ahí el bloque de suscripción.
-
-En móvil el botón baja siempre a su propia línea, elija lo que elija el ajuste
-de posición: en la misma línea que las categorías no cabe, y las dos cosas
-acaban peleándose por el scroll horizontal.
+En móvil el formulario baja siempre a su propia línea, elija lo que elija el
+ajuste de posición: en la misma línea que las categorías no cabe, y las dos
+cosas acaban peleándose por el scroll horizontal.
 
 Lo de «centrado» es su propia línea y no la de las categorías. Centrado en la
 misma línea no queda centrado de verdad: lo estaría respecto al hueco que
