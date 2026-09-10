@@ -166,6 +166,11 @@ const UNSUBSCRIBE_TAG = "{{ unsubscribe }}";
 const DEFAULT_EYEBROW = "La prenda de la semana";
 const DEFAULT_CTA = "Ver en la tienda";
 
+// Ojo al meter esto en un href: los & tienen que salir como &amp;, o el HTML
+// es invalido. Los navegadores y los clientes de correo lo perdonan, asi que
+// la vista previa engaña; el validador de Shopify no, y rechaza el correo
+// entero con un error por cada enlace. De ahi que todos los href pasen por
+// escapeHtml, que es quien hace esa conversion.
 const UTM = "utm_source=newsletter&utm_medium=email&utm_campaign=resumen-semanal";
 
 function stripHtml(input: string): string {
@@ -267,13 +272,13 @@ export async function buildWeeklyNewsletter(): Promise<WeeklyNewsletter | null> 
       return `
   <tr>
     <td style="padding:28px 32px 0 32px;">
-      <a href="${url}" style="text-decoration:none;">
+      <a href="${escapeHtml(url)}" style="text-decoration:none;">
         ${image}
         <div style="font-family:Georgia, serif; font-size:20px; font-weight:bold; color:#111111; padding-top:12px; line-height:1.3;">${escapeHtml(article.title)}</div>
       </a>
       <div style="font-family:Arial, Helvetica, sans-serif; font-size:14px; line-height:1.6; color:#555555; padding-top:6px;">${escapeHtml(summary)}</div>
       <div style="padding-top:8px;">
-        <a href="${url}" style="font-family:Arial, Helvetica, sans-serif; font-size:13px; font-weight:bold; color:#111111;">Leer la crónica →</a>
+        <a href="${escapeHtml(url)}" style="font-family:Arial, Helvetica, sans-serif; font-size:13px; font-weight:bold; color:#111111;">Leer la crónica →</a>
       </div>
     </td>
   </tr>`;
@@ -363,7 +368,7 @@ ${articleBlocks}
   <tr>
     <td style="padding:24px 32px 0 32px;">
       <div style="font-family:Arial, Helvetica, sans-serif; font-size:12px; color:#999999; letter-spacing:3px; text-transform:uppercase; padding-bottom:12px;">${escapeHtml(eyebrow)}</div>
-      <a href="${productUrl}" style="text-decoration:none;">
+      <a href="${escapeHtml(productUrl)}" style="text-decoration:none;">
         <img src="${escapeHtml(product.imageUrl)}" alt="${escapeHtml(product.title)}" width="536" style="width:100%; height:auto; display:block; border:0;">
         <div style="font-family:Georgia, serif; font-size:22px; font-weight:bold; color:#111111; padding-top:12px;">${escapeHtml(product.title)}</div>
       </a>
@@ -377,7 +382,7 @@ ${articleBlocks}
       <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:14px;">
         <tr>
           <td style="background-color:#111111; padding:12px 28px;">
-            <a href="${productUrl}" style="font-family:Arial, Helvetica, sans-serif; font-size:14px; font-weight:bold; color:#ffffff; text-decoration:none; letter-spacing:1px; text-transform:uppercase;">${escapeHtml(cta)}</a>
+            <a href="${escapeHtml(productUrl)}" style="font-family:Arial, Helvetica, sans-serif; font-size:14px; font-weight:bold; color:#ffffff; text-decoration:none; letter-spacing:1px; text-transform:uppercase;">${escapeHtml(cta)}</a>
           </td>
         </tr>
       </table>
@@ -389,9 +394,9 @@ ${articleBlocks}
     <td style="padding:36px 32px 28px 32px; text-align:center;">
       <div style="font-family:Georgia, serif; font-size:14px; font-style:italic; color:#111111;">Return to the Origins</div>
       <div style="font-family:Arial, Helvetica, sans-serif; font-size:12px; color:#999999; padding-top:10px;">
-        <a href="https://${publicDomain}?${UTM}" style="color:#999999;">hoolsbrand.com</a>
+        <a href="${escapeHtml(`https://${publicDomain}?${UTM}`)}" style="color:#999999;">hoolsbrand.com</a>
         &nbsp;·&nbsp;
-        <a href="https://${publicDomain}/blogs/${blogHandle}?${UTM}" style="color:#999999;">The Away End</a>
+        <a href="${escapeHtml(`https://${publicDomain}/blogs/${blogHandle}?${UTM}`)}" style="color:#999999;">The Away End</a>
       </div>
       ${
         withUnsubscribe
