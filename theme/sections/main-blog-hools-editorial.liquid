@@ -454,7 +454,17 @@
   .hools-catbar__inner{
     display:flex;
     gap:4px;
+
+    /* Las categorias se deslizan a lo ancho cuando no caben, pero NUNCA a lo
+       alto. Sin el overflow-y, el -2px con el que la pestaña activa solapa el
+       borde de la barra cuenta como desbordamiento y el navegador dibuja una
+       barra de desplazamiento vertical —con sus flechitas— dentro de la barra
+       de categorias. El padding le da los 2px donde caer sin recortarse, y el
+       margin negativo los devuelve para que el solape siga igual. */
     overflow-x:auto;
+    overflow-y:hidden;
+    padding-bottom:2px;
+    margin-bottom:-2px;
   }
 
   /* El alta a la derecha: las categorias se quedan a la izquierda y el hueco
