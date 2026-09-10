@@ -148,6 +148,18 @@ const HEADER_IMAGES: Array<{ url: string; alt: string }> = [
     url: "https://cdn.shopify.com/s/files/1/0988/6364/5011/files/theclassic_den_1.jpg?v=1789028749",
     alt: "Grada cantando de noche, con el polo The Classic de Hools en primer plano",
   },
+  {
+    url: "https://cdn.shopify.com/s/files/1/0988/6364/5011/files/corner.jpg?v=1789037038",
+    alt: "Aficionado con el polo The Corner de Hools en la grada",
+  },
+  {
+    url: "https://cdn.shopify.com/s/files/1/0988/6364/5011/files/mestalla_corner.jpg?v=1789037038",
+    alt: "Grada de Mestalla, con el polo The Corner de Hools",
+  },
+  {
+    url: "https://cdn.shopify.com/s/files/1/0988/6364/5011/files/away_theaway.jpg?v=1789037039",
+    alt: "Aficionado con el polo Away de Hools en el sector visitante",
+  },
 ];
 
 // Variables que Shopify Email exige en un correo escrito a codigo. No son
