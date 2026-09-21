@@ -14,6 +14,7 @@ import {
 import { isTwitterConfigured } from "@/lib/twitter";
 import { isShopifyConfigured } from "@/lib/shopify";
 import { MediaUploader } from "../../media-uploader";
+import { MAX_HASHTAGS } from "@/lib/hashtags";
 
 // Publicar (Shopify + X + Instagram; un video de story tarda en procesarse)
 // puede superar los 60s por defecto; mismo margen que /dashboard.
@@ -135,6 +136,11 @@ export default async function ArticleReviewPage({
           Pie de foto de Instagram (si se deja vacío, se usa el texto del tuit)
         </label>
         <textarea id="igCaption" name="igCaption" defaultValue={article.igCaption || ""} />
+        <div className="meta">
+          Tuit y pie de Instagram salen con {MAX_HASHTAGS} hashtags como máximo: si hay más, al
+          guardar se conservan los {MAX_HASHTAGS} mejores (primero los propios de la noticia,
+          luego los de la categoría) y se borran el resto.
+        </div>
 
         <div className="row">
           <button className="primary" type="submit">

@@ -65,6 +65,27 @@ Las noticias manuales cuelgan de una fuente interna ("Redacción Hools") que
 se crea sola, nace pausada para que el rastreo la ignore y no aparece en
 `/dashboard/sources`: no hay nada que configurar en ella.
 
+### Hashtags: cuatro como máximo
+
+Ninguna publicación sale con más de **4 hashtags** — ni el tuit, ni el pie de
+Instagram, ni el texto de Facebook. El tope está en `src/lib/hashtags.ts`
+(`MAX_HASHTAGS`) y se aplica al generar el borrador, al guardar una edición en
+el panel y otra vez justo antes de publicar, así que da igual de dónde venga
+el texto (Claude, la caja de noticia manual o una edición a mano).
+
+Si hay más de cuatro, no se cortan por orden: se quedan **los mejores**, en
+este orden de preferencia (y siempre sin repetir uno ya puesto):
+
+1. Los **propios de la noticia** — los que recogen una palabra del titular
+   (club, ciudad, competición): son los que de verdad la hacen encontrable.
+2. Los **curados de la categoría** (`CATEGORY_HASHTAGS` en `src/lib/sources.ts`),
+   que identifican la cuenta aunque la noticia no aporte ninguno propio.
+3. El resto (los genéricos), por orden de aparición.
+
+Los que sobran se borran del texto conservando el sitio y la forma de los que
+se quedan. A Claude ya se le pide un pie de Instagram de 4 hashtags como
+mucho; el recorte es la red por si se pasa.
+
 ### Fotos y vídeos: cómo se suben
 
 Los mismos dos campos están en la caja de noticia manual y en la ficha de

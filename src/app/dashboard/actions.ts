@@ -37,6 +37,7 @@ import { sendTestNewsletter } from "@/lib/email";
 import { MAX_RESULTS } from "@/lib/twitter-source";
 import { getManualSource, MANUAL_GUID_PREFIX, MANUAL_SOURCE_NAME } from "@/lib/manual";
 import { buildBlogArticleUrl, buildCtaHtml, CATEGORY_HASHTAGS } from "@/lib/sources";
+import { limitHashtags } from "@/lib/hashtags";
 import { ArticleStatus, Category, SourceType } from "@prisma/client";
 
 function withError(basePath: string, message: string): never {
@@ -48,8 +49,8 @@ export async function updateArticleAction(formData: FormData) {
   const id = String(formData.get("id"));
   const title = String(formData.get("title") || "").trim();
   const excerpt = String(formData.get("excerpt") || "").trim();
-  const tweetText = String(formData.get("tweetText") || "").trim();
-  const igCaption = String(formData.get("igCaption") || "").trim();
+  let tweetText = String(formData.get("tweetText") || "").trim();
+  let igCaption = String(formData.get("igCaption") || "").trim();
   const imageUrl = String(formData.get("imageUrl") || "").trim();
   const videoUrl = String(formData.get("videoUrl") || "").trim();
 
@@ -67,6 +68,11 @@ export async function updateArticleAction(formData: FormData) {
 
   const article = await prisma.article.findUnique({ where: { id } });
   if (!article) withError(`/dashboard/articles/${id}`, "Artículo no encontrado");
+
+  // Tambien vale para el texto escrito a mano en el panel: se publique como
+  // se publique, no salen mas de MAX_HASHTAGS hashtags.
+  tweetText = limitHashtags(tweetText, { category: article!.category, title });
+  igCaption = limitHashtags(igCaption, { category: article!.category, title });
 
   if (article!.status === "PUBLISHED" && article!.shopifyArticleId) {
     try {
@@ -239,6 +245,11 @@ export async function approveArticleAction(formData: FormData) {
     if (withMention.length <= 256) tweetText = withMention;
   }
 
+  // Ultima red antes de salir a la calle: da igual de donde venga el texto
+  // (modelo, edicion manual, menciones añadidas aqui), a X/Facebook no van
+  // mas de MAX_HASHTAGS hashtags.
+  tweetText = limitHashtags(tweetText, { category: article!.category, title: article!.title });
+
   try {
     const { shopifyArticleId, handle } = await publishArticleToShopify({
       title: article!.title,
@@ -274,7 +285,7 @@ export async function approveArticleAction(formData: FormData) {
         // En Facebook si tiene sentido el enlace (a diferencia de Instagram),
         // asi que se manda el texto del tuit + la URL del articulo.
         const fbUrl = buildBlogArticleUrl(handle, "facebook");
-        facebookPostId = await postToFacebook(article!.tweetText, fbUrl, article!.imageUrl);
+        facebookPostId = await postToFacebook(tweetText, fbUrl, article!.imageUrl);
       } catch (fbErr) {
         console.error("Fallo al publicar en Facebook:", fbErr);
         warnings.push(`Facebook: ${fbErr instanceof Error ? fbErr.message : String(fbErr)}`);
@@ -290,7 +301,10 @@ export async function approveArticleAction(formData: FormData) {
         // y sin @menciones de X, que en IG apuntarian a otra cuenta); si no,
         // el texto del tuit. Con la atribucion de la fuente al final. Las
         // stories no lo usan: ahi la API no admite texto.
-        const caption = article!.igCaption?.trim() || tweetText;
+        const caption = limitHashtags(article!.igCaption?.trim() || tweetText, {
+          category: article!.category,
+          title: article!.title,
+        });
         const sourceCredit =
           article!.source.type === "X_ACCOUNT"
             ? `📸 Fuente: @${article!.source.feedUrl} (en X)`
@@ -1157,7 +1171,7 @@ export async function createManualArticleAction(formData: FormData) {
 
   const mentions = mentionedGroups.map((g) => `@${g.handle}`).join(" ");
   const secondLine = [mentions, CATEGORY_HASHTAGS[category].join(" ")].filter(Boolean).join(" ");
-  const rawTweet = customTweet || `${title}\n\n${secondLine}`;
+  const rawTweet = limitHashtags(customTweet || `${title}\n\n${secondLine}`, { category, title });
   const tweetText =
     rawTweet.length > MANUAL_TWEET_CHARS
       ? rawTweet.slice(0, MANUAL_TWEET_CHARS - 1).trimEnd() + "…"
@@ -1175,7 +1189,7 @@ export async function createManualArticleAction(formData: FormData) {
       title,
       excerpt,
       tweetText,
-      igCaption: igCaption || null,
+      igCaption: limitHashtags(igCaption, { category, title }) || null,
       // Sin foto propia, la portada del video hace de imagen destacada: es lo
       // que usan la ficha del blog, la story y la miniatura del tuit.
       imageUrl: imageUrl || videoPreviewUrl || null,

@@ -1,6 +1,7 @@
 import Parser from "rss-parser";
 import type { Category, Source } from "@prisma/client";
 import { CATEGORY_HASHTAGS, CATEGORY_IMAGE_HINT } from "./sources";
+import { limitHashtags } from "./hashtags";
 import { buildArticleHtml } from "./article-html";
 
 export { escapeHtml } from "./article-html";
@@ -211,7 +212,7 @@ export async function buildDraft(
   const mentions = mentionedGroups.map((g) => `@${g.handle}`).join(" ");
   const secondLine = [mentions, hashtags].filter(Boolean).join(" ");
   const tweetText = truncate(
-    `${esTitle}\n\n${secondLine}`,
+    limitHashtags(`${esTitle}\n\n${secondLine}`, { category, title: esTitle }),
     MAX_TWEET_CHARS - 24 // deja hueco para el enlace que se añade al publicar
   );
 
@@ -238,7 +239,11 @@ export async function buildDraft(
       title: esTitle,
       excerpt,
       tweetText,
-      igCaption: translated.igCaption,
+      // El pie de Instagram viene del modelo, que a veces se pasa de
+      // hashtags: se recorta a los cuatro mejores antes de guardarlo.
+      igCaption: translated.igCaption
+        ? limitHashtags(translated.igCaption, { category, title: esTitle })
+        : translated.igCaption,
       imageUrl,
       tags: [category, source.name].join(","),
       category,

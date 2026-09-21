@@ -3,6 +3,7 @@ import { CATEGORY_LABEL } from "@/lib/sources";
 import { isShopifyConfigured } from "@/lib/shopify";
 import { createManualArticleAction } from "../actions";
 import { MediaUploader } from "../media-uploader";
+import { MAX_HASHTAGS } from "@/lib/hashtags";
 
 // Maquetar el texto con Claude puede pasar de los 60s por defecto; mismo
 // margen que el resto del panel. (La foto y el vídeo ya no cuentan aquí: los
@@ -119,6 +120,10 @@ export default async function NewArticlePage({
             style={{ minHeight: 80 }}
             placeholder="Si lo dejas vacío se usa el titular con los hashtags de la categoría."
           />
+          <div className="meta" style={{ marginTop: 6 }}>
+            Máximo {MAX_HASHTAGS} hashtags: si pones más, al guardar se quedan los{" "}
+            {MAX_HASHTAGS} mejores (los de la noticia antes que los genéricos).
+          </div>
 
           <label htmlFor="igCaption">Pie de foto de Instagram (opcional)</label>
           <textarea
@@ -127,6 +132,9 @@ export default async function NewArticlePage({
             style={{ minHeight: 80 }}
             placeholder="Si lo dejas vacío se usa el texto del tuit."
           />
+          <div className="meta" style={{ marginTop: 6 }}>
+            Mismo tope de {MAX_HASHTAGS} hashtags que en el tuit.
+          </div>
 
           <div className="row">
             <button className="primary" type="submit">
