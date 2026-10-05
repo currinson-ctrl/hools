@@ -27,6 +27,20 @@ para ver el diseño sin esperar al primer envío.
 | El dato / La tendencia | Una cifra llamativa de la quincena y el patrón que se repite |
 | Radar del sector | Noticias AV relevantes fuera de las 5 marcas |
 | Agenda | Cuenta atrás a las próximas ferias (ISE, InfoComm…) |
+| Fuentes de esta edición | Índice numerado con medio, fecha, titular y enlace de cada noticia |
+
+Cada noticia lleva además, bajo el titular, su línea **FUENTE** (medio ·
+dominio · fecha) con enlace al original, y la imagen destacada indica de
+qué medio sale.
+
+## Versiones descargables
+
+Cada edición se guarda en dos formatos en `ediciones/`:
+
+- `AAAA-MM-DD.html` — con los logos dentro: se descarga y se abre en
+  cualquier navegador, sin conexión.
+- `AAAA-MM-DD.pdf` — A4, listo para imprimir o reenviar. Además va adjunto
+  en el correo y en el artefacto de cada ejecución de Actions.
 
 ## Cómo funciona
 
@@ -38,7 +52,7 @@ Viernes 06:00 UTC (GitHub Actions)
        ├─ Claude elige, clasifica y redacta en español con la «Lectura LAIA»
        ├─ HTML para correo (tablas + estilos en línea, adaptado a móvil)
        ├─ Envío por Resend a la lista de destinatarios (en copia oculta)
-       └─ Archivo en laia-newsletter/ediciones/AAAA-MM-DD.html (+ artefacto descargable)
+       └─ Archivo en laia-newsletter/ediciones/AAAA-MM-DD.html y .pdf (+ artefacto descargable)
 ```
 
 Sin dependencias: solo Node 20+ (`fetch` nativo). Si Claude falla, sale una
@@ -79,7 +93,7 @@ edición básica con los titulares originales en vez de no salir.
 ## En local
 
 ```bash
-node laia-newsletter/generate.mjs --force          # genera con red real
+node laia-newsletter/generate.mjs --force --pdf    # genera con red real (+ PDF; CHROME_PATH si hace falta)
 node laia-newsletter/generate.mjs --fixture laia-newsletter/fixtures/muestra.json \
      --date 2026-10-09 --out laia-newsletter/muestra.html   # sin red
 ```

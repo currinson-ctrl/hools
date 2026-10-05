@@ -45,7 +45,26 @@ function button(item, solid = false) {
   return `<a href="${esc(item.link)}" style="${style}display:inline-block;font:600 13px/1 ${B};text-decoration:none;padding:10px 18px;border-radius:16px;">Leer en ${esc(item.source || "la fuente")} &rarr;</a>`;
 }
 
-const dateTag = (d) => `<span style="font:400 12px ${B};color:${C.grey};">&nbsp;&nbsp;${shortDate(d)}</span>`;
+const domain = (url) => {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "";
+  }
+};
+
+// De dónde viene la noticia: medio, dominio y fecha, siempre a la vista.
+function sourceLine(item, onDark = false) {
+  const color = onDark ? "#FFFFFF" : C.grey;
+  const strong = onDark ? "#FFFFFF" : C.ink;
+  const d = domain(item.link);
+  return `<div style="font:400 12px/1.5 ${B};color:${color};margin-top:6px;">
+    <span style="font:600 10px/1 ${B};letter-spacing:.12em;text-transform:uppercase;color:${onDark ? "#FFFFFF" : C.red};">Fuente</span>&nbsp;
+    <a href="${esc(item.link)}" style="color:${strong};font-weight:600;text-decoration:none;">${esc(item.source || d)}</a>${
+      d && d !== (item.source || "").toLowerCase() ? ` &middot; ${esc(d)}` : ""
+    }${item.date ? ` &middot; ${fmtDate(item.date)}` : ""}
+  </div>`;
+}
 
 function lectura(text, strong = false) {
   if (!text) return "";
@@ -63,8 +82,8 @@ function lectura(text, strong = false) {
 // Título de sección como los de la guía: titular en Mandau, una palabra en
 // Laia Red, y una línea fina roja a la derecha.
 function sectionTitle(kicker, title, highlight = "") {
-  return `<tr><td class="px" style="padding:36px 32px 14px;">
-    <div style="font:300 12px/1 ${B};letter-spacing:.18em;text-transform:uppercase;color:${C.grey};">${esc(kicker)}</div>
+  return `<tr class="sec"><td class="px" style="padding:36px 32px 14px;">
+    <div class="keepnext" style="font:300 12px/1 ${B};letter-spacing:.18em;text-transform:uppercase;color:${C.grey};">${esc(kicker)}</div>
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top:8px;"><tr>
       <td class="st" style="font:700 24px/1.15 ${H};letter-spacing:-.01em;color:${C.ink};white-space:nowrap;padding-right:14px;">${esc(title)}${
         highlight ? ` <span style="color:${C.red};">${esc(highlight)}</span>` : ""
@@ -130,7 +149,8 @@ function featured(item) {
   if (!item) return "";
   const b = brandOf(item.marca);
   const img = item.image
-    ? `<tr><td style="padding:10px 10px 0;"><a href="${esc(item.link)}"><img src="${esc(item.image)}" alt="" width="556" style="display:block;width:100%;max-width:556px;height:auto;border:0;border-radius:8px;"></a></td></tr>`
+    ? `<tr><td style="padding:10px 10px 0;"><a href="${esc(item.link)}"><img src="${esc(item.image)}" alt="" width="556" style="display:block;width:100%;max-width:556px;height:auto;border:0;border-radius:8px;"></a>
+        <div style="font:400 11px/1.4 ${B};color:${C.grey};padding:6px 4px 0;">Imagen: ${esc(item.source || domain(item.link))}</div></td></tr>`
     : "";
   return `${sectionTitle("La noticia de la quincena", "En", "portada")}
   <tr><td class="px" style="padding:0 32px;">
@@ -138,10 +158,11 @@ function featured(item) {
       ${img}
       <tr><td style="padding:22px 24px 24px;">
         <div>${b ? pill(b.name) : ""} ${item.categoria ? pill(item.categoria, { bg: C.white, color: C.ink, border: C.line }) : ""}</div>
-        <a href="${esc(item.link)}" style="text-decoration:none;"><div style="font:700 25px/1.15 ${H};letter-spacing:-.01em;color:${C.ink};margin:14px 0 10px;">${esc(item.titulo)}</div></a>
-        <div style="font:400 15px/1.55 ${B};color:${C.ink};">${esc(item.resumen)}</div>
+        <a href="${esc(item.link)}" style="text-decoration:none;"><div style="font:700 25px/1.15 ${H};letter-spacing:-.01em;color:${C.ink};margin:14px 0 0;">${esc(item.titulo)}</div></a>
+        ${sourceLine(item)}
+        <div style="font:400 15px/1.55 ${B};color:${C.ink};margin-top:10px;">${esc(item.resumen)}</div>
         ${lectura(item.lectura_laia, true)}
-        <div style="margin-top:18px;">${button(item, true)}${dateTag(item.date)}</div>
+        <div style="margin-top:18px;">${button(item, true)}</div>
       </td></tr>
     </table>
   </td></tr>`;
@@ -151,10 +172,11 @@ function newsCard(item) {
   return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:12px;background:${C.white};border-radius:8px;"><tr>
     <td style="padding:18px 20px;">
       <div>${item.categoria ? pill(item.categoria, { bg: C.white, color: C.ink, border: C.line }) : ""} ${impactPill(item.impacto)}</div>
-      <a href="${esc(item.link)}" style="text-decoration:none;"><div style="font:700 18px/1.2 ${H};letter-spacing:-.01em;color:${C.ink};margin:12px 0 6px;">${esc(item.titulo)}</div></a>
-      <div style="font:400 14px/1.55 ${B};color:${C.ink};">${esc(item.resumen)}</div>
+      <a href="${esc(item.link)}" style="text-decoration:none;"><div style="font:700 18px/1.2 ${H};letter-spacing:-.01em;color:${C.ink};margin:12px 0 0;">${esc(item.titulo)}</div></a>
+      ${sourceLine(item)}
+      <div style="font:400 14px/1.55 ${B};color:${C.ink};margin-top:8px;">${esc(item.resumen)}</div>
       ${lectura(item.lectura_laia)}
-      <div style="margin-top:14px;">${button(item)}${dateTag(item.date)}</div>
+      <div style="margin-top:14px;">${button(item)}</div>
     </td></tr></table>`;
 }
 
@@ -169,7 +191,7 @@ function byBrand(edition) {
             isFeatured ? "Su gran movimiento de la quincena está en portada." : "Sin movimientos relevantes en el mercado AV esta quincena."
           }</div>`;
       return `<tr><td class="px" style="padding:8px 32px 4px;">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:12px;"><tr>
+        <table class="keepnext" role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:12px;"><tr>
           <td style="white-space:nowrap;padding-right:12px;"><span style="color:${C.red};font:700 14px/1 ${H};">&#9632;</span> <span style="font:700 16px/1 ${H};color:${C.ink};text-transform:uppercase;letter-spacing:.06em;">${esc(b.name)}</span></td>
           <td width="100%" valign="middle"><div style="height:1px;background:${C.line};font-size:0;line-height:0;">&nbsp;</div></td>
         </tr></table>
@@ -188,7 +210,7 @@ function datoYTendencia(edition) {
         <div style="font:300 11px/1 ${B};letter-spacing:.16em;text-transform:uppercase;color:#FFFFFF;">El dato</div>
         <div style="font:700 44px/1 ${H};letter-spacing:-.02em;color:#FFFFFF;margin:14px 0 10px;">${esc(dato.cifra)}</div>
         <div style="font:400 13px/1.45 ${B};color:#FFFFFF;">${esc(dato.texto)}</div>
-        <div style="margin-top:12px;"><a href="${esc(dato.link)}" style="font:600 12px ${B};color:#FFFFFF;">Fuente: ${esc(dato.source)}</a></div>
+        <div style="margin-top:12px;"><a href="${esc(dato.link)}" style="font:600 12px ${B};color:#FFFFFF;">Fuente: ${esc(dato.source)}${domain(dato.link) ? ` (${esc(domain(dato.link))})` : ""}</a></div>
       </td>`
     : "";
   const tendCell = tendencia
@@ -210,7 +232,8 @@ function radar(items) {
       (n, i) => `<tr><td valign="top" style="padding:14px 14px 14px 0;font:700 22px/1 ${H};color:${C.red};width:30px;">${String(i + 1).padStart(2, "0")}</td>
       <td style="padding:14px 0;border-bottom:1px solid ${C.line};">
         <a href="${esc(n.link)}" style="text-decoration:none;font:700 16px/1.25 ${H};color:${C.ink};">${esc(n.titulo)}</a>
-        <div style="font:400 13px/1.5 ${B};color:${C.grey};margin-top:4px;">${esc(n.resumen)} <span style="white-space:nowrap;">&middot; ${esc(n.source)}</span></div>
+        <div style="font:400 13px/1.5 ${B};color:${C.grey};margin-top:4px;">${esc(n.resumen)}</div>
+        ${sourceLine(n)}
       </td></tr>`
     )
     .join("");
@@ -240,14 +263,37 @@ function agendaBlock(today) {
   <tr><td class="px" style="padding:0 26px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>${cells}</tr></table></td></tr>`;
 }
 
+// Índice de todas las fuentes de la edición, para saber de dónde sale cada
+// noticia aunque se imprima o se reenvíe sin los enlaces.
+function sourcesBlock(edition) {
+  const items = [edition.destacada, ...edition.noticias, ...(edition.radar || []), edition.dato].filter(Boolean);
+  if (!items.length) return "";
+  const rows = items
+    .map(
+      (n, i) => `<tr>
+        <td valign="top" style="padding:7px 10px 7px 0;font:700 13px/1.4 ${H};color:${C.red};width:22px;">${i + 1}</td>
+        <td style="padding:7px 0;border-bottom:1px solid ${C.line};font:400 12px/1.45 ${B};color:${C.ink};">
+          <span style="font-weight:600;">${esc(n.source || domain(n.link))}</span> &middot; ${n.date ? fmtDate(n.date) : ""}<br>
+          <span style="color:${C.grey};">${esc(n.titulo || n.texto || "")}</span><br>
+          <a href="${esc(n.link)}" style="color:${C.red};text-decoration:none;word-break:break-all;">${esc(n.link)}</a>
+        </td></tr>`
+    )
+    .join("");
+  return `${sectionTitle("De dónde vienen las noticias", "Fuentes de esta", "edición")}
+  <tr><td class="px" style="padding:0 32px;">
+    <div style="font:300 13px/1.55 ${B};color:${C.ink};margin-bottom:8px;">Cada noticia se ha recogido de los medios indicados (prensa AV especializada, notas de prensa de los fabricantes y buscadores de noticias) y se ha resumido en español. Los titulares de esta edición son una adaptación, no la cita literal del medio.</div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0">${rows}</table>
+  </td></tr>`;
+}
+
 // Barra azul oscuro obligatoria al pie: logo | web | «A European Company».
 function footer(meta) {
-  return `<tr><td class="px" style="padding:34px 32px 18px;">
-    <div style="font:300 12px/1.6 ${B};color:${C.grey};text-align:center;">
+  return `<tr class="sec"><td class="px" style="padding:34px 32px 18px;">
+    <div class="nobreak" style="font:300 12px/1.6 ${B};color:${C.grey};text-align:center;">
       ${esc(brand.newsletterName)} es un boletín interno de ${esc(brand.name)} que se elabora automáticamente cada quincena a partir de prensa AV especializada y buscadores de noticias. Los resúmenes y la «Lectura ${esc(brand.name)}» son orientativos: contrasta con la fuente antes de usarlos con clientes.
     </div>
   </td></tr>
-  <tr><td style="background:${C.ink};border-radius:0 0 8px 8px;padding:16px 28px;">
+  <tr class="foot"><td style="background:${C.ink};border-radius:0 0 8px 8px;padding:16px 28px;">
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
       <td valign="middle" width="33%"><img src="${esc(meta.asset(brand.logos.white))}" alt="${esc(brand.name)}" height="26" style="display:block;height:26px;width:auto;border:0;"></td>
       <td valign="middle" align="center" width="34%"><a href="${esc(brand.website)}" style="font:400 12px ${B};color:#FFFFFF;text-decoration:none;">${esc(brand.website.replace(/^https?:\/\//, ""))}</a></td>
@@ -268,6 +314,18 @@ export function renderNewsletter(edition, meta) {
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
 <style>
   /* Solo para móviles; los clientes que ignoran <style> ven la versión de 640 px. */
+  @media print {
+    @page { size: A4; margin: 10mm 0; }
+    body, table, td, div { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    /* El contenedor pasa a bloques para que funcionen los saltos de página:
+       cada título se queda con lo que le sigue y nada se parte a medias. */
+    .wrap, .wrap > tbody, .wrap > tbody > tr, .wrap > tbody > tr > td { display: block; }
+    .wrap { margin: 0 auto; }
+    .wrap table { break-inside: avoid; page-break-inside: avoid; }
+    .sec, .keepnext { break-after: avoid; page-break-after: avoid; }
+    .nobreak { break-inside: avoid; page-break-inside: avoid; }
+    .foot { break-before: avoid; page-break-before: avoid; }
+  }
   @media (max-width: 520px) {
     .px { padding-left: 16px !important; padding-right: 16px !important; }
     .therm td { padding-left: 1px !important; padding-right: 1px !important; }
@@ -283,7 +341,7 @@ export function renderNewsletter(edition, meta) {
 <body style="margin:0;padding:0;background-color:${C.soft};">
 <div style="display:none;max-height:0;overflow:hidden;">${esc(edition.editorial || edition.portada)}</div>
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:${C.soft};"><tr><td align="center" style="padding:24px 8px;">
-<table role="presentation" width="640" cellspacing="0" cellpadding="0" style="width:100%;max-width:640px;background-color:${C.soft};background-image:linear-gradient(180deg, #FFFFFF 0%, ${C.soft} 340px);border-radius:8px;">
+<table class="wrap" role="presentation" width="640" cellspacing="0" cellpadding="0" style="width:100%;max-width:640px;background-color:${C.soft};background-image:linear-gradient(180deg, #FFFFFF 0%, ${C.soft} 340px);border-radius:8px;">
 
   ${header(meta)}
   ${hero(edition, period)}
@@ -294,6 +352,7 @@ export function renderNewsletter(edition, meta) {
   ${datoYTendencia(edition)}
   ${radar(edition.radar)}
   ${agendaBlock(meta.date)}
+  ${sourcesBlock(edition)}
   ${footer(meta)}
 
 </table></td></tr></table>

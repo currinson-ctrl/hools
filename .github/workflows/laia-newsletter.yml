@@ -47,21 +47,24 @@ jobs:
           LAIA_SEND_FRIDAYS: ${{ vars.LAIA_SEND_FRIDAYS }}
           LAIA_MODEL: ${{ vars.LAIA_MODEL }}
         run: |
-          args=""
+          # --pdf: Chrome viene instalado en ubuntu-latest.
+          args="--pdf"
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             [ "${{ inputs.force }}" = "true" ] && args="$args --force"
             [ "${{ inputs.send }}" = "true" ] && args="$args --send"
           else
-            args="--send"
+            args="$args --send"
           fi
           node laia-newsletter/generate.mjs $args
 
-      - name: Guardar la edición como artefacto descargable
+      - name: Guardar la edición (HTML + PDF) como artefacto descargable
         if: always() && steps.gen.outputs.generated == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: radar-av-${{ github.run_id }}
-          path: ${{ steps.gen.outputs.file }}
+          path: |
+            ${{ steps.gen.outputs.file }}
+            ${{ steps.gen.outputs.pdf }}
 
       - name: Archivar la edición en el repositorio
         if: always() && steps.gen.outputs.generated == 'true'

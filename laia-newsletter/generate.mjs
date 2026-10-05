@@ -4,13 +4,16 @@
 //   node laia-newsletter/generate.mjs               → solo si hoy toca (2.º/4.º viernes)
 //   node laia-newsletter/generate.mjs --force       → genera hoy aunque no toque
 //   node laia-newsletter/generate.mjs --send        → además lo envía por correo
+//   node laia-newsletter/generate.mjs --pdf         → además genera el PDF (necesita Chrome/Chromium)
 //   node laia-newsletter/generate.mjs --fixture f.json  → sin red: usa una edición ya redactada
 //
-// La edición se guarda en laia-newsletter/ediciones/AAAA-MM-DD.html y la
-// ruta se escribe en la salida estándar (la usa el workflow).
+// La edición se guarda en laia-newsletter/ediciones/AAAA-MM-DD.html (con los
+// logos dentro, así que se puede descargar y abrir en cualquier sitio) y, con
+// --pdf, también AAAA-MM-DD.pdf. La ruta se escribe en la salida estándar.
 
-import { mkdirSync, readdirSync, readFileSync, writeFileSync, appendFileSync } from "node:fs";
-import { dirname, join, relative } from "node:path";
+import { mkdirSync, readdirSync, readFileSync, writeFileSync, appendFileSync, existsSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { brand, competitors, sectorFeeds, sectorQueries, sendFridays } from "./config.mjs";
 import { bingNewsUrl, collect, fetchOgImage, googleNewsUrl } from "./lib/feeds.mjs";
@@ -44,6 +47,28 @@ function sources() {
   }
   for (const f of sectorFeeds) list.push({ label: f.name, url: f.url, name: f.name });
   return list;
+}
+
+// Imprime el HTML a PDF con Chrome sin interfaz. Chrome viene instalado en
+// los runners de GitHub (ubuntu-latest); en local, CHROME_PATH lo indica.
+function printPdf(htmlFile) {
+  const candidates = [process.env.CHROME_PATH, "google-chrome", "google-chrome-stable", "chromium", "chromium-browser"].filter(Boolean);
+  const out = htmlFile.replace(/\.html$/, "") + ".pdf";
+  for (const bin of candidates) {
+    try {
+      execFileSync(
+        bin,
+        ["--headless=new", "--disable-gpu", "--no-sandbox", "--no-pdf-header-footer", "--hide-scrollbars", `--print-to-pdf=${out}`, `file://${resolve(htmlFile)}`],
+        { stdio: "ignore", timeout: 60000 }
+      );
+      if (existsSync(out)) {
+        log(`PDF guardado en ${out}`);
+        return out;
+      }
+    } catch {}
+  }
+  log("No se ha podido generar el PDF (¿falta Chrome? define CHROME_PATH). Sigue sin él.");
+  return null;
 }
 
 async function main() {
@@ -91,15 +116,20 @@ async function main() {
   // La copia archivada enlaza los logos con ruta relativa (se ve al abrirla
   // desde el repo); el correo los lleva adjuntos en línea (cid:) o desde
   // LAIA_ASSETS_URL si existe una URL pública.
+  // La versión archivada/descargable lleva los logos dentro (data:), para que
+  // se vea igual al abrirla desde cualquier ordenador, sin conexión ni repo.
   const html = renderNewsletter(edition, {
     ...meta,
-    asset: (name) => (publicAssets ? `${publicAssets}/${name}` : relative(dirname(file), join(assetsDir, name))),
+    asset: (name) => `data:image/png;base64,${readFileSync(join(assetsDir, name)).toString("base64")}`,
   });
   writeFileSync(file, html);
+  let pdf = null;
+  if (flag("--pdf")) pdf = printPdf(file);
   log(`Edición n.º ${number} guardada en ${file}`);
   log(`Asunto: ${edition.asunto}`);
   setOutput("generated", "true");
   setOutput("file", file);
+  if (pdf) setOutput("pdf", pdf);
 
   if (flag("--send")) {
     const to = (process.env.LAIA_NEWSLETTER_TO || "").split(",").map((s) => s.trim()).filter(Boolean);
@@ -111,6 +141,8 @@ async function main() {
     const attachments = publicAssets
       ? []
       : logos.map((name) => ({ filename: name, content: readFileSync(join(assetsDir, name)).toString("base64"), content_id: name }));
+    // El PDF va como adjunto normal, para guardarlo o reenviarlo.
+    if (pdf) attachments.push({ filename: `Radar-AV-LAIA-${stamp}.pdf`, content: readFileSync(pdf).toString("base64") });
     const id = await sendEmail({ to, subject: edition.asunto, html: emailHtml, attachments });
     log(`Enviado a ${to.length} destinatario(s). Id de Resend: ${id}`);
   }
