@@ -10,9 +10,9 @@
 // ruta se escribe en la salida estándar (la usa el workflow).
 
 import { mkdirSync, readdirSync, readFileSync, writeFileSync, appendFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
-import { competitors, sectorFeeds, sectorQueries, sendFridays } from "./config.mjs";
+import { brand, competitors, sectorFeeds, sectorQueries, sendFridays } from "./config.mjs";
 import { bingNewsUrl, collect, fetchOgImage, googleNewsUrl } from "./lib/feeds.mjs";
 import { selectCandidates } from "./lib/select.mjs";
 import { curate } from "./lib/curate.mjs";
@@ -84,8 +84,17 @@ async function main() {
   const stamp = today.toISOString().slice(0, 10);
   const previous = readdirSync(outDir).filter((f) => /^\d{4}-\d{2}-\d{2}\.html$/.test(f) && f < `${stamp}.html`);
   const number = numberOverride ?? previous.length + 1;
-  const html = renderNewsletter(edition, { number, date: today, since, until, note });
   const file = opt("--out") || join(outDir, `${stamp}.html`);
+  const assetsDir = join(here, "assets");
+  const publicAssets = (process.env.LAIA_ASSETS_URL || "").replace(/\/$/, "");
+  const meta = { number, date: today, since, until, note };
+  // La copia archivada enlaza los logos con ruta relativa (se ve al abrirla
+  // desde el repo); el correo los lleva adjuntos en línea (cid:) o desde
+  // LAIA_ASSETS_URL si existe una URL pública.
+  const html = renderNewsletter(edition, {
+    ...meta,
+    asset: (name) => (publicAssets ? `${publicAssets}/${name}` : relative(dirname(file), join(assetsDir, name))),
+  });
   writeFileSync(file, html);
   log(`Edición n.º ${number} guardada en ${file}`);
   log(`Asunto: ${edition.asunto}`);
@@ -95,7 +104,14 @@ async function main() {
   if (flag("--send")) {
     const to = (process.env.LAIA_NEWSLETTER_TO || "").split(",").map((s) => s.trim()).filter(Boolean);
     if (!to.length) throw new Error("Falta LAIA_NEWSLETTER_TO (destinatarios separados por comas)");
-    const id = await sendEmail({ to, subject: edition.asunto, html });
+    const logos = Object.values(brand.logos);
+    const emailHtml = publicAssets
+      ? html
+      : renderNewsletter(edition, { ...meta, asset: (name) => `cid:${name}` });
+    const attachments = publicAssets
+      ? []
+      : logos.map((name) => ({ filename: name, content: readFileSync(join(assetsDir, name)).toString("base64"), content_id: name }));
+    const id = await sendEmail({ to, subject: edition.asunto, html: emailHtml, attachments });
     log(`Enviado a ${to.length} destinatario(s). Id de Resend: ${id}`);
   }
   console.log(file);

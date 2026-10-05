@@ -43,10 +43,7 @@ jobs:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           LAIA_NEWSLETTER_TO: ${{ secrets.LAIA_NEWSLETTER_TO }}
           LAIA_NEWSLETTER_FROM: ${{ vars.LAIA_NEWSLETTER_FROM }}
-          LAIA_LOGO_URL: ${{ vars.LAIA_LOGO_URL }}
-          LAIA_COLOR_INK: ${{ vars.LAIA_COLOR_INK }}
-          LAIA_COLOR_ACCENT: ${{ vars.LAIA_COLOR_ACCENT }}
-          LAIA_COLOR_ACCENT_SOFT: ${{ vars.LAIA_COLOR_ACCENT_SOFT }}
+          LAIA_ASSETS_URL: ${{ vars.LAIA_ASSETS_URL }}
           LAIA_SEND_FRIDAYS: ${{ vars.LAIA_SEND_FRIDAYS }}
           LAIA_MODEL: ${{ vars.LAIA_MODEL }}
         run: |

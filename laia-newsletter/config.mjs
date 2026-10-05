@@ -5,29 +5,40 @@
 // tiene valores de marca escritos a mano.
 
 // --- Identidad LAIA ---------------------------------------------------------
-// IMPORTANTE: los colores y el logo son PROVISIONALES. Sustitúyelos por los
-// del manual de marca de LAIA (o define las variables de entorno indicadas,
-// que tienen prioridad y evitan tocar el código).
+// Sacada de la «Brand Style Guide» de LAIA (abril de 2024). La misma guía,
+// resumida para cualquier otro trabajo de LAIA, está en
+// .claude/skills/laia-brand/SKILL.md. No cambies colores ni logos a ojo:
+// la guía prohíbe alterar el color del logo.
 export const brand = {
   name: "LAIA",
   newsletterName: "Radar AV",
-  tagline: "Inteligencia de mercado audiovisual para el equipo LAIA",
-  // URL pública (https) del logo en PNG, idealmente blanco sobre transparente
-  // y ~2x del tamaño mostrado (alto 40px → imagen de 80px). Sin logo se pinta
-  // el nombre como logotipo de texto.
-  logoUrl: process.env.LAIA_LOGO_URL || "",
-  website: process.env.LAIA_WEBSITE || "https://laiatech.com",
-  colors: {
-    ink: process.env.LAIA_COLOR_INK || "#0E1A2B", // fondos oscuros (cabecera, portada)
-    accent: process.env.LAIA_COLOR_ACCENT || "#00A3E0", // color principal de marca
-    accentSoft: process.env.LAIA_COLOR_ACCENT_SOFT || "#E6F6FC", // fondo de "Lectura LAIA"
-    paper: "#F3F5F8", // fondo del correo
-    card: "#FFFFFF",
-    text: "#1F2933",
-    muted: "#6B7785",
-    line: "#E2E7ED",
+  slogan: "The AI & IoT Camera Company",
+  signature: "A European Company",
+  tagline: "Inteligencia de mercado AV para el equipo LAIA",
+  website: "https://laiatech.com",
+  // Logos oficiales (PNG transparente, extraídos del vectorial de la guía).
+  // En el correo se adjuntan como imágenes en línea (cid:), o se sirven desde
+  // LAIA_ASSETS_URL si se define (una URL pública con estos mismos ficheros).
+  logos: {
+    color: "logo-color-slogan.png", // cabecera, sobre fondo claro
+    white: "logo-white.png", // barra inferior azul oscuro
   },
-  font: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+  colors: {
+    red: "#E4032C", // Laia Red
+    redDark: "#650F31", // final del degradado Laia
+    ink: "#1B1D24", // Dark Blue: texto y barra inferior
+    grey: "#85878E", // Blue Grey
+    soft: "#EDF0F2", // Soft White
+    white: "#FFFFFF",
+    line: "#D9DDE1",
+  },
+  // Degradado Laia: #e4032c + #650f31, -40°. Se usa para llamar la atención
+  // (marcos con texto, botones), nunca como relleno de todo.
+  gradient: "linear-gradient(130deg, #E4032C 0%, #E4032C 35%, #650F31 100%)",
+  // Mandau para titulares y números (si el equipo la tiene instalada);
+  // Poppins para el resto. Ambas caen a Arial donde no haya fuentes web.
+  fontHead: "Mandau, Poppins, 'Helvetica Neue', Arial, sans-serif",
+  fontBody: "Poppins, 'Helvetica Neue', Arial, sans-serif",
 };
 
 // --- Marcas vigiladas --------------------------------------------------------
@@ -55,14 +66,12 @@ export const competitors = [
   {
     key: "ptzoptics",
     name: "PTZOptics",
-    color: "#E4572E",
     match: /ptz ?optics/i,
     queries: ['"PTZOptics"'],
   },
   {
     key: "aver",
     name: "AVer",
-    color: "#2E86AB",
     // "aver" es una palabra común en español: se exige la marca escrita como
     // tal o un modelo/tema de cámara al lado.
     match: /\bAVer\b|aver information|aver europe/,
@@ -72,14 +81,12 @@ export const competitors = [
   {
     key: "avonic",
     name: "Avonic",
-    color: "#7B2CBF",
     match: /avonic/i,
     queries: ['"Avonic"'],
   },
   {
     key: "logitech",
     name: "Logitech",
-    color: "#00B140",
     match: /logitech/i,
     context: AV_CONTEXT,
     // Solo la división de videocolaboración: ratones, teclados, gaming o
@@ -91,7 +98,6 @@ export const competitors = [
   {
     key: "poly",
     name: "Poly (HP)",
-    color: "#D7263D",
     match: /\bpoly\b|hp poly|poly studio/i,
     context: AV_CONTEXT,
     queries: ['"HP Poly" OR "Poly Studio" OR "Poly VideoOS"', '"Poly" HP (video conferencing OR "meeting room")'],

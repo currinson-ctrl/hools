@@ -1,7 +1,7 @@
 // Envío por Resend (HTTP directo, sin SDK), igual que la prueba del resumen
 // de Hools en src/lib/email.ts.
 
-export async function sendEmail({ to, subject, html }) {
+export async function sendEmail({ to, subject, html, attachments = [] }) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) throw new Error("Falta RESEND_API_KEY");
   const res = await fetch("https://api.resend.com/emails", {
@@ -14,6 +14,8 @@ export async function sendEmail({ to, subject, html }) {
       bcc: to.slice(1),
       subject,
       html,
+      // Imágenes en línea: cada una con content_id = el nombre usado en cid:
+      ...(attachments.length ? { attachments } : {}),
     }),
   });
   const body = await res.json().catch(() => ({}));

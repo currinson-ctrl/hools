@@ -20,7 +20,7 @@ function buildPrompt(candidates, period) {
     )
     .join("\n\n");
 
-  return `Eres el analista de inteligencia de mercado de ${brand.name}, fabricante español de cámaras PTZ y de videoconferencia, micrófonos y altavoces para el canal de integración AV profesional (corporativo, educación, administración pública, producción en directo).
+  return `Eres el analista de inteligencia de mercado de ${brand.name}, fabricante español ("The AI & IoT Camera Company") de cámaras PTZ y de videoconferencia con IA, micrófonos y altavoces, que vende solo a través del canal de integración AV profesional (corporativo, educación, administración pública, producción en directo). Software propio: AICC (control de cámaras con IA, también de otras marcas), CCMS (gestión centralizada de cámaras) e IAVS (integración con audio de terceros). Soporte Prime de hasta 5 años.
 
 Preparas "${brand.newsletterName}", el boletín quincenal interno (${period}) que lee el equipo comercial, de producto y dirección. Vigilamos sobre todo a: ${brands}. También interesa el sector AV profesional en general.
 

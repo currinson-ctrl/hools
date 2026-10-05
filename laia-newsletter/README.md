@@ -1,6 +1,10 @@
 # Radar AV — boletín quincenal de LAIA
 
-Boletín interno de inteligencia de mercado con la identidad de LAIA. Vigila
+Boletín interno de inteligencia de mercado con la identidad de LAIA, según
+su «Brand Style Guide» (Laia Red, degradado rojo, Dark Blue, Mandau +
+Poppins, logos oficiales en `assets/` y barra final con «A European
+Company»). La guía resumida para cualquier otra pieza de LAIA está en
+`.claude/skills/laia-brand/` y empaquetada en `laia-brand.skill`. Vigila
 sobre todo a **PTZOptics, AVer, Avonic, Logitech y Poly (HP)**, más el sector
 AV profesional, y sale solo **el 2.º y el 4.º viernes de cada mes**.
 
@@ -55,18 +59,14 @@ edición básica con los titulares originales en vez de no salir.
    - `LAIA_NEWSLETTER_FROM` — remitente, p. ej. `Radar AV <radar@laiatech.com>`
      (el dominio tiene que estar verificado en Resend; sin esto se usa
      `onboarding@resend.dev`, que solo deja enviar al dueño de la cuenta)
-   - `LAIA_LOGO_URL` — URL https pública del logo en PNG blanco sobre
-     transparente (unos 80 px de alto)
-   - `LAIA_COLOR_INK`, `LAIA_COLOR_ACCENT`, `LAIA_COLOR_ACCENT_SOFT` —
-     colores del manual de marca (hex)
+   - `LAIA_ASSETS_URL` (opcional) — URL pública donde estén los PNG de
+     `assets/`. Sin ella, los logos van adjuntos dentro del correo (cid:),
+     que funciona en Gmail y Outlook sin alojar nada.
    - Opcionales: `LAIA_SEND_FRIDAYS` (por defecto `2,4`), `LAIA_MODEL`
      (por defecto `claude-sonnet-5-5`)
 3. Prueba: *Actions → Boletín Radar AV (LAIA) → Run workflow* con
    `send` desmarcado. Descarga el artefacto y revisa el HTML; cuando guste,
    lánzalo con `send` marcado.
-
-> Los colores y el logo de `config.mjs` son **provisionales** hasta que se
-> pongan los del manual de marca de LAIA.
 
 ## Ajustes habituales (`config.mjs`)
 
