@@ -30,7 +30,8 @@ ${list}
 
 INSTRUCCIONES
 1. Descarta todo lo que no sea AV profesional: periféricos de consumo (ratones, teclados, gaming, auriculares de consumo), bolsa y cotizaciones, ofertas o descuentos de tiendas, notas de prensa irrelevantes, duplicados de la misma noticia (quédate con la mejor fuente) y artículos antiguos reciclados. Si una noticia no es claramente de esta quincena, descártala.
-2. Corrige la marca si la detectada es errónea. "Poly" es la división de HP; "AVer" es AVer Information.
+2. Corrige la marca si la detectada es errónea. POLY es la división de HP; AVER es AVer Information.
+   Escribe SIEMPRE los nombres de marca en MAYÚSCULAS en todos los textos: PTZOPTICS, AVER, AVONIC, LOGITECH, POLY, HP, LAIA (también cualquier otra marca del sector que aparezca: NEAT, YEALINK, SONY...). Los nombres de producto van tal cual (Rally, Rise 4K, Studio X72).
 3. Escribe SIEMPRE en español de España, tono profesional pero ágil, sin bombo. No inventes datos: usa solo lo que dicen titular y extracto. Si el extracto es pobre, resume con prudencia.
 4. "lectura_laia": 1-2 frases con qué significa para ${brand.name} (amenaza, oportunidad, argumento de venta, hueco de producto, movimiento de canal). Concreto y accionable, nunca genérico.
 5. Elige como "destacada" la noticia de mayor impacto competitivo para ${brand.name}.

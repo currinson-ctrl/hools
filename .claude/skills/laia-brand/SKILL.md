@@ -43,6 +43,7 @@ Jerarquía:
 - **Números**: Mandau.
 - **Llamada a la acción**: Poppins Semi-Bold, siempre en **formato botón**: borde fino (0,5 pt), esquinas redondeadas (≈4 mm), margen interior 1 mm vertical × 2 mm horizontal.
 - Interlineado corto y tracking ligeramente negativo (−5).
+- **Marcas en MAYÚSCULAS**: en el texto, los nombres de marca se escriben siempre en mayúsculas (LAIA, PTZOPTICS, AVER, AVONIC, LOGITECH, POLY, HP, SONY, YEALINK, NEAT…). Los nombres de producto, tal cual (Rally, Rise 4K, Studio X72, C-Pro). Nunca en las URL.
 - El texto mezcla **Dark Blue** con palabras clave en **Laia Red** (p. ej. «A world of **solutions** to communicate»).
 
 ## Logo

@@ -42,6 +42,8 @@ export const brand = {
 };
 
 // --- Marcas vigiladas --------------------------------------------------------
+// Los nombres van en MAYÚSCULAS a propósito: es el estilo del boletín para
+// todas las marcas (ver lib/brandcase.mjs, que lo aplica también al texto).
 // queries: búsquedas en Google News / Bing News (ya acotadas a temas AV).
 // match:   cómo reconocer la marca en un titular o resumen.
 // context: si se define, la noticia solo cuenta si además aparece alguno de
@@ -65,13 +67,13 @@ const AV_CONTEXT = words([
 export const competitors = [
   {
     key: "ptzoptics",
-    name: "PTZOptics",
+    name: "PTZOPTICS",
     match: /ptz ?optics/i,
     queries: ['"PTZOptics"'],
   },
   {
     key: "aver",
-    name: "AVer",
+    name: "AVER",
     // "aver" es una palabra común en español: se exige la marca escrita como
     // tal o un modelo/tema de cámara al lado.
     match: /\bAVer\b|aver information|aver europe/,
@@ -80,13 +82,13 @@ export const competitors = [
   },
   {
     key: "avonic",
-    name: "Avonic",
+    name: "AVONIC",
     match: /avonic/i,
     queries: ['"Avonic"'],
   },
   {
     key: "logitech",
-    name: "Logitech",
+    name: "LOGITECH",
     match: /logitech/i,
     context: AV_CONTEXT,
     // Solo la división de videocolaboración: ratones, teclados, gaming o
@@ -97,7 +99,7 @@ export const competitors = [
   },
   {
     key: "poly",
-    name: "Poly (HP)",
+    name: "POLY (HP)",
     match: /\bpoly\b|hp poly|poly studio/i,
     context: AV_CONTEXT,
     queries: ['"HP Poly" OR "Poly Studio" OR "Poly VideoOS"', '"Poly" HP (video conferencing OR "meeting room")'],

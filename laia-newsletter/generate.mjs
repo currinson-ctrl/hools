@@ -24,6 +24,7 @@ import { renderNewsletter, fmtDate } from "./lib/render.mjs";
 import { isSendDay, previousSendDay } from "./lib/schedule.mjs";
 import { sendEmail } from "./lib/send.mjs";
 import { buildEml } from "./lib/eml.mjs";
+import { applyBrandCase } from "./lib/brandcase.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
@@ -105,6 +106,8 @@ async function main() {
     // Imagen para la destacada si el feed no la traía.
     if (edition.destacada && !edition.destacada.image) edition.destacada.image = await fetchOgImage(edition.destacada.link);
   }
+
+  edition = applyBrandCase(edition);
 
   const outDir = join(here, "ediciones");
   mkdirSync(outDir, { recursive: true });
