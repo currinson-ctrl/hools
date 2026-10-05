@@ -41,6 +41,14 @@ Cada edición se guarda en dos formatos en `ediciones/`:
   cualquier navegador, sin conexión.
 - `AAAA-MM-DD.pdf` — A4, listo para imprimir o reenviar. Además va adjunto
   en el correo y en el artefacto de cada ejecución de Actions.
+- `AAAA-MM-DD.eml` — el boletín como **correo ya montado** (cuerpo con el
+  diseño, logos dentro y el PDF adjunto) para enviarlo **desde tu propio
+  buzón**:
+  - **Outlook (Windows o Mac)**: doble clic en el `.eml` → se abre como
+    borrador → rellena «Para» → Enviar.
+  - **Apple Mail**: abre el `.eml` → menú *Mensaje → Enviar de nuevo*.
+  - **Gmail / Outlook web**: no abren `.eml` como borrador; usa Outlook o
+    Apple Mail de escritorio, o adjunta el PDF.
 
 ## Cómo funciona
 

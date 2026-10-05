@@ -5,6 +5,7 @@
 //   node laia-newsletter/generate.mjs --force       → genera hoy aunque no toque
 //   node laia-newsletter/generate.mjs --send        → además lo envía por correo
 //   node laia-newsletter/generate.mjs --pdf         → además genera el PDF (necesita Chrome/Chromium)
+//   node laia-newsletter/generate.mjs --eml         → además un .eml para enviarlo desde tu propio correo
 //   node laia-newsletter/generate.mjs --fixture f.json  → sin red: usa una edición ya redactada
 //
 // La edición se guarda en laia-newsletter/ediciones/AAAA-MM-DD.html (con los
@@ -22,6 +23,7 @@ import { curate } from "./lib/curate.mjs";
 import { renderNewsletter, fmtDate } from "./lib/render.mjs";
 import { isSendDay, previousSendDay } from "./lib/schedule.mjs";
 import { sendEmail } from "./lib/send.mjs";
+import { buildEml } from "./lib/eml.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
@@ -131,18 +133,35 @@ async function main() {
   setOutput("file", file);
   if (pdf) setOutput("pdf", pdf);
 
+  // HTML del correo: logos como imágenes en línea (cid:), salvo que haya una
+  // URL pública para ellos. Lo usan el envío automático y el .eml.
+  const logos = Object.values(brand.logos);
+  const emailHtml = publicAssets ? html : renderNewsletter(edition, { ...meta, asset: (name) => `cid:${name}` });
+  const pdfName = `Radar-AV-LAIA-${stamp}.pdf`;
+
+  if (flag("--eml")) {
+    const eml = file.replace(/\.html$/, "") + ".eml";
+    writeFileSync(
+      eml,
+      buildEml({
+        subject: edition.asunto,
+        html: emailHtml,
+        images: publicAssets ? [] : logos.map((name) => ({ name, data: readFileSync(join(assetsDir, name)) })),
+        pdf: pdf ? { name: pdfName, data: readFileSync(pdf) } : null,
+      })
+    );
+    log(`Correo listo para enviar desde tu buzón: ${eml}`);
+    setOutput("eml", eml);
+  }
+
   if (flag("--send")) {
     const to = (process.env.LAIA_NEWSLETTER_TO || "").split(",").map((s) => s.trim()).filter(Boolean);
     if (!to.length) throw new Error("Falta LAIA_NEWSLETTER_TO (destinatarios separados por comas)");
-    const logos = Object.values(brand.logos);
-    const emailHtml = publicAssets
-      ? html
-      : renderNewsletter(edition, { ...meta, asset: (name) => `cid:${name}` });
     const attachments = publicAssets
       ? []
       : logos.map((name) => ({ filename: name, content: readFileSync(join(assetsDir, name)).toString("base64"), content_id: name }));
     // El PDF va como adjunto normal, para guardarlo o reenviarlo.
-    if (pdf) attachments.push({ filename: `Radar-AV-LAIA-${stamp}.pdf`, content: readFileSync(pdf).toString("base64") });
+    if (pdf) attachments.push({ filename: pdfName, content: readFileSync(pdf).toString("base64") });
     const id = await sendEmail({ to, subject: edition.asunto, html: emailHtml, attachments });
     log(`Enviado a ${to.length} destinatario(s). Id de Resend: ${id}`);
   }

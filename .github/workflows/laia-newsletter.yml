@@ -48,7 +48,8 @@ jobs:
           LAIA_MODEL: ${{ vars.LAIA_MODEL }}
         run: |
           # --pdf: Chrome viene instalado en ubuntu-latest.
-          args="--pdf"
+          # --eml: correo listo para enviar desde el buzón de cada uno.
+          args="--pdf --eml"
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             [ "${{ inputs.force }}" = "true" ] && args="$args --force"
             [ "${{ inputs.send }}" = "true" ] && args="$args --send"
@@ -57,7 +58,7 @@ jobs:
           fi
           node laia-newsletter/generate.mjs $args
 
-      - name: Guardar la edición (HTML + PDF) como artefacto descargable
+      - name: Guardar la edición (HTML + PDF + EML) como artefacto descargable
         if: always() && steps.gen.outputs.generated == 'true'
         uses: actions/upload-artifact@v4
         with:
@@ -65,6 +66,7 @@ jobs:
           path: |
             ${{ steps.gen.outputs.file }}
             ${{ steps.gen.outputs.pdf }}
+            ${{ steps.gen.outputs.eml }}
 
       - name: Archivar la edición en el repositorio
         if: always() && steps.gen.outputs.generated == 'true'
