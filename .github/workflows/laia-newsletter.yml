@@ -1,0 +1,76 @@
+name: Boletín Radar AV (LAIA)
+
+on:
+  # Todos los viernes a las 06:00 UTC (08:00 en verano, 07:00 en invierno en
+  # España). El script decide si toca: solo sale el 2.º y el 4.º viernes de
+  # cada mes (cámbialo con la variable LAIA_SEND_FRIDAYS, p. ej. "1,3").
+  # Ojo: GitHub solo ejecuta horarios desde la rama por defecto del repo.
+  schedule:
+    - cron: "0 6 * * 5"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Generar hoy aunque no sea 2.º/4.º viernes"
+        type: boolean
+        default: true
+      send:
+        description: "Enviar por correo (si no, solo se genera y se guarda)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: laia-newsletter
+  cancel-in-progress: false
+
+jobs:
+  newsletter:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Generar (y enviar) la edición
+        id: gen
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          LAIA_NEWSLETTER_TO: ${{ secrets.LAIA_NEWSLETTER_TO }}
+          LAIA_NEWSLETTER_FROM: ${{ vars.LAIA_NEWSLETTER_FROM }}
+          LAIA_LOGO_URL: ${{ vars.LAIA_LOGO_URL }}
+          LAIA_COLOR_INK: ${{ vars.LAIA_COLOR_INK }}
+          LAIA_COLOR_ACCENT: ${{ vars.LAIA_COLOR_ACCENT }}
+          LAIA_COLOR_ACCENT_SOFT: ${{ vars.LAIA_COLOR_ACCENT_SOFT }}
+          LAIA_SEND_FRIDAYS: ${{ vars.LAIA_SEND_FRIDAYS }}
+          LAIA_MODEL: ${{ vars.LAIA_MODEL }}
+        run: |
+          args=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            [ "${{ inputs.force }}" = "true" ] && args="$args --force"
+            [ "${{ inputs.send }}" = "true" ] && args="$args --send"
+          else
+            args="--send"
+          fi
+          node laia-newsletter/generate.mjs $args
+
+      - name: Guardar la edición como artefacto descargable
+        if: always() && steps.gen.outputs.generated == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: radar-av-${{ github.run_id }}
+          path: ${{ steps.gen.outputs.file }}
+
+      - name: Archivar la edición en el repositorio
+        if: always() && steps.gen.outputs.generated == 'true'
+        run: |
+          git config user.name "radar-av-bot"
+          git config user.email "radar-av-bot@users.noreply.github.com"
+          git add laia-newsletter/ediciones
+          git diff --cached --quiet || git commit -m "Radar AV: edición del $(date -u +%Y-%m-%d)"
+          git push

@@ -1,0 +1,69 @@
+{
+  "note": "Edición de MUESTRA montada a mano con noticias reales de septiembre y principios de octubre de 2026, solo para enseñar el diseño. Las ediciones automáticas cubren exactamente su quincena y las redacta Claude a partir de prensa AV y buscadores.",
+  "number": 0,
+  "since": "2026-09-01T00:00:00Z",
+  "edition": {
+    "asunto": "PTZOptics se mete en broadcast y AVer apunta a las aulas",
+    "portada": "PTZOptics sube a broadcast; la IA ya no es un extra",
+    "editorial": "PTZOptics ha aprovechado IBC para dar el salto a la gama broadcast con un sensor de 1 pulgada y 12G-SDI, y regala el seguimiento por IA. AVer, mientras, vuelve a la carga en educación. Son dos frentes donde LAIA compite de tú a tú.",
+    "destacada": {
+      "id": "n1",
+      "marca": "ptzoptics",
+      "categoria": "Lanzamiento",
+      "titulo": "PTZOptics presenta Rise 4K, su primera PTZ de gama broadcast",
+      "resumen": "Sensor CMOS de 1 pulgada y 50 MP, 4K a 60 fps, zoom óptico 20x con autoenfoque por detección de fase y estabilización óptica. Añade 12G-SDI, genlock, timecode, FreeD, fibra SFP+ y entradas XLR con phantom, además de seguimiento por IA sin coste. Se reserva por 7.999 $ y empieza a servirse en el cuarto trimestre de 2026.",
+      "lectura_laia": "Compite directamente con el Broadcaster Pro: PTZOptics gana en sensor y conectividad broadcast; LAIA, en zoom (25x frente a 20x). Conviene preparar ya el argumentario comparativo para integradores de producción en directo, antes de que lleguen sus primeras unidades.",
+      "link": "https://www.avnation.tv/2026/09/12/ptzoptics-debuts-rise-4k-broadcast-ptz-camera-ibc2026/",
+      "source": "AVNation TV",
+      "date": "2026-09-12T00:00:00Z"
+    },
+    "noticias": [
+      {
+        "id": "n2",
+        "marca": "ptzoptics",
+        "categoria": "Evento",
+        "titulo": "En IBC, PTZOptics pone a competir joystick y software",
+        "resumen": "Montó un estudio multicámara en su stand de IBC2026 y una «prueba de conducción» para comparar el control con joystick frente a las aplicaciones de control por software.",
+        "lectura_laia": "Confirma que el control por software ya es argumento de venta en sí mismo: es el formato ideal para enseñar AICC en nuestras próximas ferias y demos con integradores.",
+        "impacto": 1,
+        "link": "https://www.sportsvideo.org/2026/09/03/ibc-2026-ptzoptics-to-demonstrate-multicamera-production-workflows/",
+        "source": "SVG",
+        "date": "2026-09-03T00:00:00Z"
+      },
+      {
+        "id": "n3",
+        "marca": "aver",
+        "categoria": "Evento",
+        "titulo": "AVer lleva su aula con IA a EDUCAUSE 2026",
+        "resumen": "AVer mostrará en EDUCAUSE 2026 sus soluciones de colaboración y de aula impulsadas por IA, con las cámaras de seguimiento automático como eje de la enseñanza híbrida.",
+        "lectura_laia": "La educación superior sigue siendo el campo de batalla de AVer. Es buen momento para reforzar C-Pro y su seguimiento por IA en las universidades españolas que preparan presupuestos de 2027.",
+        "impacto": 2,
+        "link": "https://avnation.tv/2026/10/02/aver-to-showcase-ai-powered-collaboration-and-classroom-technology-at-educause-2026",
+        "source": "AVNation TV",
+        "date": "2026-10-02T00:00:00Z"
+      }
+    ],
+    "radar": [
+      {
+        "id": "n4",
+        "titulo": "Keenfinity, dueña de Avonic, reorganiza su negocio de seguridad",
+        "resumen": "Desde el 1 de septiembre, intrusión y control de accesos operan como dos empresas propias, Radionix y MiCOS. La matriz de Avonic sigue afinando su estructura tras la compra.",
+        "link": "https://sdmmag.com/articles/105854-keenfinity-group-creates-two-focused-security-businesses",
+        "source": "SDM",
+        "date": "2026-09-01T00:00:00Z"
+      }
+    ],
+    "dato": {
+      "id": "n5",
+      "cifra": "9,2 %",
+      "texto": "Crecimiento anual previsto del mercado mundial de cámaras PTZ para videoconferencia hasta 2034: de 6.540 M$ en 2026 a 10.273 M$.",
+      "link": "https://www.intelmarketresearch.com/global-ptz-video-conferencing-cameras-forecast-market-27058",
+      "source": "Intel Market Research",
+      "date": "2026-09-15T00:00:00Z"
+    },
+    "tendencia": {
+      "titulo": "La IA pasa de argumento a requisito",
+      "texto": "PTZOptics regala el seguimiento por IA en una cámara de 8.000 $ y AVer centra su mensaje educativo en la IA. El auto-tracking deja de diferenciar y empieza a darse por hecho: la batalla se desplaza a la calidad del seguimiento, al software de control y al precio."
+    }
+  }
+}
