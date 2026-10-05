@@ -42,7 +42,7 @@ function button(item, solid = false) {
   const style = solid
     ? `${redBg}color:${C.white};border:1px solid ${C.red};`
     : `background:${C.white};color:${C.red};border:1px solid ${C.red};`;
-  return `<a href="${esc(item.link)}" style="${style}display:inline-block;font:600 13px/1 ${B};text-decoration:none;padding:10px 18px;border-radius:16px;">Leer en ${esc(item.source || "la fuente")} &rarr;</a>`;
+  return `<a target="_blank" rel="noopener noreferrer" href="${esc(item.link)}" style="${style}display:inline-block;font:600 13px/1 ${B};text-decoration:none;padding:10px 18px;border-radius:16px;">Leer en ${esc(item.source || "la fuente")} &rarr;</a>`;
 }
 
 const domain = (url) => {
@@ -60,7 +60,7 @@ function sourceLine(item, onDark = false) {
   const d = domain(item.link);
   return `<div style="font:400 12px/1.5 ${B};color:${color};margin-top:6px;">
     <span style="font:600 10px/1 ${B};letter-spacing:.12em;text-transform:uppercase;color:${onDark ? "#FFFFFF" : C.red};">Fuente</span>&nbsp;
-    <a href="${esc(item.link)}" style="color:${strong};font-weight:600;text-decoration:none;">${esc(item.source || d)}</a>${
+    <a target="_blank" rel="noopener noreferrer" href="${esc(item.link)}" style="color:${strong};font-weight:600;text-decoration:none;">${esc(item.source || d)}</a>${
       d && d !== (item.source || "").toLowerCase() ? ` &middot; ${esc(d)}` : ""
     }${item.date ? ` &middot; ${fmtDate(item.date)}` : ""}
   </div>`;
@@ -100,7 +100,7 @@ const corner = (pos) =>
 function header(meta) {
   return `<tr><td class="px" style="padding:26px 32px 22px;">
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
-      <td valign="middle"><a href="${esc(brand.website)}"><img src="${esc(meta.asset(brand.logos.color))}" alt="${esc(brand.name)} · ${esc(brand.slogan)}" height="58" style="display:block;height:58px;width:auto;border:0;"></a></td>
+      <td valign="middle"><a target="_blank" rel="noopener noreferrer" href="${esc(brand.website)}"><img src="${esc(meta.asset(brand.logos.color))}" alt="${esc(brand.name)} · ${esc(brand.slogan)}" height="58" style="display:block;height:58px;width:auto;border:0;"></a></td>
       <td valign="middle" align="right">
         <div style="font:700 22px/1 ${H};color:${C.red};letter-spacing:-.01em;">${esc(brand.newsletterName)}</div>
         <div style="font:300 12px/1.5 ${B};color:${C.ink};margin-top:6px;">N.º ${meta.number} &middot; ${fmtDate(meta.date)}</div>
@@ -149,7 +149,7 @@ function featured(item) {
   if (!item) return "";
   const b = brandOf(item.marca);
   const img = item.image
-    ? `<tr><td style="padding:10px 10px 0;"><a href="${esc(item.link)}"><img src="${esc(item.image)}" alt="" width="556" style="display:block;width:100%;max-width:556px;height:auto;border:0;border-radius:8px;"></a>
+    ? `<tr><td style="padding:10px 10px 0;"><a target="_blank" rel="noopener noreferrer" href="${esc(item.link)}"><img src="${esc(item.image)}" alt="" width="556" style="display:block;width:100%;max-width:556px;height:auto;border:0;border-radius:8px;"></a>
         <div style="font:400 11px/1.4 ${B};color:${C.grey};padding:6px 4px 0;">Imagen: ${esc(item.source || domain(item.link))}</div></td></tr>`
     : "";
   return `${sectionTitle("La noticia de la quincena", "En", "portada")}
@@ -158,7 +158,7 @@ function featured(item) {
       ${img}
       <tr><td style="padding:22px 24px 24px;">
         <div>${b ? pill(b.name) : ""} ${item.categoria ? pill(item.categoria, { bg: C.white, color: C.ink, border: C.line }) : ""}</div>
-        <a href="${esc(item.link)}" style="text-decoration:none;"><div style="font:700 25px/1.15 ${H};letter-spacing:-.01em;color:${C.ink};margin:14px 0 0;">${esc(item.titulo)}</div></a>
+        <a target="_blank" rel="noopener noreferrer" href="${esc(item.link)}" style="text-decoration:none;"><div style="font:700 25px/1.15 ${H};letter-spacing:-.01em;color:${C.ink};margin:14px 0 0;">${esc(item.titulo)}</div></a>
         ${sourceLine(item)}
         <div style="font:400 15px/1.55 ${B};color:${C.ink};margin-top:10px;">${esc(item.resumen)}</div>
         ${lectura(item.lectura_laia, true)}
@@ -172,7 +172,7 @@ function newsCard(item) {
   return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:12px;background:${C.white};border-radius:8px;"><tr>
     <td style="padding:18px 20px;">
       <div>${item.categoria ? pill(item.categoria, { bg: C.white, color: C.ink, border: C.line }) : ""} ${impactPill(item.impacto)}</div>
-      <a href="${esc(item.link)}" style="text-decoration:none;"><div style="font:700 18px/1.2 ${H};letter-spacing:-.01em;color:${C.ink};margin:12px 0 0;">${esc(item.titulo)}</div></a>
+      <a target="_blank" rel="noopener noreferrer" href="${esc(item.link)}" style="text-decoration:none;"><div style="font:700 18px/1.2 ${H};letter-spacing:-.01em;color:${C.ink};margin:12px 0 0;">${esc(item.titulo)}</div></a>
       ${sourceLine(item)}
       <div style="font:400 14px/1.55 ${B};color:${C.ink};margin-top:8px;">${esc(item.resumen)}</div>
       ${lectura(item.lectura_laia)}
@@ -210,7 +210,7 @@ function datoYTendencia(edition) {
         <div style="font:300 11px/1 ${B};letter-spacing:.16em;text-transform:uppercase;color:#FFFFFF;">El dato</div>
         <div style="font:700 44px/1 ${H};letter-spacing:-.02em;color:#FFFFFF;margin:14px 0 10px;">${esc(dato.cifra)}</div>
         <div style="font:400 13px/1.45 ${B};color:#FFFFFF;">${esc(dato.texto)}</div>
-        <div style="margin-top:12px;"><a href="${esc(dato.link)}" style="font:600 12px ${B};color:#FFFFFF;">Fuente: ${esc(dato.source)}${domain(dato.link) ? ` (${esc(domain(dato.link))})` : ""}</a></div>
+        <div style="margin-top:12px;"><a target="_blank" rel="noopener noreferrer" href="${esc(dato.link)}" style="font:600 12px ${B};color:#FFFFFF;">Fuente: ${esc(dato.source)}${domain(dato.link) ? ` (${esc(domain(dato.link))})` : ""}</a></div>
       </td>`
     : "";
   const tendCell = tendencia
@@ -231,7 +231,7 @@ function radar(items) {
     .map(
       (n, i) => `<tr><td valign="top" style="padding:14px 14px 14px 0;font:700 22px/1 ${H};color:${C.red};width:30px;">${String(i + 1).padStart(2, "0")}</td>
       <td style="padding:14px 0;border-bottom:1px solid ${C.line};">
-        <a href="${esc(n.link)}" style="text-decoration:none;font:700 16px/1.25 ${H};color:${C.ink};">${esc(n.titulo)}</a>
+        <a target="_blank" rel="noopener noreferrer" href="${esc(n.link)}" style="text-decoration:none;font:700 16px/1.25 ${H};color:${C.ink};">${esc(n.titulo)}</a>
         <div style="font:400 13px/1.5 ${B};color:${C.grey};margin-top:4px;">${esc(n.resumen)}</div>
         ${sourceLine(n)}
       </td></tr>`
@@ -275,7 +275,7 @@ function sourcesBlock(edition) {
         <td style="padding:7px 0;border-bottom:1px solid ${C.line};font:400 12px/1.45 ${B};color:${C.ink};">
           <span style="font-weight:600;">${esc(n.source || domain(n.link))}</span> &middot; ${n.date ? fmtDate(n.date) : ""}<br>
           <span style="color:${C.grey};">${esc(n.titulo || n.texto || "")}</span><br>
-          <a href="${esc(n.link)}" style="color:${C.red};text-decoration:none;word-break:break-all;">${esc(n.link)}</a>
+          <a target="_blank" rel="noopener noreferrer" href="${esc(n.link)}" style="color:${C.red};text-decoration:none;word-break:break-all;">${esc(n.link)}</a>
         </td></tr>`
     )
     .join("");
@@ -296,7 +296,7 @@ function footer(meta) {
   <tr class="foot"><td style="background:${C.ink};border-radius:0 0 8px 8px;padding:16px 28px;">
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
       <td valign="middle" width="33%"><img src="${esc(meta.asset(brand.logos.white))}" alt="${esc(brand.name)}" height="26" style="display:block;height:26px;width:auto;border:0;"></td>
-      <td valign="middle" align="center" width="34%"><a href="${esc(brand.website)}" style="font:400 12px ${B};color:#FFFFFF;text-decoration:none;">${esc(brand.website.replace(/^https?:\/\//, ""))}</a></td>
+      <td valign="middle" align="center" width="34%"><a target="_blank" rel="noopener noreferrer" href="${esc(brand.website)}" style="font:400 12px ${B};color:#FFFFFF;text-decoration:none;">${esc(brand.website.replace(/^https?:\/\//, ""))}</a></td>
       <td valign="middle" align="right" width="33%" style="font:400 12px ${B};color:#FFFFFF;">${esc(brand.signature)}</td>
     </tr></table>
   </td></tr>`;
