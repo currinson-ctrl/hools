@@ -148,6 +148,29 @@ export const agenda = [
   { name: "InfoComm 2027", place: "Orlando (EE. UU.)", start: "2027-06-12", end: "2027-06-18" },
 ];
 
+// --- Preguntas y encuestas (Zoho Forms) -------------------------------------
+// Los correos no admiten formularios dentro (Outlook y Gmail los bloquean),
+// así que cada pregunta se pinta con un botón por respuesta. Al pulsarlo se
+// abre el formulario de Zoho con la edición, la noticia, la pregunta y la
+// respuesta ya rellenadas; la persona añade un comentario si quiere y envía.
+// Sin LAIA_FORM_URL no se pinta ninguna pregunta.
+export const surveys = {
+  // Enlace público (permalink) del formulario de Zoho Forms.
+  formUrl: process.env.LAIA_FORM_URL || "",
+  // «Nombre de enlace» (link name) de cada campo del formulario en Zoho.
+  fields: {
+    edition: process.env.LAIA_FORM_FIELD_EDITION || "Edicion",
+    news: process.env.LAIA_FORM_FIELD_NEWS || "Noticia",
+    question: process.env.LAIA_FORM_FIELD_QUESTION || "Pregunta",
+    answer: process.env.LAIA_FORM_FIELD_ANSWER || "Respuesta",
+  },
+  // Pregunta fija al final de cada edición para medir el boletín.
+  closing: {
+    texto: "¿Te ha resultado útil este número del Radar AV?",
+    opciones: ["Muy útil", "Útil", "Poco útil"],
+  },
+};
+
 // --- Calendario de envío ---------------------------------------------------
 // Viernes del mes en que sale el boletín (1 = primer viernes del mes...).
 // Por defecto el 2.º y el 4.º, que existen todos los meses.

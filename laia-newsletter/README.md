@@ -66,6 +66,35 @@ Viernes 06:00 UTC (GitHub Actions)
 Sin dependencias: solo Node 20+ (`fetch` nativo). Si Claude falla, sale una
 edición básica con los titulares originales en vez de no salir.
 
+## Preguntas al equipo (Zoho Forms)
+
+Los correos no admiten formularios dentro (Outlook y Gmail los bloquean),
+así que cada pregunta se pinta con **un botón por respuesta**. Al pulsarlo se
+abre un formulario de Zoho Forms con la edición, la noticia, la pregunta y la
+respuesta ya rellenadas; la persona añade un comentario si quiere y envía.
+
+Claude propone hasta 3 preguntas por edición (la destacada y 2 noticias de
+impacto alto) y al final siempre sale «¿Te ha resultado útil este número?».
+
+**Montaje en Zoho Forms (una sola vez):**
+
+1. Crea un formulario «Radar AV – Respuestas» con estos campos de tipo
+   *Una línea* y, en *Propiedades del campo*, este **Nombre de enlace**:
+   `Edicion`, `Noticia`, `Pregunta`, `Respuesta`. Añade un campo
+   *Multilínea* «Comentario» (opcional) y uno *Correo electrónico* o
+   *Nombre* si queréis saber quién responde.
+2. *Compartir → Enlace público* (o *Compartir con la organización* si solo
+   lo usáis dentro de Zoho One): copia el **permalink**.
+3. En GitHub, *Variables*: `LAIA_FORM_URL` = ese permalink. Si usaste otros
+   nombres de enlace, defínelos en `LAIA_FORM_FIELD_EDITION`,
+   `LAIA_FORM_FIELD_NEWS`, `LAIA_FORM_FIELD_QUESTION` y
+   `LAIA_FORM_FIELD_ANSWER`.
+4. Las respuestas se ven en *Informes* de Zoho Forms (filtrables por edición
+   y noticia). Con Zoho Analytics o Zoho Flow se pueden llevar a un panel o
+   avisar por Cliq/correo cuando alguien responde.
+
+Sin `LAIA_FORM_URL` el boletín sale sin preguntas.
+
 ## Puesta en marcha
 
 1. **Lleva este workflow a la rama por defecto** (`main`). GitHub solo

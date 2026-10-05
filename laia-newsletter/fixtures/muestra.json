@@ -15,7 +15,15 @@
       "lectura_laia": "Compite directamente con el Broadcaster Pro: PTZOptics gana en sensor y conectividad broadcast; LAIA, en zoom (25x frente a 20x). Conviene preparar ya el argumentario comparativo para integradores de producción en directo, antes de que lleguen sus primeras unidades.",
       "link": "https://www.avnation.tv/2026/09/12/ptzoptics-debuts-rise-4k-broadcast-ptz-camera-ibc2026/",
       "source": "AVNation TV",
-      "date": "2026-09-12T00:00:00Z"
+      "date": "2026-09-12T00:00:00Z",
+      "pregunta": {
+        "texto": "¿Os han preguntado ya integradores o clientes por PTZOPTICS Rise 4K?",
+        "opciones": [
+          "Sí, varias veces",
+          "Alguna vez",
+          "Todavía no"
+        ]
+      }
     },
     "noticias": [
       {
@@ -40,7 +48,15 @@
         "impacto": 2,
         "link": "https://avnation.tv/2026/10/02/aver-to-showcase-ai-powered-collaboration-and-classroom-technology-at-educause-2026",
         "source": "AVNation TV",
-        "date": "2026-10-02T00:00:00Z"
+        "date": "2026-10-02T00:00:00Z",
+        "pregunta": {
+          "texto": "¿Estáis viendo a AVER en concursos de universidades?",
+          "opciones": [
+            "Sí, a menudo",
+            "De forma puntual",
+            "No"
+          ]
+        }
       }
     ],
     "radar": [

@@ -9,7 +9,7 @@
 // Gmail y Outlook ignoran casi todo el CSS moderno, así que todo va en línea;
 // los degradados llevan siempre un color de fondo plano de respaldo.
 
-import { brand, competitors, agenda } from "../config.mjs";
+import { brand, competitors, agenda, surveys } from "../config.mjs";
 
 const C = brand.colors;
 const H = brand.fontHead;
@@ -76,6 +76,37 @@ function lectura(text, strong = false) {
   return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top:16px;"><tr><td style="${box}">
       <div style="font:700 10px/1 ${B};letter-spacing:.14em;text-transform:uppercase;color:${label};margin-bottom:6px;">Lectura ${esc(brand.name)}</div>
       <div style="font:400 14px/1.5 ${B};color:${body};">${esc(text)}</div>
+    </td></tr></table>`;
+}
+
+// --- Preguntas al equipo (Zoho Forms) ---------------------------------------
+// Un botón por respuesta: abre el formulario de Zoho con todo prerrellenado
+// (edición, noticia, pregunta y respuesta). Los correos no permiten
+// formularios dentro, así que es la forma que funciona en Outlook y Gmail.
+let editionLabel = "";
+
+function formLink(news, question, answer) {
+  const u = new URL(surveys.formUrl);
+  const f = surveys.fields;
+  u.searchParams.set(f.edition, editionLabel);
+  u.searchParams.set(f.news, news);
+  u.searchParams.set(f.question, question);
+  u.searchParams.set(f.answer, answer);
+  return u.toString();
+}
+
+function poll(question, news, { kicker = "Tu opinión" } = {}) {
+  if (!surveys.formUrl || !question?.texto || !question.opciones?.length) return "";
+  const buttons = question.opciones
+    .map(
+      (o) => `<a target="_blank" rel="noopener noreferrer" href="${esc(formLink(news, question.texto, o))}" style="display:inline-block;background:${C.white};color:${C.ink};border:1px solid ${C.ink};font:600 13px/1 ${B};text-decoration:none;padding:10px 16px;border-radius:16px;margin:0 6px 8px 0;">${esc(o)}</a>`
+    )
+    .join("");
+  return `<table class="nobreak" role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top:16px;"><tr><td style="border:1px dashed ${C.grey};border-radius:8px;padding:14px 16px 8px;">
+      <div style="font:700 10px/1 ${B};letter-spacing:.14em;text-transform:uppercase;color:${C.red};">&#9679; ${esc(kicker)}</div>
+      <div style="font:700 16px/1.25 ${H};color:${C.ink};margin:8px 0 12px;">${esc(question.texto)}</div>
+      <div>${buttons}</div>
+      <div style="font:300 11px/1.4 ${B};color:${C.grey};padding:2px 0 6px;">Un clic abre el formulario de Zoho con tu respuesta marcada: añade un comentario si quieres y pulsa Enviar.</div>
     </td></tr></table>`;
 }
 
@@ -162,6 +193,7 @@ function featured(item) {
         ${sourceLine(item)}
         <div style="font:400 15px/1.55 ${B};color:${C.ink};margin-top:10px;">${esc(item.resumen)}</div>
         ${lectura(item.lectura_laia, true)}
+        ${poll(item.pregunta, item.titulo)}
         <div style="margin-top:18px;">${button(item, true)}</div>
       </td></tr>
     </table>
@@ -176,6 +208,7 @@ function newsCard(item) {
       ${sourceLine(item)}
       <div style="font:400 14px/1.55 ${B};color:${C.ink};margin-top:8px;">${esc(item.resumen)}</div>
       ${lectura(item.lectura_laia)}
+      ${poll(item.pregunta, item.titulo)}
       <div style="margin-top:14px;">${button(item)}</div>
     </td></tr></table>`;
 }
@@ -306,6 +339,7 @@ function footer(meta) {
  * meta: { number, date (Date del envío), since, until, note?, asset(nombre) → URL de la imagen }
  */
 export function renderNewsletter(edition, meta) {
+  editionLabel = `${brand.newsletterName} n.º ${meta.number} (${meta.date.toISOString().slice(0, 10)})`;
   const period = `${shortDate(meta.since)} – ${shortDate(new Date(meta.until - 86400000))}`;
   return `<!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -352,6 +386,7 @@ export function renderNewsletter(edition, meta) {
   ${datoYTendencia(edition)}
   ${radar(edition.radar)}
   ${agendaBlock(meta.date)}
+  ${surveys.formUrl ? `<tr><td class="px" style="padding:30px 32px 0;">${poll(surveys.closing, "Valoración del número", { kicker: "Tu valoración" })}</td></tr>` : ""}
   ${sourcesBlock(edition)}
   ${footer(meta)}
 

@@ -44,6 +44,11 @@ jobs:
           LAIA_NEWSLETTER_TO: ${{ secrets.LAIA_NEWSLETTER_TO }}
           LAIA_NEWSLETTER_FROM: ${{ vars.LAIA_NEWSLETTER_FROM }}
           LAIA_ASSETS_URL: ${{ vars.LAIA_ASSETS_URL }}
+          LAIA_FORM_URL: ${{ vars.LAIA_FORM_URL }}
+          LAIA_FORM_FIELD_EDITION: ${{ vars.LAIA_FORM_FIELD_EDITION }}
+          LAIA_FORM_FIELD_NEWS: ${{ vars.LAIA_FORM_FIELD_NEWS }}
+          LAIA_FORM_FIELD_QUESTION: ${{ vars.LAIA_FORM_FIELD_QUESTION }}
+          LAIA_FORM_FIELD_ANSWER: ${{ vars.LAIA_FORM_FIELD_ANSWER }}
           LAIA_SEND_FRIDAYS: ${{ vars.LAIA_SEND_FRIDAYS }}
           LAIA_MODEL: ${{ vars.LAIA_MODEL }}
         run: |

@@ -37,14 +37,15 @@ INSTRUCCIONES
 5. Elige como "destacada" la noticia de mayor impacto competitivo para ${brand.name}.
 6. "dato": solo si alguna candidata trae una cifra llamativa (cuota, crecimiento, precio, unidades). Si no hay, null.
 7. Máximo 3 noticias por marca y 5 en "radar". Calidad antes que cantidad: es mejor una marca sin noticias que rellenar.
+8. "pregunta": añade una pregunta para el equipo de ${brand.name} SOLO en la destacada y, como mucho, en otras 2 noticias de impacto alto. Debe sacar información útil del terreno (qué ven en clientes e integradores, si les afecta, qué harían), con 2-4 respuestas cortas (máx. 30 caracteres) que se elijan con un clic. Nada de preguntas retóricas ni de examen.
 
 Responde SOLO con JSON válido, sin texto alrededor, con esta forma:
 {
   "asunto": "asunto del correo, máx. 70 caracteres, que invite a abrir",
   "portada": "titular de portada de la edición, máx. 80 caracteres",
   "editorial": "2-3 frases que resuman la quincena y por qué importa",
-  "destacada": {"id": "nX", "marca": "clave o null", "categoria": "${CATEGORIES.join("|")}", "titulo": "...", "resumen": "3-4 frases", "lectura_laia": "..."},
-  "noticias": [{"id": "nX", "marca": "clave", "categoria": "...", "titulo": "máx. 90 caracteres", "resumen": "2 frases", "lectura_laia": "...", "impacto": 1}],
+  "destacada": {"id": "nX", "marca": "clave o null", "categoria": "${CATEGORIES.join("|")}", "titulo": "...", "resumen": "3-4 frases", "lectura_laia": "...", "pregunta": {"texto": "pregunta breve", "opciones": ["...", "...", "..."]}},
+  "noticias": [{"id": "nX", "marca": "clave", "categoria": "...", "titulo": "máx. 90 caracteres", "resumen": "2 frases", "lectura_laia": "...", "impacto": 1, "pregunta": null}],
   "radar": [{"id": "nX", "titulo": "...", "resumen": "1 frase"}],
   "dato": {"id": "nX", "cifra": "p. ej. 9,2 %", "texto": "qué mide la cifra, 1 frase"},
   "tendencia": {"titulo": "...", "texto": "2-3 frases sobre el patrón que se repite en las noticias de la quincena"}

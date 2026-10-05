@@ -28,6 +28,7 @@ export function applyBrandCase(edition) {
     if (!obj || typeof obj !== "object") return obj;
     const out = { ...obj };
     for (const k of TEXT_FIELDS) if (k in out) out[k] = brandCase(out[k]);
+    if (out.pregunta) out.pregunta = { texto: brandCase(out.pregunta.texto), opciones: (out.pregunta.opciones || []).map(brandCase) };
     return out;
   };
   return {
