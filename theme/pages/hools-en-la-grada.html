@@ -1,0 +1,176 @@
+<!--
+  HOOLS · MINI LANDING «HOOLS EN LA GRADA» (2x1)
+  Página: /pages/hools-en-la-grada  (enlace para las stories de @hoolsbrand)
+
+  Vive en el CONTENIDO de la página, no en el tema: la Admin API no deja
+  escribir en el tema publicado desde fuera del editor. Por eso trae su propio
+  CSS, prefijado con .hg- para no tocar nada más de la tienda, y oculta el
+  título y el ancho estrecho de la plantilla de página de serie (main-page),
+  que solo existen en esta página porque este CSS solo se carga aquí.
+
+  Para cambiarla: edita este fichero y vuelve a pegarlo en la página
+  (Tienda online → Páginas → Hools en la Grada → «<>» Mostrar HTML).
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Mulish:wght@400;700;800;900&family=Source+Serif+4:wght@700;900&display=swap" rel="stylesheet">
+<style>
+  /* La plantilla de página de serie pinta el título y estrecha el contenido. */
+  .main-page-title{display:none!important}
+  .page-width--narrow:has(.hg){max-width:none!important;padding:0!important}
+  .rte:has(.hg){margin:0!important}
+
+  .hg{--b:#151515;--g:#213B2E;--o:#CCB229;--w:#F8F8F8;
+      --sans:"Mulish","Muli",system-ui,-apple-system,sans-serif;--serif:"Source Serif 4",Georgia,serif;
+      font-family:var(--sans);color:var(--b);background:var(--w);margin:0 auto;max-width:620px;overflow:hidden;padding-bottom:84px}
+  .hg *{box-sizing:border-box}
+  .hg p,.hg h1,.hg h2,.hg h3,.hg ol,.hg ul{margin:0;padding:0}
+  .hg a{text-decoration:none!important}
+  .hg img{display:block;max-width:100%;height:auto;margin:0}
+
+  /* Portada */
+  .hg-hero{position:relative;min-height:88vh;min-height:88svh;display:flex;align-items:flex-end;color:var(--w);background:var(--b)}
+  .hg-hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 30%;filter:contrast(1.1) brightness(.85)}
+  .hg-hero:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(21,21,21,.15) 0%,rgba(21,21,21,.35) 40%,rgba(21,21,21,.95) 100%)}
+  .hg-hero__in{position:relative;z-index:1;padding:28px 22px 30px;width:100%}
+  .hg-tag{display:inline-block;font:800 11px/1 var(--sans);letter-spacing:.22em;text-transform:uppercase;color:var(--b);background:var(--o);padding:8px 10px;margin-bottom:18px}
+  .hg-hero h1{font:900 clamp(38px,11vw,60px)/.98 var(--serif);letter-spacing:-.01em;color:var(--w);margin-bottom:14px}
+  .hg-hero h1 em{font-style:normal;color:var(--o)}
+  .hg-hero p{font:400 17px/1.45 var(--sans);color:#e9e9e9;max-width:30em}
+  .hg-hero p strong{color:var(--w)}
+  .hg-btns{display:flex;flex-direction:column;gap:10px;margin-top:22px}
+  .hg-btn{display:flex;align-items:center;justify-content:center;height:54px;font:900 13px/1 var(--sans);letter-spacing:.18em;text-transform:uppercase;border:2px solid var(--o);background:var(--o);color:var(--b)!important}
+  .hg-btn--ghost{background:transparent;color:var(--w)!important;border-color:rgba(248,248,248,.6)}
+  .hg-btn--dark{background:var(--b);border-color:var(--b);color:var(--w)!important}
+
+  /* Bandas */
+  .hg-band{background:var(--b);color:var(--o);font:900 12px/1 var(--sans);letter-spacing:.25em;text-transform:uppercase;white-space:nowrap;overflow:hidden;padding:13px 0}
+  .hg-band span{display:inline-block;animation:hg-scroll 18s linear infinite}
+  @keyframes hg-scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+  @media (prefers-reduced-motion:reduce){.hg-band span{animation:none}}
+
+  .hg-sec{padding:44px 22px}
+  .hg-kicker{font:800 11px/1 var(--sans);letter-spacing:.22em;text-transform:uppercase;color:var(--g);margin-bottom:10px}
+  .hg-sec h2{font:900 32px/1.05 var(--serif);color:var(--b);margin-bottom:24px}
+
+  /* Pasos */
+  .hg-steps{list-style:none;display:grid;gap:14px}
+  .hg-step{display:grid;grid-template-columns:56px 1fr;gap:14px;align-items:start;background:#fff;border-left:4px solid var(--o);padding:18px 16px}
+  .hg-step b{font:900 44px/.9 var(--serif);color:var(--o)}
+  .hg-step h3{font:900 16px/1.2 var(--sans);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+  .hg-step p{font:400 15px/1.5 var(--sans);color:#3a3a3a}
+  .hg-step code{font:800 14px var(--sans);color:var(--g);background:none;padding:0}
+
+  /* Polos */
+  .hg-rail{display:grid;grid-auto-flow:column;grid-auto-columns:62%;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -22px;padding:0 22px 6px;scrollbar-width:none}
+  .hg-rail::-webkit-scrollbar{display:none}
+  .hg-polo{scroll-snap-align:start;background:#fff;color:var(--b)!important;display:block}
+  .hg-polo img{aspect-ratio:4/5;width:100%;object-fit:cover;background:#e8e8e8}
+  .hg-polo span{display:block;font:900 13px/1.2 var(--sans);letter-spacing:.12em;text-transform:uppercase;padding:12px 12px 14px}
+  .hg-polo small{display:block;font:400 12px/1.3 var(--sans);letter-spacing:0;text-transform:none;color:#6b6b6b;margin-top:4px}
+  .hg-hint{font:400 12px/1.4 var(--sans);color:#6b6b6b;margin:10px 0 18px}
+
+  /* Reclamar */
+  .hg-claim{background:var(--g);color:var(--w)}
+  .hg-claim .hg-kicker{color:var(--o)}
+  .hg-claim h2{color:var(--w)}
+  .hg-claim p{font:400 16px/1.55 var(--sans);color:#dfe6e2;margin-bottom:12px}
+  .hg-claim ul{list-style:none;margin:6px 0 22px;display:grid;gap:8px}
+  .hg-claim li{font:700 15px/1.4 var(--sans);padding-left:26px;position:relative}
+  .hg-claim li:before{content:"";position:absolute;left:0;top:6px;width:12px;height:12px;background:var(--o)}
+
+  /* Letra pequeña */
+  .hg-small{padding:34px 22px 10px}
+  .hg-small h3{font:900 13px/1 var(--sans);letter-spacing:.18em;text-transform:uppercase;margin-bottom:14px}
+  .hg-small ul{list-style:none;display:grid;gap:8px}
+  .hg-small li{font:400 13px/1.5 var(--sans);color:#4a4a4a;padding-left:14px;position:relative}
+  .hg-small li:before{content:"—";position:absolute;left:0;color:var(--o)}
+  .hg-small a{color:var(--g)!important;font-weight:800;border-bottom:2px solid var(--o)}
+  .hg-sign{text-align:center;font:900 14px/1 var(--serif);letter-spacing:.12em;text-transform:uppercase;color:var(--g);padding:30px 0 10px}
+
+  /* Barra fija: el CTA siempre a mano, que en stories se llega con el pulgar */
+  .hg-sticky{position:fixed;left:0;right:0;bottom:0;z-index:50;padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:rgba(21,21,21,.96);display:flex;gap:8px;justify-content:center}
+  .hg-sticky .hg-btn{flex:1;max-width:300px;height:48px;font-size:12px}
+  /* Aparece al bajar, para no repetir los botones de la portada (donde el
+     navegador no entiende animaciones ligadas al scroll, se ve siempre). */
+  @supports (animation-timeline:scroll()){
+    .hg-sticky{animation:hg-show linear both;animation-timeline:scroll(root);animation-range:0 90vh}
+    @keyframes hg-show{0%,70%{transform:translateY(110%)}100%{transform:none}}
+  }
+  @media (min-width:700px){.hg{margin:30px auto;box-shadow:0 10px 40px rgba(0,0,0,.15)}.hg-sticky{display:none}.hg{padding-bottom:0}}
+</style>
+
+<div class="hg">
+
+  <section class="hg-hero">
+    <img src="https://cdn.shopify.com/s/files/1/0988/6364/5011/files/hools-polo-terrace-negro-rayas-amarillas-lifestyle-hombre_jpg.jpg?v=1767896424&width=1200" alt="Polo Hools en la grada" width="1200" height="1500" fetchpriority="high">
+    <div class="hg-hero__in">
+      <span class="hg-tag">2x1 · #HoolsEnLaGrada</span>
+      <h1>Tu polo, en la grada. <em>El siguiente lo pagamos nosotros.</em></h1>
+      <p>Compra un polo Hools, hazte una foto con él en el estadio o en la previa y nómbranos. <strong>Te mandamos otro gratis, envío incluido.</strong></p>
+      <div class="hg-btns">
+        <a class="hg-btn" href="/collections/productos">Elegir mi polo</a>
+        <a class="hg-btn hg-btn--ghost" href="#reclamar">Ya tengo mi foto</a>
+      </div>
+    </div>
+  </section>
+
+  <div class="hg-band" aria-hidden="true"><span>Compra uno · Llévalo a la grada · Te regalamos otro · Return to the Origins · Compra uno · Llévalo a la grada · Te regalamos otro · Return to the Origins ·&nbsp;</span></div>
+
+  <section class="hg-sec">
+    <div class="hg-kicker">Cómo funciona</div>
+    <h2>Tres pasos. Sin trampa.</h2>
+    <ol class="hg-steps">
+      <li class="hg-step"><b>1</b><div><h3>Compra tu polo</h3><p>Cualquier polo de la web, a precio normal y sin códigos de descuento.</p></div></li>
+      <li class="hg-step"><b>2</b><div><h3>Llévalo a la grada</h3><p>Foto con el polo puesto en un estadio o en la previa. Súbela a tus redes con <code>@hoolsbrand</code> y <code>#HoolsEnLaGrada</code>.</p></div></li>
+      <li class="hg-step"><b>3</b><div><h3>Te mandamos otro</h3><p>Escríbenos por DM con tu número de pedido. Eliges modelo y talla, y te lo enviamos gratis.</p></div></li>
+    </ol>
+  </section>
+
+  <section class="hg-sec" style="padding-top:0">
+    <div class="hg-kicker">Elige el primero</div>
+    <h2>Los polos</h2>
+    <div class="hg-rail">
+      <a class="hg-polo" href="/products/the-classic"><img src="https://cdn.shopify.com/s/files/1/0988/6364/5011/files/hools-polo-terrace-negro-rayas-amarillas-lifestyle-hombre_jpg.jpg?v=1767896424&width=600" alt="The Classic" loading="lazy" width="600" height="750"><span>The Classic<small>Negro · detalles amarillos</small></span></a>
+      <a class="hg-polo" href="/products/rudeboy"><img src="https://cdn.shopify.com/s/files/1/0988/6364/5011/files/ska_rudeboy11_dc5f003e-5de1-45aa-874c-eff804862e11.jpg?v=1788420066&width=600" alt="The Rudeboy" loading="lazy" width="600" height="750"><span>The Rudeboy<small>Verde oliva · damero granate</small></span></a>
+      <a class="hg-polo" href="/products/boleyn"><img src="https://cdn.shopify.com/s/files/1/0988/6364/5011/files/terrace_bolyen11_02822141-5850-4ca6-906f-d9c2e04ff396.jpg?v=1788419945&width=600" alt="The Boleyn" loading="lazy" width="600" height="750"><span>The Boleyn<small>Celeste · claret and blue</small></span></a>
+      <a class="hg-polo" href="/products/tangerine"><img src="https://cdn.shopify.com/s/files/1/0988/6364/5011/files/terrace_tangerine12_ab373abc-5346-4b64-b221-e5cb9ebfee61.jpg?v=1788419934&width=600" alt="The Tangerine" loading="lazy" width="600" height="750"><span>The Tangerine<small>Verde oscuro · naranja</small></span></a>
+      <a class="hg-polo" href="/products/the-corner"><img src="https://cdn.shopify.com/s/files/1/0988/6364/5011/files/hools-polo-terrace-corner-azul-marino-modelo-detalle.png?v=1770660649&width=600" alt="The Corner" loading="lazy" width="600" height="750"><span>The Corner<small>Azul marino · rayas blancas</small></span></a>
+      <a class="hg-polo" href="/products/the-beat"><img src="https://cdn.shopify.com/s/files/1/0988/6364/5011/files/hools-polo-ska-the-beat-verde-frontal.png?v=1770671519&width=600" alt="The Beat" loading="lazy" width="600" height="750"><span>The Beat<small>Verde · cuadros ska</small></span></a>
+    </div>
+    <p class="hg-hint">Desliza para ver más &rarr; · Todos entran en la promo.</p>
+    <a class="hg-btn hg-btn--dark" href="/collections/productos">Ver todos los polos</a>
+  </section>
+
+  <section class="hg-sec hg-claim" id="reclamar">
+    <div class="hg-kicker">¿Ya tienes la foto?</div>
+    <h2>Reclama tu polo gratis</h2>
+    <p>Mándanos un mensaje directo a <strong>@hoolsbrand</strong> con:</p>
+    <ul>
+      <li>Tu número de pedido</li>
+      <li>El enlace a la foto (si es una story, una captura)</li>
+      <li>El modelo y la talla que quieres</li>
+    </ul>
+    <a class="hg-btn" href="https://ig.me/m/hoolsbrand" target="_blank" rel="noopener">Escribir a @hoolsbrand</a>
+    <p style="margin:14px 0 0;font-size:13px;color:#b9c6bf">¿Sin Instagram? Escríbenos desde <a href="/pages/contacto" style="color:#fff!important;border-bottom:1px solid var(--o)">contacto</a>.</p>
+  </section>
+
+  <section class="hg-small">
+    <h3>Lo que tienes que saber</h3>
+    <ul>
+      <li>Vale para pedidos en hoolsbrand.com con al menos un polo a precio completo y <strong>sin ningún código de descuento</strong>. No se acumula con otras promociones.</li>
+      <li>La foto tiene que ser en un estadio o en la previa de un partido, con el polo comprado puesto, en una cuenta pública y mencionando a @hoolsbrand.</li>
+      <li>Tienes <strong>30 días desde que recibes tu pedido</strong> para mandarnos la foto.</li>
+      <li>Un polo de regalo por pedido, a elegir modelo y talla según stock. Envío gratis a la misma dirección del pedido.</li>
+      <li>Si devuelves el polo comprado, el regalo deja de valer.</li>
+      <li>Al participar nos dejas compartir tu foto, siempre citándote.</li>
+      <li>Bases completas: <a href="/pages/bases-hools-en-la-grada">aquí</a>.</li>
+    </ul>
+    <div class="hg-sign">Return to the Origins</div>
+  </section>
+
+  <div class="hg-sticky">
+    <a class="hg-btn" href="/collections/productos">Elegir mi polo</a>
+    <a class="hg-btn hg-btn--ghost" href="#reclamar">Reclamar</a>
+  </div>
+
+</div>
