@@ -29,21 +29,24 @@
       "settings": {
         "image": "shopify://shop_images/hools-hero-ska_por-escritorio-1916x821.jpg",
         "image_mobile": "shopify://shop_images/hools-hero-ska_por-movil-169-1600x900.jpg",
-        "kicker": "RETURN TO THE ORIGINS",
-        "heading_line_1": "FÚTBOL OLD STYLE",
-        "heading_line_2": "",
-        "subtitle": "Súbete una foto con tu polo y te regalamos otro.",
-        "btn1_label": "VER LA COLECCIÓN",
-        "btn1_link": "shopify://collections/novedades",
-        "btn2_label": "2X1 EN LA GRADA",
-        "btn2_link": "shopify://pages/hools-en-la-grada",
+        "kicker": "2X1 · #HOOLSENLAGRADA",
+        "heading_line_1": "2X1 EN POLOS",
+        "heading_line_2": "EL SEGUNDO, GRATIS",
+        "subtitle": "Compra un polo, súbete una foto con él puesto y nómbranos. Te mandamos otro, envío incluido.",
+        "btn1_label": "QUIERO MI 2X1",
+        "btn1_link": "shopify://pages/hools-en-la-grada",
+        "btn2_label": "VER LOS POLOS",
+        "btn2_link": "shopify://collections/productos",
         "height_desktop": 82,
         "height_mobile": 78,
         "brightness": 70,
         "focus_desktop": "30% 15%",
         "focus_mobile": "50% 24%",
         "mobile_layout": "stacked",
-        "mobile_media_ratio": "16/9"
+        "mobile_media_ratio": "16/9",
+        "heading_size": "big",
+        "heading_line_2_gold": true,
+        "btn1_style": "gold"
       }
     },
     "hools_aviso": {
