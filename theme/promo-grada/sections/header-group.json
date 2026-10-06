@@ -1,0 +1,97 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
+{
+  "name": "t:sections.header.name",
+  "type": "header",
+  "sections": {
+    "announcement-bar": {
+      "type": "announcement-bar",
+      "blocks": {
+        "announcement-bar-0": {
+          "type": "announcement",
+          "disabled": true,
+          "settings": {
+            "text": "Return to the origins",
+            "link": ""
+          }
+        },
+        "announcement_7n7T6e": {
+          "type": "announcement",
+          "disabled": true,
+          "settings": {
+            "text": "not a fashion... it's an attitude",
+            "link": ""
+          }
+        },
+        "announcement_WcjHPX": {
+          "type": "announcement",
+          "settings": {
+            "text": "10% de descuento en la primera compra",
+            "link": ""
+          },
+          "disabled": true
+        },
+        "announcement_6mtxnk": {
+          "type": "announcement",
+          "settings": {
+            "text": "Envío gratis a partir de 69 euros",
+            "link": ""
+          }
+        },
+        "announcement_2x1grada": {
+          "type": "announcement",
+          "settings": {
+            "text": "2x1 · Sube tu polo y te regalamos otro →",
+            "link": "shopify://pages/hools-en-la-grada"
+          }
+        }
+      },
+      "block_order": [
+        "announcement_2x1grada",
+        "announcement-bar-0",
+        "announcement_7n7T6e",
+        "announcement_WcjHPX",
+        "announcement_6mtxnk"
+      ],
+      "settings": {
+        "auto_rotate": true,
+        "change_slides_speed": 5,
+        "color_scheme": "scheme-2",
+        "show_line_separator": false,
+        "show_social": true,
+        "enable_country_selector": true,
+        "enable_language_selector": true
+      }
+    },
+    "header": {
+      "type": "header",
+      "settings": {
+        "logo_position": "middle-center",
+        "mobile_logo_position": "center",
+        "menu": "customer-account-main-menu",
+        "menu_type_desktop": "drawer",
+        "sticky_header_type": "on-scroll-up",
+        "show_line_separator": true,
+        "color_scheme": "scheme-1",
+        "menu_color_scheme": "scheme-2",
+        "enable_country_selector": false,
+        "enable_language_selector": false,
+        "enable_customer_avatar": false,
+        "margin_bottom": 0,
+        "padding_top": 0,
+        "padding_bottom": 0
+      }
+    }
+  },
+  "order": [
+    "announcement-bar",
+    "header"
+  ]
+}
