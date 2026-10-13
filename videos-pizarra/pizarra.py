@@ -4,7 +4,9 @@ Una mano con rotulador dibuja trazos y escribe textos sobre un fondo blanco
 mientras una voz en off narra cada escena.
 
 Uso:  python3 pizarra.py guion_ww2 salida.mp4
-El guion es un módulo Python con una lista SCENES de dicts:
+       python3 pizarra.py guion_ww2 --check     (solo revisa el guion)
+El guion es un módulo Python con un HOOK (el gancho con el que arranca
+siempre el vídeo) y una lista SCENES, todos dicts:
     {"narration": str, "ops": [ops...]}
 Los ops se construyen con las funciones de dibujo de este módulo.
 """
@@ -503,7 +505,31 @@ def render(scenes, out_path):
     print("listo:", out_path, f"{timeline_t:.1f}s")
 
 
+# ---------------------------------------------------------------- gancho
+HOOK_MAX_WORDS = 60         # ≈ 25 s de voz a 140 palabras por minuto
+
+
+def check_hook(mod):
+    """Todo vídeo del canal empieza con un gancho: sin HOOK no se renderiza."""
+    hook = getattr(mod, "HOOK", None)
+    if not hook or not hook.get("narration", "").strip() or not hook.get("ops"):
+        sys.exit(f"{mod.__name__}: falta el HOOK (gancho inicial) con 'narration' y 'ops'.\n"
+                 "Todos los vídeos del canal arrancan con un gancho; mira guion_ww2.py y CLAUDE.md.")
+    narr = hook["narration"]
+    words = len(narr.split())
+    if words > HOOK_MAX_WORDS:
+        print(f"aviso: el gancho tiene {words} palabras (máx. recomendado {HOOK_MAX_WORDS}); "
+              "un gancho largo deja de enganchar", file=sys.stderr)
+    if "?" not in narr:
+        print("aviso: el gancho no lanza ninguna pregunta al espectador", file=sys.stderr)
+    return hook
+
+
 if __name__ == "__main__":
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     mod = importlib.import_module(sys.argv[1])
-    render(mod.SCENES, sys.argv[2])
+    hook = check_hook(mod)
+    if sys.argv[2] == "--check":
+        print(f"gancho OK ({len(hook['narration'].split())} palabras), {len(mod.SCENES)} escenas")
+    else:
+        render([hook] + mod.SCENES, sys.argv[2])

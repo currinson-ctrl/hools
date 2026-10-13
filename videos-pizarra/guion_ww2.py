@@ -6,6 +6,23 @@ def title(s, color=INK):
     return [text(640, 70, s, size=58, color=color)]
 
 
+# Gancho: lo primero que se oye. Situación de partida → final brutal y concreto
+# → pregunta que abre la intriga → "Esta es la historia de...".
+HOOK = {
+    "narration": "En septiembre de 1939, los tanques alemanes cruzaron la frontera de Polonia. "
+                 "Seis años después, entre sesenta y setenta millones de personas habían muerto, "
+                 "Europa estaba en ruinas y dos ciudades japonesas habían sido arrasadas por bombas atómicas. "
+                 "¿Cómo llegó el mundo a algo así? Esta es la historia de la Segunda Guerra Mundial.",
+    "ops": [text(230, 100, "1939", size=64)]
+    + tank(110, 250, 0.9)
+    + arrow((430, 250), (600, 250), color=RED, width=8)
+    + [text(810, 100, "1945", size=64, color=RED)]
+    + ruins(680, 330) + mushroom(1090, 330, color=RED)
+    + [text(640, 470, "60-70 millones de muertos", size=60, color=RED),
+       text(640, 600, "¿Cómo pudo pasar?", size=72, color=BLUE)]
+    + line((400, 668), (880, 668), color=BLUE, width=5),
+}
+
 SCENES = [
     {   # 1. Portada
         "narration": "La Segunda Guerra Mundial fue el conflicto más grande y más mortífero de la historia. "
