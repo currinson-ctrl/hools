@@ -109,26 +109,30 @@ const FALLBACK_PRODUCTS: NewsletterProduct[] = [
 // La foto es la de la prenda que toque esta semana, sin precio, porque la
 // oferta va sobre la coleccion entera y no sobre una prenda.
 //
-// Ojo: esto NO se apaga solo. La tienda no avisa de cuando acaba (el 2x1 se
-// aplica en el carrito, no es un precio tachado que se pueda leer), asi que
-// cuando termine hay que poner esto a null a mano. Con null el correo vuelve
+// Ojo: esto NO se apaga solo. El 2x1 de #HoolsEnLaGrada no es un descuento
+// de Shopify ni un precio tachado que se pueda leer: el polo de regalo se
+// reclama por DM con la foto (las condiciones estan en la pagina
+// /pages/hools-en-la-grada). Cuando termine hay que poner esto a null a mano. Con null el correo vuelve
 // a su forma de siempre: noticias y, al final, la prenda de la semana.
 const CURRENT_OFFER: {
   eyebrow: string;
   title: string;
   text: string;
+  /** Letra pequeña bajo el texto. Las condiciones que mas se incumplen. */
+  note: string;
   cta: string;
   /** Ruta de la tienda a la que lleva el boton. */
   path: string;
   /** Lo que se anuncia en el texto de vista previa. */
   preview: string;
 } | null = {
-  eyebrow: "Oferta vigente",
-  title: "2x1 en polos",
-  text: "Llévate dos polos y paga uno. Se aplica solo en el carrito, sin códigos.",
-  cta: "Ver los polos",
-  path: "/collections/productos",
-  preview: "2x1 en todos los polos",
+  eyebrow: "2x1 · #HoolsEnLaGrada",
+  title: "Tu polo, en la grada. El siguiente lo pagamos nosotros.",
+  text: "Compra un polo Hools, súbete una buena foto con él puesto y nómbranos. Si es en el estadio o en la previa, mejor. Te mandamos otro gratis, envío incluido.",
+  note: "Polo a precio completo y sin códigos de descuento. Tienes 30 días desde que recibes el pedido para mandarnos la foto.",
+  cta: "Cómo funciona",
+  path: "/pages/hools-en-la-grada",
+  preview: "2x1: sube tu foto con el polo y te regalamos otro",
 };
 
 // Cuantas cronicas lleva el correo. Con oferta, dos: la oferta va primero y
@@ -318,10 +322,11 @@ export async function buildWeeklyNewsletter(): Promise<WeeklyNewsletter | null> 
     <td style="padding:28px 32px 0 32px;">
       <div style="font-family:Arial, Helvetica, sans-serif; font-size:12px; color:#999999; letter-spacing:3px; text-transform:uppercase; padding-bottom:12px;">${escapeHtml(CURRENT_OFFER.eyebrow)}</div>
       <a href="${escapeHtml(offerUrl)}" style="text-decoration:none;">
-        <div style="font-family:Georgia, serif; font-size:30px; font-weight:bold; color:#111111; line-height:1.2; padding-bottom:14px;">${escapeHtml(CURRENT_OFFER.title)}</div>
+        <div style="font-family:Georgia, serif; font-size:28px; font-weight:bold; color:#111111; line-height:1.2; padding-bottom:14px;">${escapeHtml(CURRENT_OFFER.title)}</div>
         <img src="${escapeHtml(product.imageUrl)}" alt="${escapeHtml(`Polo ${product.title} de Hools`)}" width="536" style="width:100%; height:auto; display:block; border:0;">
       </a>
       <div style="font-family:Arial, Helvetica, sans-serif; font-size:15px; line-height:1.6; color:#111111; font-weight:bold; padding-top:12px;">${escapeHtml(CURRENT_OFFER.text)}</div>
+      <div style="font-family:Arial, Helvetica, sans-serif; font-size:12px; line-height:1.5; color:#777777; padding-top:8px;">${escapeHtml(CURRENT_OFFER.note)}</div>
       <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:14px;">
         <tr>
           <td style="background-color:#111111; padding:12px 28px;">
@@ -494,7 +499,7 @@ ${OPEN_TRACKING_BLOCK}
   return {
     // Con oferta, el asunto la nombra primero, igual que el correo.
     subject: CURRENT_OFFER
-      ? `${CURRENT_OFFER.title} — ${truncate(articles[0].title, 50)}`
+      ? `2x1 en polos — ${truncate(articles[0].title, 50)}`
       : `${truncate(articles[0].title, 60)} — la semana en The Away End`,
     // El texto de vista previa es lo que decide si el correo se abre, asi que
     // cuando hay oferta va por delante.
