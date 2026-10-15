@@ -1215,7 +1215,7 @@ export async function sendNewsletterTestAction(formData: FormData) {
 
   // El aviso del precio importa mas aqui que en la pantalla: quien recibe la
   // prueba se fia de lo que ve, y lo que ve puede llevar un precio viejo.
-  const aviso = newsletter.productFallback
+  const aviso = newsletter.productFallback && !newsletter.productIsOfferPhoto
     ? " Ojo: la prenda y su precio salen del catálogo de respaldo, no de la tienda."
     : "";
 

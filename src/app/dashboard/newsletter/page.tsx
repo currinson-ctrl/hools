@@ -32,7 +32,8 @@ export default async function NewsletterPage({
 
       <h1 style={{ fontSize: 18, marginBottom: 16 }}>Resumen semanal</h1>
 
-      {newsletter.productFallback && (
+      {/* Con oferta la prenda solo pone la foto, sin precio: no hay nada que comprobar. */}
+      {newsletter.productFallback && !newsletter.productIsOfferPhoto && (
         <div className="card" style={{ borderLeft: "4px solid #c0392b" }}>
           <h3>⚠ El precio de la prenda no viene de la tienda</h3>
           <p style={{ margin: "8px 0 0", fontSize: 14, lineHeight: 1.6 }}>
@@ -73,8 +74,9 @@ export default async function NewsletterPage({
           </li>
         </ol>
         <div className="meta" style={{ marginTop: 10 }}>
-          Contenido de esta semana: {newsletter.articleTitles.join(" · ")} — Prenda:{" "}
-          {newsletter.productTitle} (rota automáticamente cada semana)
+          Contenido de esta semana: {newsletter.articleTitles.join(" · ")} —{" "}
+          {newsletter.productIsOfferPhoto ? "Foto de la oferta" : "Prenda"}: {newsletter.productTitle} (rota
+          automáticamente cada semana)
         </div>
       </div>
 
