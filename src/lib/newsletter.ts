@@ -127,7 +127,7 @@ const CURRENT_OFFER: {
   preview: string;
 } | null = {
   eyebrow: "2x1 · #HoolsEnLaGrada",
-  title: "Tu polo, en la grada. El siguiente lo pagamos nosotros.",
+  title: "2x1 en polos. El siguiente lo pagamos nosotros.",
   text: "Compra un polo Hools, súbete una buena foto con él puesto y nómbranos. Si es en el estadio o en la previa, mejor. Te mandamos otro gratis, envío incluido.",
   note: "Polo a precio completo y sin códigos de descuento. Tienes 30 días desde que recibes el pedido para mandarnos la foto.",
   cta: "Cómo funciona",
