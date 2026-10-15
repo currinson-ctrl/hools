@@ -103,25 +103,37 @@ const FALLBACK_PRODUCTS: NewsletterProduct[] = [
   },
 ];
 
-// Prenda fijada a mano, por encima de la rotacion semanal. Existe para las
-// ofertas: una rebaja de verdad merece el hueco mas de una semana, y el copy
-// puede hablar de ella en vez del texto de siempre.
+// La oferta vigente. Mientras haya una, abre el correo —justo debajo de la
+// cabecera y antes de las noticias— y ocupa el hueco de la prenda de la
+// semana, que no sale: dos bloques de venta en un correo tan corto se pisan.
+// La foto es la de la prenda que toque esta semana, sin precio, porque la
+// oferta va sobre la coleccion entera y no sobre una prenda.
 //
-// Para volver a la rotacion normal basta con poner esto a null. Y aunque a
-// nadie se le ocurra, el correo no se queda anunciando una oferta muerta: el
-// copy de oferta solo se usa si la prenda sigue teniendo precio tachado (lo
-// dice la tienda), y si no, la seccion vuelve sola a su texto normal.
-const FEATURED_OVERRIDE: {
-  handle: string;
+// Ojo: esto NO se apaga solo. La tienda no avisa de cuando acaba (el 2x1 se
+// aplica en el carrito, no es un precio tachado que se pueda leer), asi que
+// cuando termine hay que poner esto a null a mano. Con null el correo vuelve
+// a su forma de siempre: noticias y, al final, la prenda de la semana.
+const CURRENT_OFFER: {
   eyebrow: string;
-  hook: string;
+  title: string;
+  text: string;
   cta: string;
+  /** Ruta de la tienda a la que lleva el boton. */
+  path: string;
+  /** Lo que se anuncia en el texto de vista previa. */
+  preview: string;
 } | null = {
-  handle: "the-classic",
-  eyebrow: "La prenda de la semana · Oferta",
-  hook: "El polo que más sale de casa. Esta semana, 15 € menos.",
-  cta: "Llévatelo por 50 €",
+  eyebrow: "Oferta vigente",
+  title: "2x1 en polos",
+  text: "Llévate dos polos y paga uno. Se aplica solo en el carrito, sin códigos.",
+  cta: "Ver los polos",
+  path: "/collections/productos",
+  preview: "2x1 en todos los polos",
 };
+
+// Cuantas cronicas lleva el correo. Con oferta, dos: la oferta va primero y
+// las noticias acompañan; sin ella, tres, como siempre.
+const ARTICLE_COUNT = CURRENT_OFFER ? 2 : 3;
 
 // Fotos de cabecera. Rotan por semana igual que la prenda: con una sola, la
 // cabecera es fija; añadiendo mas, va cambiando sin tocar nada mas.
@@ -184,8 +196,8 @@ const HEADER_IMAGES: Array<{ url: string; alt: string }> = [
 const UNSUBSCRIBE_LINK = "{{ unsubscribe_link }}";
 const OPEN_TRACKING_BLOCK = "{{ open_tracking_block }}";
 
-const DEFAULT_EYEBROW = "La prenda de la semana";
-const DEFAULT_CTA = "Ver en la tienda";
+const PRODUCT_EYEBROW = "La prenda de la semana";
+const PRODUCT_CTA = "Ver en la tienda";
 
 // Ojo al meter esto en un href: los & tienen que salir como &amp;, o el HTML
 // es invalido. Los navegadores y los clientes de correo lo perdonan, asi que
@@ -230,6 +242,8 @@ export interface WeeklyNewsletter {
   htmlFragment: string;
   articleTitles: string[];
   productTitle: string;
+  /** Si la prenda sale como foto de la oferta (sin precio) o como prenda de la semana. */
+  productIsOfferPhoto: boolean;
   /**
    * Motivo por el que la prenda (y su precio) salen del catalogo de respaldo
    * en vez de la tienda, o null si vienen de Shopify y estan al dia.
@@ -241,7 +255,7 @@ export async function buildWeeklyNewsletter(): Promise<WeeklyNewsletter | null> 
   const articles = await prisma.article.findMany({
     where: { status: "PUBLISHED", shopifyHandle: { not: null } },
     orderBy: { publishedAt: "desc" },
-    take: 3,
+    take: ARTICLE_COUNT,
   });
   if (!articles.length) return null;
 
@@ -258,20 +272,7 @@ export async function buildWeeklyNewsletter(): Promise<WeeklyNewsletter | null> 
     productFallback = error instanceof Error ? error.message : String(error);
     console.error("Newsletter: no se pudieron leer los productos de Shopify:", productFallback);
   }
-  // La prenda fijada gana a la rotacion, pero solo si sigue existiendo en el
-  // catalogo que se acaba de leer: si se retira de la tienda, el correo vuelve
-  // a la rotacion en vez de quedarse sin seccion.
-  const pinned = FEATURED_OVERRIDE
-    ? products.find((p) => p.handle === FEATURED_OVERRIDE.handle)
-    : undefined;
-  const product = pinned || products[isoWeek(new Date()) % products.length];
-
-  // El copy de oferta solo se usa si la prenda esta rebajada de verdad. Si la
-  // rebaja termina, esto se apaga solo y la seccion vuelve a su texto normal,
-  // en vez de anunciar un descuento que ya no existe.
-  const promo = pinned && product.priceBefore ? FEATURED_OVERRIDE : null;
-  const eyebrow = promo ? promo.eyebrow : DEFAULT_EYEBROW;
-  const cta = promo ? promo.cta : DEFAULT_CTA;
+  const product = products[isoWeek(new Date()) % products.length];
 
   // Misma rotacion semanal que la prenda. Si algun dia la lista se queda
   // vacia, la cabecera se queda sin foto pero el correo sigue saliendo: mejor
@@ -307,6 +308,76 @@ export async function buildWeeklyNewsletter(): Promise<WeeklyNewsletter | null> 
     .join("\n");
 
   const productUrl = `https://${publicDomain}/products/${product.handle}?${UTM}`;
+
+  const offerBlock = CURRENT_OFFER
+    ? (() => {
+        const offerUrl = `https://${publicDomain}${CURRENT_OFFER.path}?${UTM}`;
+        return `
+  <!-- OFERTA VIGENTE: lo primero despues de la cabecera. -->
+  <tr>
+    <td style="padding:28px 32px 0 32px;">
+      <div style="font-family:Arial, Helvetica, sans-serif; font-size:12px; color:#999999; letter-spacing:3px; text-transform:uppercase; padding-bottom:12px;">${escapeHtml(CURRENT_OFFER.eyebrow)}</div>
+      <a href="${escapeHtml(offerUrl)}" style="text-decoration:none;">
+        <div style="font-family:Georgia, serif; font-size:30px; font-weight:bold; color:#111111; line-height:1.2; padding-bottom:14px;">${escapeHtml(CURRENT_OFFER.title)}</div>
+        <img src="${escapeHtml(product.imageUrl)}" alt="${escapeHtml(`Polo ${product.title} de Hools`)}" width="536" style="width:100%; height:auto; display:block; border:0;">
+      </a>
+      <div style="font-family:Arial, Helvetica, sans-serif; font-size:15px; line-height:1.6; color:#111111; font-weight:bold; padding-top:12px;">${escapeHtml(CURRENT_OFFER.text)}</div>
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:14px;">
+        <tr>
+          <td style="background-color:#111111; padding:12px 28px;">
+            <a href="${escapeHtml(offerUrl)}" style="font-family:Arial, Helvetica, sans-serif; font-size:14px; font-weight:bold; color:#ffffff; text-decoration:none; letter-spacing:1px; text-transform:uppercase;">${escapeHtml(CURRENT_OFFER.cta)}</a>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+
+  <!-- SEPARADOR -->
+  <tr>
+    <td style="padding:32px 32px 0 32px;">
+      <div style="border-top:2px solid #111111;"></div>
+    </td>
+  </tr>
+`;
+      })()
+    : "";
+
+  // Sin oferta, la prenda de la semana cierra el correo, despues de las
+  // noticias. Con oferta no sale (ver CURRENT_OFFER).
+  const productBlock = CURRENT_OFFER
+    ? ""
+    : `
+  <!-- SEPARADOR -->
+  <tr>
+    <td style="padding:32px 32px 0 32px;">
+      <div style="border-top:2px solid #111111;"></div>
+    </td>
+  </tr>
+
+  <!-- PRODUCTO -->
+  <tr>
+    <td style="padding:24px 32px 0 32px;">
+      <div style="font-family:Arial, Helvetica, sans-serif; font-size:12px; color:#999999; letter-spacing:3px; text-transform:uppercase; padding-bottom:12px;">${escapeHtml(PRODUCT_EYEBROW)}</div>
+      <a href="${escapeHtml(productUrl)}" style="text-decoration:none;">
+        <img src="${escapeHtml(product.imageUrl)}" alt="${escapeHtml(product.title)}" width="536" style="width:100%; height:auto; display:block; border:0;">
+        <div style="font-family:Georgia, serif; font-size:22px; font-weight:bold; color:#111111; padding-top:12px;">${escapeHtml(product.title)}</div>
+      </a>
+      <div style="font-family:Arial, Helvetica, sans-serif; font-size:14px; line-height:1.6; color:#555555; padding-top:6px;">${escapeHtml(product.blurb)}</div>
+      <div style="font-family:Arial, Helvetica, sans-serif; font-size:16px; font-weight:bold; color:#111111; padding-top:8px;">${
+        product.priceBefore
+          ? `<span style="color:#999999; font-weight:normal; text-decoration:line-through;">${escapeHtml(product.priceBefore)}</span>&nbsp;&nbsp;`
+          : ""
+      }${escapeHtml(product.price)}</div>
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:14px;">
+        <tr>
+          <td style="background-color:#111111; padding:12px 28px;">
+            <a href="${escapeHtml(productUrl)}" style="font-family:Arial, Helvetica, sans-serif; font-size:14px; font-weight:bold; color:#ffffff; text-decoration:none; letter-spacing:1px; text-transform:uppercase;">${escapeHtml(PRODUCT_CTA)}</a>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+`;
 
   // El correo se entrega de dos maneras, porque la herramienta de envio
   // admite las dos y no sirve la misma:
@@ -368,48 +439,17 @@ export async function buildWeeklyNewsletter(): Promise<WeeklyNewsletter | null> 
     </td>
   </tr>
 
+${offerBlock}
   <!-- INTRO -->
   <tr>
     <td style="padding:28px 32px 8px 32px; font-family:Arial, Helvetica, sans-serif; font-size:15px; line-height:1.6; color:#333333;">
       <div style="font-size:11px; color:#999999; letter-spacing:3px; text-transform:uppercase; padding-bottom:10px;">El resumen semanal</div>
-      Lo que ha pasado esta semana en las gradas — y una prenda de la casa.
+      ${CURRENT_OFFER ? "Lo que ha pasado esta semana en las gradas." : "Lo que ha pasado esta semana en las gradas — y una prenda de la casa."}
     </td>
   </tr>
 
 ${articleBlocks}
-
-  <!-- SEPARADOR -->
-  <tr>
-    <td style="padding:32px 32px 0 32px;">
-      <div style="border-top:2px solid #111111;"></div>
-    </td>
-  </tr>
-
-  <!-- PRODUCTO -->
-  <tr>
-    <td style="padding:24px 32px 0 32px;">
-      <div style="font-family:Arial, Helvetica, sans-serif; font-size:12px; color:#999999; letter-spacing:3px; text-transform:uppercase; padding-bottom:12px;">${escapeHtml(eyebrow)}</div>
-      <a href="${escapeHtml(productUrl)}" style="text-decoration:none;">
-        <img src="${escapeHtml(product.imageUrl)}" alt="${escapeHtml(product.title)}" width="536" style="width:100%; height:auto; display:block; border:0;">
-        <div style="font-family:Georgia, serif; font-size:22px; font-weight:bold; color:#111111; padding-top:12px;">${escapeHtml(product.title)}</div>
-      </a>
-      <div style="font-family:Arial, Helvetica, sans-serif; font-size:14px; line-height:1.6; color:#555555; padding-top:6px;">${escapeHtml(product.blurb)}</div>
-      ${promo ? `<div style="font-family:Arial, Helvetica, sans-serif; font-size:14px; line-height:1.6; color:#111111; font-weight:bold; padding-top:8px;">${escapeHtml(promo.hook)}</div>` : ""}
-      <div style="font-family:Arial, Helvetica, sans-serif; font-size:16px; font-weight:bold; color:#111111; padding-top:8px;">${
-        product.priceBefore
-          ? `<span style="color:#999999; font-weight:normal; text-decoration:line-through;">${escapeHtml(product.priceBefore)}</span>&nbsp;&nbsp;`
-          : ""
-      }${escapeHtml(product.price)}</div>
-      <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:14px;">
-        <tr>
-          <td style="background-color:#111111; padding:12px 28px;">
-            <a href="${escapeHtml(productUrl)}" style="font-family:Arial, Helvetica, sans-serif; font-size:14px; font-weight:bold; color:#ffffff; text-decoration:none; letter-spacing:1px; text-transform:uppercase;">${escapeHtml(cta)}</a>
-          </td>
-        </tr>
-      </table>
-    </td>
-  </tr>
-
+${productBlock}
   <!-- PIE -->
   <tr>
     <td style="padding:36px 32px 28px 32px; text-align:center;">
@@ -452,16 +492,20 @@ ${OPEN_TRACKING_BLOCK}
   const htmlFragment = buildBody(false).trim();
 
   return {
-    subject: `${truncate(articles[0].title, 60)} — la semana en The Away End`,
+    // Con oferta, el asunto la nombra primero, igual que el correo.
+    subject: CURRENT_OFFER
+      ? `${CURRENT_OFFER.title} — ${truncate(articles[0].title, 50)}`
+      : `${truncate(articles[0].title, 60)} — la semana en The Away End`,
     // El texto de vista previa es lo que decide si el correo se abre, asi que
-    // cuando hay oferta la anuncia ahi, con el precio que manda la tienda.
-    previewText: promo
-      ? `3 crónicas de las gradas + ${product.title} rebajado a ${product.price}`
-      : "3 crónicas de las gradas + la prenda de la semana",
+    // cuando hay oferta va por delante.
+    previewText: CURRENT_OFFER
+      ? `${CURRENT_OFFER.preview} + ${articles.length === 1 ? "1 crónica" : `${articles.length} crónicas`} de las gradas`
+      : `${articles.length === 1 ? "1 crónica" : `${articles.length} crónicas`} de las gradas + la prenda de la semana`,
     html,
     htmlFragment,
     articleTitles: articles.map((a) => a.title),
     productTitle: product.title,
+    productIsOfferPhoto: Boolean(CURRENT_OFFER),
     productFallback,
   };
 }
