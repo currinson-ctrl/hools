@@ -272,6 +272,45 @@ bloque `schedule` que quedó comentado en el propio fichero. Ojo: los cron de
 GitHub Actions se ejecutan con retraso (en este repo iban entre 1 y 2 horas
 tarde), así que «cada 3 horas» nunca fue una hora fija.
 
+## Canciones de «Aprende con Carlota»
+
+Aparte del blog, el panel tiene un generador de canciones infantiles para el
+canal de YouTube **Aprende con Carlota**: pestaña **«Canciones Carlota»**
+(`/dashboard/canciones`).
+
+1. Escribe un tema («los colores», «lavarse las manos»…) o déjalo vacío y
+   Claude elige uno que no se haya usado todavía.
+2. **Claude** escribe una canción original en español de España para niños
+   de 2 a 5 años: versos cortos, estribillo que se repite, onomatopeyas y
+   gestos para imitar, y Carlota en la letra. También propone el título y la
+   descripción para YouTube.
+3. Si está puesta `ELEVENLABS_API_KEY`, **ElevenLabs Music** la canta con esa
+   letra exacta, sección a sección, sobre un estilo común a todo el canal
+   (ukelele, xilófono, palmas y voz femenina alegre). El MP3 se escucha y se
+   descarga desde la misma página.
+
+Si la música falla (sin créditos, clave mal puesta…), la letra se guarda
+igual y la música se vuelve a pedir con el botón «Generar música». «Otra
+versión de la música» saca otra toma de la misma letra, porque cada toma
+sale distinta.
+
+**Por qué ElevenLabs y no Suno:** Suno no tiene API oficial. Para quien
+prefiera Suno a mano, cada canción trae la letra completa y el estilo listos
+para pegar (desplegable «Para el vídeo»).
+
+**Coste:** la letra cuesta unos céntimos por canción. La música va con los
+créditos del plan de ElevenLabs: hace falta un plan de pago para usar la
+música comercialmente en YouTube. Revisa sus condiciones antes de monetizar.
+
+### Configurar ElevenLabs
+
+1. Crea una cuenta en https://elevenlabs.io y elige un plan que incluya
+   **Music** con uso comercial.
+2. Perfil → **API Keys** → crea una clave con permiso de **Music**.
+3. Ponla como `ELEVENLABS_API_KEY` en las variables de entorno de Vercel y
+   vuelve a desplegar. (Opcional: `ELEVENLABS_MUSIC_MODEL` para usar otro
+   modelo de música; por defecto `music_v1`.)
+
 ## Variables de entorno
 
 Ver `.env.example` para la lista completa. Las que requieren configuración
