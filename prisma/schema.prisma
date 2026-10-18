@@ -143,27 +143,3 @@ model SkippedItem {
 
   @@index([createdAt])
 }
-
-/// Canciones infantiles para el canal «Aprende con Carlota» (/dashboard/canciones).
-/// No tienen nada que ver con el blog: comparten panel y base por comodidad.
-model Song {
-  id                 String   @id @default(cuid())
-  topic              String
-  title              String
-  /// Letra por secciones: [{ name: "Estribillo", lines: ["...", "..."] }, ...]
-  sections           Json
-  /// Etiquetas de estilo musical (en ingles), separadas por comas.
-  styles             String
-  youtubeTitle       String
-  youtubeDescription String
-  /// MP3 generado por ElevenLabs. Va en la base porque en Vercel no hay disco
-  /// persistente; una cancion de 1-2 minutos ocupa unos 2 MB.
-  audio              Bytes?
-  /// Para saber si hay audio sin tener que cargar los megas de `audio`.
-  hasAudio           Boolean  @default(false)
-  /// Por que fallo la ultima vez que se pidio la musica, si fallo.
-  audioError         String?
-  createdAt          DateTime @default(now())
-
-  @@index([createdAt])
-}
