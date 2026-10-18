@@ -30,9 +30,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <Link className="tab" href="/dashboard/newsletter">
             Newsletter
           </Link>
-          <Link className="tab" href="/dashboard/canciones">
-            Canciones Carlota
-          </Link>
         </nav>
         <form action="/api/logout" method="POST">
           <button type="submit">Salir</button>
