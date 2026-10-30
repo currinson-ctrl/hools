@@ -15,17 +15,16 @@ polvo, vaivén del fotograma y un destello en cada cambio de escena.
 Colores y letras de la marca: verde `#213B2E`, dorado `#CCB229`, crema,
 Source Serif 4 y Mulish (las de la web) y Abril Fatface para las pancartas.
 
-## Vídeos hechos
+## Vídeo hecho
 
-- `avionetas_hools_9x16.mp4`: vertical 1080×1920, para Reels, TikTok y stories.
-- `avionetas_hools_16x9.mp4`: horizontal 1920×1080, para YouTube y la web.
+`avionetas_hools_9x16.mp4`: vertical 1080×1920, para Reels, TikTok y stories.
 
 ## Volver a generarlo
 
 ```bash
 python3 avionetas.py                       # vertical
-python3 avionetas.py --formato 16:9        # horizontal
-python3 avionetas.py --logo logo.png       # con el logo de verdad (PNG transparente)
+python3 avionetas.py --formato 16:9        # horizontal, solo si hace falta
+python3 avionetas.py --logo otro.png       # con otro logo (PNG transparente)
 python3 avionetas.py --musica tema.mp3     # con música, fundida al final
 python3 avionetas.py --fotograma 7         # solo un PNG del segundo 7, para revisar
 ```
