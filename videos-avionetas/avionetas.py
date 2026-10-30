@@ -26,6 +26,7 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 FUENTES = os.path.join(AQUI, "fuentes")
+LOGO = os.path.join(AQUI, "logo_hools.png")  # se usa solo si existe; si no, logo de texto
 FPS = 30
 
 # Colores de la marca (los mismos que la web y el blog)
@@ -834,14 +835,22 @@ class Video:
         self.tela_final = pancarta_img(pw, ph, None, "2x1 EN POLOS", None, colores=("dorado",))
         self.papel = fondo_papel(lay)
         H = lay["H"]
+        if logo is None and os.path.exists(LOGO):
+            logo = LOGO
         if logo:
             lg = Image.open(logo).convert("RGBA")
-            ancho = 0.62 * W if lay["vertical"] else 0.36 * W
+            ancho = 0.62 * W if lay["vertical"] else 0.30 * W
             lg = lg.resize((int(ancho), int(lg.height * ancho / lg.width)), Image.LANCZOS)
-            self.logo = lg
+            # sombra verde desplazada, como la del «2x1», para que destaque sobre el crema
+            d = int(6 * u)
+            sombra = Image.new("RGBA", lg.size, VERDE + (0,))
+            sombra.putalpha(lg.getchannel("A"))
+            self.logo = Image.new("RGBA", (lg.width + d, lg.height + d), (0, 0, 0, 0))
+            self.logo.alpha_composite(sombra, (d, d))
+            self.logo.alpha_composite(lg)
         else:
             self.logo = logo_tipografico(150 * u, u)
-        tam_2x1 = (430 if lay["vertical"] else 380) * u
+        tam_2x1 = (430 if lay["vertical"] else 320) * u
         self.img_2x1 = texto_img("2x1", fuente("display", tam_2x1), DORADO, sombra=VERDE, desplaz=10 * u)
         self.img_polos = texto_img("en polos", fuente("serif", 120 * u), VERDE)
         self.img_tag = texto_img("#HOOLSENLAGRADA", fuente("sans", 34 * u), TINTA, espacio=6 * u)
@@ -899,9 +908,9 @@ class Video:
                 xv = self._vuelo_x(te, T, self.tela_final)
                 dibuja_vuelo(frame, self.avion, self.tela_final, te + 3, xv, (0.15 if lay["vertical"] else 0.15) * H, lay)
             if lay["vertical"]:
-                pos = dict(logo=0.33, x2=0.53, polos=0.665, tag=0.80, web=0.84)
+                pos = dict(logo=0.305, x2=0.53, polos=0.665, tag=0.80, web=0.84)
             else:
-                pos = dict(logo=0.36, x2=0.60, polos=0.79, tag=0.885, web=0.925)
+                pos = dict(logo=0.25, x2=0.53, polos=0.75, tag=0.87, web=0.915)
             sello(frame, self.logo, W / 2, pos["logo"] * H, te, 0.5)
             sello(frame, self.img_2x1, W / 2, pos["x2"] * H, te, 1.0)
             sello(frame, self.img_polos, W / 2, pos["polos"] * H, te, 1.35)
@@ -924,7 +933,7 @@ def main():
     ap = argparse.ArgumentParser(description="Vídeo «Avionetas Hools» del 2x1 en polos")
     ap.add_argument("--formato", choices=["9:16", "16:9"], default="9:16")
     ap.add_argument("--salida", help="ruta del MP4 (por defecto avionetas_hools_<formato>.mp4 junto al script)")
-    ap.add_argument("--logo", help="PNG del logo con fondo transparente para el cierre")
+    ap.add_argument("--logo", help="PNG del logo con fondo transparente (por defecto logo_hools.png)")
     ap.add_argument("--musica", help="audio para ponerle de fondo")
     ap.add_argument("--fotograma", type=float, help="guarda solo el PNG de ese segundo")
     args = ap.parse_args()
